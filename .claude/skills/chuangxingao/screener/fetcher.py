@@ -1,13 +1,35 @@
+import os
 import time
 from datetime import datetime, timedelta
 
 import akshare as ak
 import pandas as pd
+import requests
+
+# 东方财富是境内服务，绕过系统代理直连
+for _key in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"):
+    os.environ.pop(_key, None)
+os.environ["NO_PROXY"] = "*"
+
+_original_init = requests.Session.__init__
+
+
+def _patched_init(self, *args, **kwargs):
+    _original_init(self, *args, **kwargs)
+    self.trust_env = False
+
+
+requests.Session.__init__ = _patched_init
 
 
 def get_all_stocks_today() -> pd.DataFrame:
-    df = ak.stock_zh_a_spot_em()
-    if df.empty:
+    try:
+        df = ak.stock_zh_a_spot_em()
+    except Exception as e:
+        print(f"获取行情数据失败: {e}")
+        return pd.DataFrame(columns=["code", "name", "close"])
+
+    if df is None or df.empty:
         return pd.DataFrame(columns=["code", "name", "close"])
 
     result = df[["代码", "名称", "最新价"]].copy()
