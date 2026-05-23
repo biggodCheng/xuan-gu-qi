@@ -1,89 +1,112 @@
+import json
 import os
-import socket
 import time
 from datetime import datetime, timedelta
-from urllib.request import getproxies
 
-import akshare as ak
 import pandas as pd
 import requests
 
+# 清除代理，直连新浪财经
+for _key in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"):
+    os.environ.pop(_key, None)
+os.environ["NO_PROXY"] = "*"
 
-def _check_proxy_available(proxy_url: str) -> bool:
-    """检测代理是否可用（尝试连接代理端口）。"""
-    try:
-        from urllib.parse import urlparse
-        parsed = urlparse(proxy_url)
-        host = parsed.hostname or "127.0.0.1"
-        port = parsed.port or 7897
-        with socket.create_connection((host, port), timeout=2):
-            return True
-    except (OSError, socket.timeout):
-        return False
-
-
-# 检测系统代理，可用则保留，不可用则清除避免连接失败
-_system_proxies = getproxies()
-_proxy_url = _system_proxies.get("https") or _system_proxies.get("http")
-
-if _proxy_url and _check_proxy_available(_proxy_url):
-    _original_init = requests.Session.__init__
-
-    def _patched_init(self, *args, **kwargs):
-        _original_init(self, *args, **kwargs)
-        self.proxies = {"http": _proxy_url, "https": _proxy_url}
-
-    requests.Session.__init__ = _patched_init
-else:
-    # 代理不可用，清除环境变量和系统代理，走直连
-    for _key in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"):
-        os.environ.pop(_key, None)
-    os.environ["NO_PROXY"] = "*"
-    _original_init = requests.Session.__init__
-
-    def _patched_init(self, *args, **kwargs):
-        _original_init(self, *args, **kwargs)
-        self.trust_env = False
-
-    requests.Session.__init__ = _patched_init
+_session = requests.Session()
+_session.trust_env = False
 
 
 def get_all_stocks_today() -> pd.DataFrame:
-    try:
-        df = ak.stock_zh_a_spot_em()
-    except Exception as e:
-        print(f"获取行情数据失败: {e}")
+    """获取全 A 股当日行情（新浪财经数据源）。
+
+    Returns:
+        DataFrame，列名：code, name, close
+    """
+    all_stocks = []
+    page = 1
+    per_page = 80
+
+    while True:
+        try:
+            url = (
+                "https://vip.stock.finance.sina.com.cn/quotes_service/api/"
+                "json_v2.php/Market_Center.getHQNodeData"
+            )
+            params = {
+                "page": page,
+                "num": per_page,
+                "sort": "symbol",
+                "asc": 1,
+                "node": "hs_a",
+                "_s_r_a": "auto",
+            }
+            r = _session.get(url, params=params, timeout=15)
+            data = r.json()
+
+            if not data:
+                break
+
+            for item in data:
+                try:
+                    close_price = float(item.get("trade", 0))
+                    if close_price <= 0:
+                        continue
+                    code = item["code"]
+                    name = item["name"]
+                    all_stocks.append(
+                        {"code": code, "name": name, "close": close_price}
+                    )
+                except (ValueError, KeyError):
+                    continue
+
+            page += 1
+            time.sleep(0.3)
+
+        except Exception as e:
+            print(f"获取行情第 {page} 页失败: {e}")
+            break
+
+    if not all_stocks:
         return pd.DataFrame(columns=["code", "name", "close"])
 
-    if df is None or df.empty:
-        return pd.DataFrame(columns=["code", "name", "close"])
-
-    result = df[["代码", "名称", "最新价"]].copy()
-    result.columns = ["code", "name", "close"]
-    result = result[result["close"] > 0]
-    result = result.reset_index(drop=True)
-    return result
+    return pd.DataFrame(all_stocks).reset_index(drop=True)
 
 
 def get_stock_history(
-    code: str, days: int = 120, exclude_last: bool = False, retries: int = 3
+    code: str, days: int = 100, exclude_last: bool = False, retries: int = 3
 ) -> list[float]:
-    end_date = datetime.now().strftime("%Y%m%d")
-    start_date = (datetime.now() - timedelta(days=days)).strftime("%Y%m%d")
+    """获取单只股票的历史收盘价（新浪财经数据源）。
+
+    Args:
+        code: 股票代码（纯数字，如 600000）
+        days: 获取最近多少个交易日的数据
+        exclude_last: 是否排除最后一个交易日
+        retries: 重试次数
+
+    Returns:
+        收盘价列表，按时间正序。失败返回空列表。
+    """
+    prefix = _get_prefix(code)
+    symbol = f"{prefix}{code}"
 
     for attempt in range(retries):
         try:
-            df = ak.stock_zh_a_hist(
-                symbol=code,
-                period="daily",
-                start_date=start_date,
-                end_date=end_date,
-                adjust="qfq",
+            url = (
+                "https://money.finance.sina.com.cn/quotes_service/api/"
+                "json_v2.php/CN_MarketData.getKLineData"
             )
-            if df.empty:
+            params = {
+                "symbol": symbol,
+                "scale": 240,
+                "ma": "no",
+                "datalen": days,
+            }
+            r = _session.get(url, params=params, timeout=15)
+            data = r.json()
+
+            if not data:
                 return []
 
-            closes = df["收盘"].tolist()
+            closes = [float(item["close"]) for item in data]
             if exclude_last and len(closes) > 1:
                 closes = closes[:-1]
             return closes
@@ -94,3 +117,10 @@ def get_stock_history(
             continue
 
     return []
+
+
+def _get_prefix(code: str) -> str:
+    """根据股票代码判断市场前缀（sh/sz）。"""
+    if code.startswith("6"):
+        return "sh"
+    return "sz"
