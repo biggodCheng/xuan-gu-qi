@@ -98,7 +98,7 @@ def get_stock_history(
                 "symbol": symbol,
                 "scale": 240,
                 "ma": "no",
-                "datalen": days,
+                "datalen": days + 10,
             }
             r = _session.get(url, params=params, timeout=15)
             data = r.json()
@@ -120,7 +120,9 @@ def get_stock_history(
 
 
 def _get_prefix(code: str) -> str:
-    """根据股票代码判断市场前缀（sh/sz）。"""
+    """根据股票代码判断市场前缀（sh/sz/bj）。"""
     if code.startswith("6"):
         return "sh"
+    if code.startswith(("4", "8", "92")):
+        return "bj"
     return "sz"
