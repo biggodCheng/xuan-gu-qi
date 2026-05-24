@@ -50,8 +50,10 @@ def get_all_stocks_today() -> pd.DataFrame:
                     close_price = float(item.get("trade", 0))
                     if close_price <= 0:
                         continue
-                    code = item["code"]
                     name = item["name"]
+                    if name.startswith("ST") or name.startswith("*ST") or name.startswith("N"):
+                        continue
+                    code = item["code"]
                     all_stocks.append(
                         {"code": code, "name": name, "close": close_price}
                     )
