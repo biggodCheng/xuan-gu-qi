@@ -1,0 +1,706 @@
+{
+  "date": "2026-05-24",
+  "source": "zt_2026-05-24.json",
+  "description": "涨停股中市值小于200亿的股票",
+  "threshold_yi": 200,
+  "total_input": 184,
+  "count": 116,
+  "stocks": [
+    {
+      "code": "600303",
+      "name": "曙光股份",
+      "close": 3.83,
+      "market_cap_yi": 26.18
+    },
+    {
+      "code": "300305",
+      "name": "裕兴股份",
+      "close": 6.99,
+      "market_cap_yi": 26.24
+    },
+    {
+      "code": "001366",
+      "name": "播恩集团",
+      "close": 16.51,
+      "market_cap_yi": 26.53
+    },
+    {
+      "code": "300163",
+      "name": "先锋新材",
+      "close": 5.64,
+      "market_cap_yi": 26.73
+    },
+    {
+      "code": "688096",
+      "name": "京源环保",
+      "close": 12.69,
+      "market_cap_yi": 29.95
+    },
+    {
+      "code": "300935",
+      "name": "盈建科",
+      "close": 42.58,
+      "market_cap_yi": 33.82
+    },
+    {
+      "code": "603976",
+      "name": "正川股份",
+      "close": 24.2,
+      "market_cap_yi": 36.59
+    },
+    {
+      "code": "300710",
+      "name": "万隆光电",
+      "close": 37.55,
+      "market_cap_yi": 37.36
+    },
+    {
+      "code": "688619",
+      "name": "罗普特",
+      "close": 20.45,
+      "market_cap_yi": 37.92
+    },
+    {
+      "code": "688129",
+      "name": "东来技术",
+      "close": 32.0,
+      "market_cap_yi": 38.55
+    },
+    {
+      "code": "300907",
+      "name": "康平科技",
+      "close": 41.11,
+      "market_cap_yi": 39.47
+    },
+    {
+      "code": "300410",
+      "name": "正业科技",
+      "close": 10.94,
+      "market_cap_yi": 40.16
+    },
+    {
+      "code": "300730",
+      "name": "科创信息",
+      "close": 16.74,
+      "market_cap_yi": 40.37
+    },
+    {
+      "code": "300225",
+      "name": "*ST金泰",
+      "close": 8.53,
+      "market_cap_yi": 40.55
+    },
+    {
+      "code": "003004",
+      "name": "声迅股份",
+      "close": 49.8,
+      "market_cap_yi": 40.77
+    },
+    {
+      "code": "002442",
+      "name": "龙星科技",
+      "close": 8.11,
+      "market_cap_yi": 40.82
+    },
+    {
+      "code": "300948",
+      "name": "冠中生态",
+      "close": 26.88,
+      "market_cap_yi": 43.22
+    },
+    {
+      "code": "688669",
+      "name": "聚石化学",
+      "close": 36.91,
+      "market_cap_yi": 44.78
+    },
+    {
+      "code": "605500",
+      "name": "森林包装",
+      "close": 10.88,
+      "market_cap_yi": 45.09
+    },
+    {
+      "code": "301081",
+      "name": "严牌股份",
+      "close": 21.15,
+      "market_cap_yi": 48.17
+    },
+    {
+      "code": "301111",
+      "name": "粤万年青",
+      "close": 30.13,
+      "market_cap_yi": 48.21
+    },
+    {
+      "code": "001326",
+      "name": "联域股份",
+      "close": 67.64,
+      "market_cap_yi": 49.51
+    },
+    {
+      "code": "002952",
+      "name": "亚世光电",
+      "close": 30.69,
+      "market_cap_yi": 50.44
+    },
+    {
+      "code": "300955",
+      "name": "嘉亨家化",
+      "close": 50.7,
+      "market_cap_yi": 51.11
+    },
+    {
+      "code": "605303",
+      "name": "园林股份",
+      "close": 31.9,
+      "market_cap_yi": 51.43
+    },
+    {
+      "code": "688458",
+      "name": "美芯晟",
+      "close": 47.49,
+      "market_cap_yi": 52.97
+    },
+    {
+      "code": "603373",
+      "name": "安邦护卫",
+      "close": 50.15,
+      "market_cap_yi": 53.92
+    },
+    {
+      "code": "300243",
+      "name": "瑞丰高材",
+      "close": 20.87,
+      "market_cap_yi": 56.53
+    },
+    {
+      "code": "001266",
+      "name": "宏英智能",
+      "close": 55.55,
+      "market_cap_yi": 57.57
+    },
+    {
+      "code": "002823",
+      "name": "凯中精密",
+      "close": 17.69,
+      "market_cap_yi": 58.09
+    },
+    {
+      "code": "603439",
+      "name": "三力制药",
+      "close": 14.29,
+      "market_cap_yi": 58.44
+    },
+    {
+      "code": "300069",
+      "name": "金利华电",
+      "close": 52.87,
+      "market_cap_yi": 61.86
+    },
+    {
+      "code": "603790",
+      "name": "雅运股份",
+      "close": 32.88,
+      "market_cap_yi": 62.92
+    },
+    {
+      "code": "300221",
+      "name": "银禧科技",
+      "close": 13.38,
+      "market_cap_yi": 63.39
+    },
+    {
+      "code": "301045",
+      "name": "天禄科技",
+      "close": 58.97,
+      "market_cap_yi": 65.05
+    },
+    {
+      "code": "605018",
+      "name": "长华集团",
+      "close": 14.06,
+      "market_cap_yi": 66.09
+    },
+    {
+      "code": "300939",
+      "name": "秋田微",
+      "close": 56.96,
+      "market_cap_yi": 68.35
+    },
+    {
+      "code": "603380",
+      "name": "易德龙",
+      "close": 43.12,
+      "market_cap_yi": 69.18
+    },
+    {
+      "code": "688419",
+      "name": "耐科装备",
+      "close": 60.44,
+      "market_cap_yi": 69.24
+    },
+    {
+      "code": "688360",
+      "name": "德马科技",
+      "close": 26.81,
+      "market_cap_yi": 70.71
+    },
+    {
+      "code": "300936",
+      "name": "中英科技",
+      "close": 94.27,
+      "market_cap_yi": 70.89
+    },
+    {
+      "code": "603269",
+      "name": "海鸥股份",
+      "close": 23.1,
+      "market_cap_yi": 71.32
+    },
+    {
+      "code": "600400",
+      "name": "红豆股份",
+      "close": 3.16,
+      "market_cap_yi": 72.41
+    },
+    {
+      "code": "688323",
+      "name": "瑞华泰",
+      "close": 40.6,
+      "market_cap_yi": 73.08
+    },
+    {
+      "code": "300964",
+      "name": "本川智能",
+      "close": 96.68,
+      "market_cap_yi": 73.79
+    },
+    {
+      "code": "603311",
+      "name": "金海高科",
+      "close": 31.46,
+      "market_cap_yi": 74.21
+    },
+    {
+      "code": "001332",
+      "name": "锡装股份",
+      "close": 67.19,
+      "market_cap_yi": 74.24
+    },
+    {
+      "code": "300553",
+      "name": "集智股份",
+      "close": 67.26,
+      "market_cap_yi": 74.67
+    },
+    {
+      "code": "688010",
+      "name": "福光股份",
+      "close": 46.75,
+      "market_cap_yi": 75.06
+    },
+    {
+      "code": "301176",
+      "name": "逸豪新材",
+      "close": 46.47,
+      "market_cap_yi": 78.57
+    },
+    {
+      "code": "688512",
+      "name": "慧智微",
+      "close": 16.87,
+      "market_cap_yi": 78.76
+    },
+    {
+      "code": "000417",
+      "name": "合百集团",
+      "close": 10.24,
+      "market_cap_yi": 79.86
+    },
+    {
+      "code": "688170",
+      "name": "德龙激光",
+      "close": 78.7,
+      "market_cap_yi": 81.34
+    },
+    {
+      "code": "300943",
+      "name": "春晖智控",
+      "close": 40.11,
+      "market_cap_yi": 81.75
+    },
+    {
+      "code": "300174",
+      "name": "元力股份",
+      "close": 22.92,
+      "market_cap_yi": 83.48
+    },
+    {
+      "code": "603285",
+      "name": "键邦股份",
+      "close": 53.38,
+      "market_cap_yi": 85.41
+    },
+    {
+      "code": "600714",
+      "name": "金瑞矿业",
+      "close": 29.87,
+      "market_cap_yi": 86.08
+    },
+    {
+      "code": "688260",
+      "name": "昀冢科技",
+      "close": 72.71,
+      "market_cap_yi": 87.25
+    },
+    {
+      "code": "300259",
+      "name": "新天科技",
+      "close": 7.47,
+      "market_cap_yi": 87.38
+    },
+    {
+      "code": "300586",
+      "name": "美联新材",
+      "close": 12.37,
+      "market_cap_yi": 87.98
+    },
+    {
+      "code": "301182",
+      "name": "凯旺科技",
+      "close": 92.87,
+      "market_cap_yi": 88.99
+    },
+    {
+      "code": "002708",
+      "name": "光洋股份",
+      "close": 15.98,
+      "market_cap_yi": 89.82
+    },
+    {
+      "code": "603867",
+      "name": "新化股份",
+      "close": 42.15,
+      "market_cap_yi": 91.67
+    },
+    {
+      "code": "002421",
+      "name": "达实智能",
+      "close": 4.36,
+      "market_cap_yi": 92.46
+    },
+    {
+      "code": "688079",
+      "name": "美迪凯",
+      "close": 23.1,
+      "market_cap_yi": 95.06
+    },
+    {
+      "code": "301013",
+      "name": "利和兴",
+      "close": 42.84,
+      "market_cap_yi": 100.14
+    },
+    {
+      "code": "688805",
+      "name": "健信超导",
+      "close": 60.66,
+      "market_cap_yi": 101.71
+    },
+    {
+      "code": "002585",
+      "name": "双星新材",
+      "close": 8.98,
+      "market_cap_yi": 102.49
+    },
+    {
+      "code": "603890",
+      "name": "春秋电子",
+      "close": 22.97,
+      "market_cap_yi": 102.63
+    },
+    {
+      "code": "000026",
+      "name": "飞亚达",
+      "close": 25.55,
+      "market_cap_yi": 103.67
+    },
+    {
+      "code": "688381",
+      "name": "帝奥微",
+      "close": 43.95,
+      "market_cap_yi": 108.78
+    },
+    {
+      "code": "603931",
+      "name": "格林达",
+      "close": 54.65,
+      "market_cap_yi": 109.06
+    },
+    {
+      "code": "003036",
+      "name": "泰坦股份",
+      "close": 50.89,
+      "market_cap_yi": 110.07
+    },
+    {
+      "code": "603989",
+      "name": "艾华集团",
+      "close": 28.42,
+      "market_cap_yi": 113.33
+    },
+    {
+      "code": "002741",
+      "name": "光华科技",
+      "close": 25.36,
+      "market_cap_yi": 117.93
+    },
+    {
+      "code": "600903",
+      "name": "贵州燃气",
+      "close": 10.42,
+      "market_cap_yi": 119.83
+    },
+    {
+      "code": "300731",
+      "name": "科创新源",
+      "close": 96.0,
+      "market_cap_yi": 121.57
+    },
+    {
+      "code": "002380",
+      "name": "科远智慧",
+      "close": 50.66,
+      "market_cap_yi": 121.58
+    },
+    {
+      "code": "002635",
+      "name": "安洁科技",
+      "close": 18.9,
+      "market_cap_yi": 124.68
+    },
+    {
+      "code": "300868",
+      "name": "杰美特",
+      "close": 98.1,
+      "market_cap_yi": 125.52
+    },
+    {
+      "code": "603800",
+      "name": "洪田股份",
+      "close": 62.62,
+      "market_cap_yi": 130.25
+    },
+    {
+      "code": "301188",
+      "name": "力诺药包",
+      "close": 49.15,
+      "market_cap_yi": 131.49
+    },
+    {
+      "code": "688378",
+      "name": "奥来德",
+      "close": 50.9,
+      "market_cap_yi": 133.07
+    },
+    {
+      "code": "688231",
+      "name": "隆达股份",
+      "close": 53.94,
+      "market_cap_yi": 133.15
+    },
+    {
+      "code": "605168",
+      "name": "三人行",
+      "close": 63.59,
+      "market_cap_yi": 134.06
+    },
+    {
+      "code": "688359",
+      "name": "三孚新科",
+      "close": 136.65,
+      "market_cap_yi": 134.94
+    },
+    {
+      "code": "002254",
+      "name": "泰和新材",
+      "close": 15.93,
+      "market_cap_yi": 136.53
+    },
+    {
+      "code": "301021",
+      "name": "英诺激光",
+      "close": 89.98,
+      "market_cap_yi": 137.55
+    },
+    {
+      "code": "300790",
+      "name": "宇瞳光学",
+      "close": 36.85,
+      "market_cap_yi": 137.86
+    },
+    {
+      "code": "688610",
+      "name": "埃科光电",
+      "close": 205.0,
+      "market_cap_yi": 139.4
+    },
+    {
+      "code": "688371",
+      "name": "菲沃泰",
+      "close": 41.9,
+      "market_cap_yi": 140.56
+    },
+    {
+      "code": "600611",
+      "name": "大众交通",
+      "close": 6.13,
+      "market_cap_yi": 144.92
+    },
+    {
+      "code": "688507",
+      "name": "索辰科技",
+      "close": 162.91,
+      "market_cap_yi": 145.17
+    },
+    {
+      "code": "002885",
+      "name": "京泉华",
+      "close": 53.71,
+      "market_cap_yi": 145.51
+    },
+    {
+      "code": "603936",
+      "name": "博敏电子",
+      "close": 22.59,
+      "market_cap_yi": 145.78
+    },
+    {
+      "code": "002169",
+      "name": "智光电气",
+      "close": 18.87,
+      "market_cap_yi": 147.7
+    },
+    {
+      "code": "300959",
+      "name": "线上线下",
+      "close": 185.3,
+      "market_cap_yi": 148.92
+    },
+    {
+      "code": "002297",
+      "name": "博云新材",
+      "close": 26.58,
+      "market_cap_yi": 152.33
+    },
+    {
+      "code": "300863",
+      "name": "卡倍亿",
+      "close": 81.8,
+      "market_cap_yi": 153.93
+    },
+    {
+      "code": "002552",
+      "name": "宝鼎科技",
+      "close": 39.82,
+      "market_cap_yi": 154.5
+    },
+    {
+      "code": "688059",
+      "name": "华锐精密",
+      "close": 155.38,
+      "market_cap_yi": 155.36
+    },
+    {
+      "code": "603626",
+      "name": "科森科技",
+      "close": 28.06,
+      "market_cap_yi": 155.7
+    },
+    {
+      "code": "300179",
+      "name": "四方达",
+      "close": 32.42,
+      "market_cap_yi": 157.47
+    },
+    {
+      "code": "600888",
+      "name": "新疆众和",
+      "close": 10.31,
+      "market_cap_yi": 160.12
+    },
+    {
+      "code": "300835",
+      "name": "龙磁科技",
+      "close": 141.83,
+      "market_cap_yi": 169.13
+    },
+    {
+      "code": "600552",
+      "name": "凯盛科技",
+      "close": 18.55,
+      "market_cap_yi": 175.22
+    },
+    {
+      "code": "301031",
+      "name": "中熔电气",
+      "close": 178.33,
+      "market_cap_yi": 176.26
+    },
+    {
+      "code": "300201",
+      "name": "海伦哲",
+      "close": 18.34,
+      "market_cap_yi": 185.06
+    },
+    {
+      "code": "300489",
+      "name": "光智科技",
+      "close": 135.0,
+      "market_cap_yi": 187.86
+    },
+    {
+      "code": "002993",
+      "name": "奥海科技",
+      "close": 68.22,
+      "market_cap_yi": 188.31
+    },
+    {
+      "code": "688686",
+      "name": "奥普特",
+      "close": 154.27,
+      "market_cap_yi": 188.57
+    },
+    {
+      "code": "688625",
+      "name": "呈和科技",
+      "close": 100.48,
+      "market_cap_yi": 189.22
+    },
+    {
+      "code": "002158",
+      "name": "汉钟精机",
+      "close": 35.75,
+      "market_cap_yi": 191.16
+    },
+    {
+      "code": "688055",
+      "name": "龙腾光电",
+      "close": 5.82,
+      "market_cap_yi": 194.0
+    },
+    {
+      "code": "301123",
+      "name": "奕东电子",
+      "close": 82.7,
+      "market_cap_yi": 194.05
+    },
+    {
+      "code": "603186",
+      "name": "华正新材",
+      "close": 123.84,
+      "market_cap_yi": 194.17
+    }
+  ]
+}
