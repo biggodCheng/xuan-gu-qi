@@ -1,0 +1,16 @@
+{
+  "date": "2026-06-09",
+  "source": "slhc_2026-06-09.json",
+  "description": "涨停股中市值小于200亿的股票",
+  "threshold_yi": 200,
+  "total_input": 1,
+  "count": 1,
+  "stocks": [
+    {
+      "code": "603608",
+      "name": "天创时尚",
+      "close": 21.47,
+      "market_cap_yi": 90.12
+    }
+  ]
+}

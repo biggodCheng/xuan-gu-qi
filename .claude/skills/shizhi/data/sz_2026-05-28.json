@@ -1,0 +1,142 @@
+{
+  "date": "2026-05-28",
+  "source": "2026-05-28.json",
+  "description": "涨停股中市值小于200亿的股票",
+  "threshold_yi": 200,
+  "total_input": 41,
+  "count": 22,
+  "stocks": [
+    {
+      "code": "920339",
+      "name": "恒太照明",
+      "close": 14.04,
+      "market_cap_yi": 30.92
+    },
+    {
+      "code": "920971",
+      "name": "天马新材",
+      "close": 39.3,
+      "market_cap_yi": 41.3
+    },
+    {
+      "code": "603458",
+      "name": "勘设股份",
+      "close": 14.0,
+      "market_cap_yi": 42.86
+    },
+    {
+      "code": "920012",
+      "name": "创达新材",
+      "close": 87.81,
+      "market_cap_yi": 43.31
+    },
+    {
+      "code": "920725",
+      "name": "惠丰钻石",
+      "close": 48.25,
+      "market_cap_yi": 44.04
+    },
+    {
+      "code": "603527",
+      "name": "众源新材",
+      "close": 14.49,
+      "market_cap_yi": 45.93
+    },
+    {
+      "code": "603439",
+      "name": "三力制药",
+      "close": 14.8,
+      "market_cap_yi": 60.52
+    },
+    {
+      "code": "603032",
+      "name": "德新科技",
+      "close": 27.69,
+      "market_cap_yi": 64.58
+    },
+    {
+      "code": "601177",
+      "name": "杭齿前进",
+      "close": 18.57,
+      "market_cap_yi": 75.71
+    },
+    {
+      "code": "600162",
+      "name": "香江控股",
+      "close": 2.54,
+      "market_cap_yi": 83.02
+    },
+    {
+      "code": "600207",
+      "name": "安彩高科",
+      "close": 8.08,
+      "market_cap_yi": 88.02
+    },
+    {
+      "code": "603353",
+      "name": "和顺石油",
+      "close": 56.78,
+      "market_cap_yi": 97.61
+    },
+    {
+      "code": "600367",
+      "name": "红星发展",
+      "close": 33.22,
+      "market_cap_yi": 113.32
+    },
+    {
+      "code": "600360",
+      "name": "华微电子",
+      "close": 12.28,
+      "market_cap_yi": 117.92
+    },
+    {
+      "code": "603303",
+      "name": "得邦照明",
+      "close": 26.16,
+      "market_cap_yi": 124.77
+    },
+    {
+      "code": "600545",
+      "name": "卓郎智能",
+      "close": 7.61,
+      "market_cap_yi": 136.06
+    },
+    {
+      "code": "603267",
+      "name": "鸿远电子",
+      "close": 70.06,
+      "market_cap_yi": 161.9
+    },
+    {
+      "code": "601101",
+      "name": "昊华能源",
+      "close": 11.79,
+      "market_cap_yi": 169.78
+    },
+    {
+      "code": "600888",
+      "name": "新疆众和",
+      "close": 12.05,
+      "market_cap_yi": 187.15
+    },
+    {
+      "code": "603203",
+      "name": "快克智能",
+      "close": 75.0,
+      "market_cap_yi": 190.4
+    },
+    {
+      "code": "603002",
+      "name": "宏昌电子",
+      "close": 17.42,
+      "market_cap_yi": 197.56
+    },
+    {
+      "code": "600110",
+      "name": "诺德股份",
+      "close": 11.51,
+      "market_cap_yi": 199.72
+    }
+  ]
+}

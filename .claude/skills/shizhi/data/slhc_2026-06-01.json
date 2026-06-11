@@ -1,0 +1,31 @@
+{
+  "date": "2026-06-01",
+  "source": "zt_2026-06-01.json",
+  "description": "缩量回踩（策略1：成交量递减+价格回落）",
+  "strategy": "shrinking_volume",
+  "count": 2,
+  "stocks": [
+    {
+      "code": "603637",
+      "name": "镇海股份",
+      "last_zt_date": "2026-04-22",
+      "last_zt_close": 16.8,
+      "last_zt_pct": 10.02,
+      "current_close": 19.94,
+      "pullback_start_date": "2026-04-24",
+      "pullback_days": 3,
+      "volume_shrink_ratio": 0.3898
+    },
+    {
+      "code": "603800",
+      "name": "洪田股份",
+      "last_zt_date": "2026-05-22",
+      "last_zt_close": 62.62,
+      "last_zt_pct": 9.99,
+      "current_close": 70.99,
+      "pullback_start_date": "2026-05-27",
+      "pullback_days": 2,
+      "volume_shrink_ratio": 0.6148
+    }
+  ]
+}

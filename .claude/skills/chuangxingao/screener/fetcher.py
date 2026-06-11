@@ -76,7 +76,9 @@ def get_all_stocks_today() -> pd.DataFrame:
 def get_stock_history(
     code: str, days: int = 100, exclude_last: bool = False, retries: int = 3
 ) -> list[float]:
-    """获取单只股票的历史收盘价（新浪财经数据源）。
+    """获取单只股票的历史收盘价。
+
+    优先使用腾讯财经 API，失败时回退到新浪 API。
 
     Args:
         code: 股票代码（纯数字，如 600000）
@@ -87,6 +89,20 @@ def get_stock_history(
     Returns:
         收盘价列表，按时间正序。失败返回空列表。
     """
+    # 优先腾讯 API
+    for attempt in range(retries):
+        try:
+            closes = _fetch_tencent_closes(code, days)
+            if closes:
+                if exclude_last and len(closes) > 1:
+                    closes = closes[:-1]
+                return closes
+        except Exception:
+            pass
+        if attempt < retries - 1:
+            time.sleep(0.5)
+
+    # 回退新浪 API
     prefix = _get_prefix(code)
     symbol = f"{prefix}{code}"
 
@@ -119,6 +135,36 @@ def get_stock_history(
             continue
 
     return []
+
+
+def _fetch_tencent_closes(code: str, days: int) -> list[float]:
+    """通过腾讯财经 API 获取历史收盘价。"""
+    symbol = _get_tencent_symbol(code)
+    start_date = (datetime.now() - timedelta(days=days * 2 + 60)).strftime("%Y-%m-%d")
+    url = "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get"
+    params = {
+        "param": f"{symbol},day,{start_date},,{days + 10},qfq",
+    }
+    r = _session.get(url, params=params, timeout=15)
+    data = r.json()
+    if data.get("code") != 0:
+        return []
+
+    stock_data = data.get("data", {}).get(symbol, {})
+    day_data = stock_data.get("qfqday", []) or stock_data.get("day", [])
+    if not day_data:
+        return []
+
+    return [float(item[2]) for item in day_data]
+
+
+def _get_tencent_symbol(code: str) -> str:
+    """腾讯 API 的代码格式: sh600000, sz000001, bj920001。"""
+    if code.startswith("6"):
+        return f"sh{code}"
+    if code.startswith(("4", "8", "92")):
+        return f"bj{code}"
+    return f"sz{code}"
 
 
 def _get_prefix(code: str) -> str:

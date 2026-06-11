@@ -115,7 +115,7 @@ def strategy_single_day(
         after_zt: 涨停日之后的K线数据
         zt_volume: 涨停日成交量
         zt_close: 涨停日收盘价
-        volume_ratio: 相对涨停日成交量的比例（默认0.5）
+        volume_ratio: 相对涨停日成交量的比例（默认0.7）
     """
     if not after_zt or zt_volume <= 0:
         return None

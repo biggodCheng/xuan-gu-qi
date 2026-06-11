@@ -1,0 +1,75 @@
+{
+  "date": "2026-06-03",
+  "source": "zt_2026-06-03.json",
+  "description": "缩量回踩（策略1：成交量递减+价格回落）",
+  "strategy": "shrinking_volume",
+  "count": 6,
+  "stocks": [
+    {
+      "code": "920981",
+      "name": "晶赛科技",
+      "last_zt_date": "2026-04-22",
+      "last_zt_close": 42.34,
+      "last_zt_pct": 30.0,
+      "current_close": 43.87,
+      "pullback_start_date": "2026-04-23",
+      "pullback_days": 2,
+      "volume_shrink_ratio": 0.7068
+    },
+    {
+      "code": "603001",
+      "name": "奥康国际",
+      "last_zt_date": "2026-05-25",
+      "last_zt_close": 10.66,
+      "last_zt_pct": 10.01,
+      "current_close": 10.83,
+      "pullback_start_date": "2026-05-27",
+      "pullback_days": 2,
+      "volume_shrink_ratio": 0.5748
+    },
+    {
+      "code": "300715",
+      "name": "凯伦股份",
+      "last_zt_date": "2026-05-14",
+      "last_zt_close": 18.24,
+      "last_zt_pct": 20.0,
+      "current_close": 25.67,
+      "pullback_start_date": "2026-05-15",
+      "pullback_days": 2,
+      "volume_shrink_ratio": 0.7867
+    },
+    {
+      "code": "603608",
+      "name": "天创时尚",
+      "last_zt_date": "2026-05-26",
+      "last_zt_close": 19.11,
+      "last_zt_pct": 10.02,
+      "current_close": 19.9,
+      "pullback_start_date": "2026-05-27",
+      "pullback_days": 2,
+      "volume_shrink_ratio": 0.5421
+    },
+    {
+      "code": "603800",
+      "name": "洪田股份",
+      "last_zt_date": "2026-05-22",
+      "last_zt_close": 62.62,
+      "last_zt_pct": 9.99,
+      "current_close": 75.87,
+      "pullback_start_date": "2026-05-27",
+      "pullback_days": 2,
+      "volume_shrink_ratio": 0.6148
+    },
+    {
+      "code": "600172",
+      "name": "黄河旋风",
+      "last_zt_date": "2026-05-28",
+      "last_zt_close": 14.6,
+      "last_zt_pct": 10.02,
+      "current_close": 15.04,
+      "pullback_start_date": "2026-05-29",
+      "pullback_days": 2,
+      "volume_shrink_ratio": 0.6214
+    }
+  ]
+}

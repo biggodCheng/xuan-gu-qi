@@ -17,7 +17,7 @@ def save_results(
     result = {
         "date": date_str,
         "source": source_filename,
-        "description": "最近1个月内有涨停（涨幅>=9.5%）",
+        "description": "最近15天内有涨停（主板>=9.5%, 科创板/创业板>=19.5%, 北交所>=29.5%）",
         "count": len(stocks),
         "stocks": stocks,
     }

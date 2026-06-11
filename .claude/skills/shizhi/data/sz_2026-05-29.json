@@ -1,0 +1,58 @@
+{
+  "date": "2026-05-29",
+  "source": "2026-05-29.json",
+  "description": "涨停股中市值小于200亿的股票",
+  "threshold_yi": 200,
+  "total_input": 24,
+  "count": 8,
+  "stocks": [
+    {
+      "code": "920725",
+      "name": "惠丰钻石",
+      "close": 52.3,
+      "market_cap_yi": 47.74
+    },
+    {
+      "code": "920161",
+      "name": "龙辰科技",
+      "close": 45.8,
+      "market_cap_yi": 62.29
+    },
+    {
+      "code": "601588",
+      "name": "北辰实业",
+      "close": 2.11,
+      "market_cap_yi": 71.04
+    },
+    {
+      "code": "600162",
+      "name": "香江控股",
+      "close": 2.79,
+      "market_cap_yi": 91.19
+    },
+    {
+      "code": "600508",
+      "name": "上海能源",
+      "close": 14.31,
+      "market_cap_yi": 103.42
+    },
+    {
+      "code": "603075",
+      "name": "热威股份",
+      "close": 28.17,
+      "market_cap_yi": 113.38
+    },
+    {
+      "code": "600545",
+      "name": "卓郎智能",
+      "close": 7.88,
+      "market_cap_yi": 140.89
+    },
+    {
+      "code": "601101",
+      "name": "昊华能源",
+      "close": 12.06,
+      "market_cap_yi": 173.66
+    }
+  ]
+}

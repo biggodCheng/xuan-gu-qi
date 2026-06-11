@@ -1,0 +1,21 @@
+{
+  "date": "2026-06-11",
+  "source": "zt_2026-06-11.json",
+  "description": "缩量回踩（策略1：成交量递减+价格回落）",
+  "strategy": "shrinking_volume",
+  "count": 1,
+  "stocks": [
+    {
+      "code": "002955",
+      "name": "鸿合科技",
+      "last_zt_date": "2026-06-01",
+      "last_zt_close": 25.36,
+      "last_zt_pct": 10.02,
+      "current_close": 30.73,
+      "pullback_start_date": "2026-06-02",
+      "pullback_days": 2,
+      "volume_shrink_ratio": 0.5011,
+      "close": 30.73
+    }
+  ]
+}

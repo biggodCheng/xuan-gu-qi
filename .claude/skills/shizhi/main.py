@@ -33,7 +33,8 @@ def run_filter(json_path: str, threshold_yi: int = 200) -> bool:
     )
     print(f"源文件共 {len(stocks)} 只股票，开始获取全市场市值数据...", flush=True)
 
-    cap_map = get_market_cap_map()
+    codes = [s["code"] for s in stocks]
+    cap_map = get_market_cap_map(codes)
     print(f"获取到 {len(cap_map)} 只股票的市值数据", flush=True)
 
     threshold_wan = threshold_yi / WAN_TO_YI

@@ -1,0 +1,33 @@
+{
+  "date": "2026-06-10",
+  "source": "zt_2026-06-10.json",
+  "description": "缩量回踩（策略1：成交量递减+价格回落）",
+  "strategy": "shrinking_volume",
+  "count": 2,
+  "stocks": [
+    {
+      "code": "600353",
+      "name": "旭光电子",
+      "last_zt_date": "2026-06-04",
+      "last_zt_close": 26.44,
+      "last_zt_pct": 9.98,
+      "current_close": 27.22,
+      "pullback_start_date": "2026-06-05",
+      "pullback_days": 2,
+      "volume_shrink_ratio": 0.7685,
+      "close": 27.22
+    },
+    {
+      "code": "603608",
+      "name": "天创时尚",
+      "last_zt_date": "2026-05-26",
+      "last_zt_close": 19.11,
+      "last_zt_pct": 10.02,
+      "current_close": 22.81,
+      "pullback_start_date": "2026-05-27",
+      "pullback_days": 2,
+      "volume_shrink_ratio": 0.5421,
+      "close": 22.81
+    }
+  ]
+}

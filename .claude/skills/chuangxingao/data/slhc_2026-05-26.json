@@ -1,0 +1,163 @@
+{
+  "date": "2026-05-26",
+  "source": "zt_2026-05-26.json",
+  "description": "缩量回踩（策略3：单日缩量回踩）",
+  "strategy": "single_day",
+  "count": 14,
+  "stocks": [
+    {
+      "code": "920179",
+      "name": "凯德石英",
+      "last_zt_date": "2026-05-20",
+      "last_zt_close": 69.5,
+      "last_zt_pct": 17.14,
+      "current_close": 71.59,
+      "pullback_start_date": "2026-05-21",
+      "pullback_days": 1,
+      "volume_shrink_ratio": 0.695
+    },
+    {
+      "code": "600552",
+      "name": "凯盛科技",
+      "last_zt_date": "2026-04-17",
+      "last_zt_close": 15.02,
+      "last_zt_pct": 10.04,
+      "current_close": 20.03,
+      "pullback_start_date": "2026-04-21",
+      "pullback_days": 1,
+      "volume_shrink_ratio": 0.6951
+    },
+    {
+      "code": "603012",
+      "name": "创力集团",
+      "last_zt_date": "2026-05-08",
+      "last_zt_close": 9.55,
+      "last_zt_pct": 10.02,
+      "current_close": 10.32,
+      "pullback_start_date": "2026-05-14",
+      "pullback_days": 1,
+      "volume_shrink_ratio": 0.5475
+    },
+    {
+      "code": "603637",
+      "name": "镇海股份",
+      "last_zt_date": "2026-04-22",
+      "last_zt_close": 16.8,
+      "last_zt_pct": 10.02,
+      "current_close": 19.04,
+      "pullback_start_date": "2026-04-27",
+      "pullback_days": 1,
+      "volume_shrink_ratio": 0.5341
+    },
+    {
+      "code": "605018",
+      "name": "长华集团",
+      "last_zt_date": "2026-04-07",
+      "last_zt_close": 11.99,
+      "last_zt_pct": 10.0,
+      "current_close": 14.71,
+      "pullback_start_date": "2026-04-09",
+      "pullback_days": 1,
+      "volume_shrink_ratio": 0.5694
+    },
+    {
+      "code": "688008",
+      "name": "澜起科技",
+      "last_zt_date": "2026-05-11",
+      "last_zt_close": 249.22,
+      "last_zt_pct": 18.52,
+      "current_close": 284.08,
+      "pullback_start_date": "2026-05-19",
+      "pullback_days": 1,
+      "volume_shrink_ratio": 0.6263
+    },
+    {
+      "code": "688081",
+      "name": "兴图新科",
+      "last_zt_date": "2026-04-13",
+      "last_zt_close": 49.92,
+      "last_zt_pct": 20.0,
+      "current_close": 61.85,
+      "pullback_start_date": "2026-04-15",
+      "pullback_days": 1,
+      "volume_shrink_ratio": 0.6044
+    },
+    {
+      "code": "688337",
+      "name": "普源精电",
+      "last_zt_date": "2026-04-17",
+      "last_zt_close": 62.9,
+      "last_zt_pct": 9.85,
+      "current_close": 67.94,
+      "pullback_start_date": "2026-04-30",
+      "pullback_days": 1,
+      "volume_shrink_ratio": 0.604
+    },
+    {
+      "code": "688378",
+      "name": "奥来德",
+      "last_zt_date": "2026-04-27",
+      "last_zt_close": 43.65,
+      "last_zt_pct": 10.42,
+      "current_close": 52.15,
+      "pullback_start_date": "2026-04-28",
+      "pullback_days": 1,
+      "volume_shrink_ratio": 0.6265
+    },
+    {
+      "code": "688381",
+      "name": "帝奥微",
+      "last_zt_date": "2026-04-27",
+      "last_zt_close": 35.21,
+      "last_zt_pct": 20.01,
+      "current_close": 47.35,
+      "pullback_start_date": "2026-04-29",
+      "pullback_days": 1,
+      "volume_shrink_ratio": 0.5976
+    },
+    {
+      "code": "688433",
+      "name": "XD华曙高",
+      "last_zt_date": "2026-05-11",
+      "last_zt_close": 93.58,
+      "last_zt_pct": 13.2,
+      "current_close": 109.5,
+      "pullback_start_date": "2026-05-12",
+      "pullback_days": 1,
+      "volume_shrink_ratio": 0.6375
+    },
+    {
+      "code": "688456",
+      "name": "有研粉材",
+      "last_zt_date": "2026-04-27",
+      "last_zt_close": 64.42,
+      "last_zt_pct": 9.97,
+      "current_close": 89.6,
+      "pullback_start_date": "2026-04-28",
+      "pullback_days": 1,
+      "volume_shrink_ratio": 0.522
+    },
+    {
+      "code": "688484",
+      "name": "南芯科技",
+      "last_zt_date": "2026-05-07",
+      "last_zt_close": 43.88,
+      "last_zt_pct": 11.77,
+      "current_close": 49.29,
+      "pullback_start_date": "2026-05-08",
+      "pullback_days": 1,
+      "volume_shrink_ratio": 0.6782
+    },
+    {
+      "code": "688629",
+      "name": "华丰科技",
+      "last_zt_date": "2026-05-19",
+      "last_zt_close": 147.24,
+      "last_zt_pct": 11.71,
+      "current_close": 153.92,
+      "pullback_start_date": "2026-05-20",
+      "pullback_days": 1,
+      "volume_shrink_ratio": 0.6875
+    }
+  ]
+}

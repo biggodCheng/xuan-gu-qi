@@ -129,7 +129,7 @@ def main():
         params["ma_days"] = args.ma_days
         params["volume_ratio"] = args.volume_ratio
     elif args.strategy == "3":
-        params["volume_ratio"] = args.volume_ratio if args.volume_ratio != 0.6 else 0.5
+        params["volume_ratio"] = args.volume_ratio if args.volume_ratio != 0.6 else 0.7
 
     success = run_filter(args.json_path, args.strategy, params)
     sys.exit(0 if success else 1)
