@@ -26,11 +26,19 @@ description: 主线板块筛选器 — 从A股概念板块中选出趋势上涨�
 
 2. 如果用户指定了数量，提取为 `--top` 参数。
 
-3. **检查是否已有当天数据**：如果 `data/zx_YYYY-MM-DD.json` 已存在，提示用户"今日数据已存在"，询问是否使用 `--force` 覆盖。用户确认后再执行。
-
-4. 运行筛选脚本：
+3. **🔴 CHECKPOINT · 检查是否已有当天数据**：
    ```bash
+   ls .claude/skills/zhuxian/data/zx_$(date +%Y-%m-%d).json 2>/dev/null
+   ```
+   - 若**已存在**：🛑 STOP — 提示用户"今日数据已存在"，询问是否用 `--force` 覆盖（重跑约 1-2 分钟）。**用户确认前不要进入步骤 4**。
+   - 若**不存在**：继续步骤 4。
+
+4. 运行筛选脚本（依步骤 3 结果选择命令）：
+   ```bash
+   # 首次运行（当天无数据）：
    cd .claude/skills/zhuxian && python main.py --top <N>
+   # 用户确认覆盖已有数据时，追加 --force：
+   cd .claude/skills/zhuxian && python main.py --top <N> --force
    ```
 
 5. 脚本会：
