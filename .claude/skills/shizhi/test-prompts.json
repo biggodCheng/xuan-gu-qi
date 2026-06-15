@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "scenario": "happy-自然语言阈值",
+    "prompt": "从涨停股里筛市值50亿以下的，文件用 .claude/skills/chuangxingao/data/zt_2026-06-15.json",
+    "expected": "从'50亿以下'提取 threshold=50，执行 python main.py <路径> --threshold 50，展示命中数+市值范围+前10只(代码/名称/市值)"
+  },
+  {
+    "id": 2,
+    "scenario": "默认阈值-不给数值",
+    "prompt": "帮我筛小盘股，文件用 .claude/skills/chuangxingao/data/zt_2026-06-15.json",
+    "expected": "不给阈值时使用默认值200亿，执行 --threshold 200"
+  }
+]

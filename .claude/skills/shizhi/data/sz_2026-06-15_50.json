@@ -1,0 +1,52 @@
+{
+  "date": "2026-06-15",
+  "source": "zt_2026-06-15.json",
+  "description": "涨停股中市值小于50亿的股票",
+  "threshold_yi": 50,
+  "total_input": 97,
+  "count": 7,
+  "stocks": [
+    {
+      "code": "002972",
+      "name": "科安达",
+      "close": 14.54,
+      "market_cap_yi": 19.58
+    },
+    {
+      "code": "301107",
+      "name": "瑜欣电子",
+      "close": 25.99,
+      "market_cap_yi": 21.37
+    },
+    {
+      "code": "301630",
+      "name": "同宇新材",
+      "close": 320.66,
+      "market_cap_yi": 32.07
+    },
+    {
+      "code": "603335",
+      "name": "迪生力",
+      "close": 8.86,
+      "market_cap_yi": 37.93
+    },
+    {
+      "code": "688056",
+      "name": "XD莱伯泰",
+      "close": 61.8,
+      "market_cap_yi": 41.69
+    },
+    {
+      "code": "001257",
+      "name": "盛龙股份",
+      "close": 30.51,
+      "market_cap_yi": 41.78
+    },
+    {
+      "code": "000151",
+      "name": "中成股份",
+      "close": 14.75,
+      "market_cap_yi": 45.42
+    }
+  ]
+}

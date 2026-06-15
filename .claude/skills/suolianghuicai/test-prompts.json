@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "scenario": "happy-指定策略",
+    "prompt": "缩量回踩筛一下用策略1，文件用 .claude/skills/chuangxingao/data/zt_2026-06-15.json",
+    "expected": "执行 python main.py <路径> --strategy 1，使用策略1(成交量递减+价格回落)及默认参数(shrink_ratio 0.8/min_days 2)，展示命中数+策略名+前10只(涨停日/回踩天数/缩量比例/当前价)"
+  },
+  {
+    "id": 2,
+    "scenario": "交互检查点-不指定策略",
+    "prompt": "帮我做缩量回踩选股，文件用 .claude/skills/chuangxingao/data/zt_2026-06-15.json",
+    "expected": "不指定策略时应先询问用户选策略1/2/3并说明各策略区别，不应直接用默认策略跑(SKILL要求执行前先询问)"
+  }
+]

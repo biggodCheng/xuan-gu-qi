@@ -1,22 +1,9 @@
 {
   "date": "2026-06-15",
-  "source": "slhc_2026-06-15.json",
-  "description": "涨停股中市值小于200亿的股票",
-  "threshold_yi": 200,
-  "total_input": 2,
-  "count": 2,
-  "stocks": [
-    {
-      "code": "002955",
-      "name": "鸿合科技",
-      "close": 32.67,
-      "market_cap_yi": 63.92
-    },
-    {
-      "code": "600458",
-      "name": "时代新材",
-      "close": 15.9,
-      "market_cap_yi": 138.1
-    }
-  ]
+  "source": "zt_2026-06-15.json",
+  "description": "涨停股中市值小于0亿的股票",
+  "threshold_yi": 0,
+  "total_input": 97,
+  "count": 0,
+  "stocks": []
 }

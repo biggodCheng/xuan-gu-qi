@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "scenario": "happy-指定路径",
+    "prompt": "筛一下涨停，用 .claude/skills/chuangxingao/data/2026-06-15.json 这个文件",
+    "expected": "用指定路径执行 python main.py <路径>，按板块阈值筛选(主板>=9.5%/科创创业>=19.5%/北交所>=29.5%)，展示涨停股数+前10只(代码/名称/涨停日期/涨幅/收盘价)"
+  },
+  {
+    "id": 2,
+    "scenario": "歧义-不给路径",
+    "prompt": "帮我从创新高里找涨停股",
+    "expected": "不给路径时应自动查找 chuangxingao/data 下最新的非zt_/slhc_/sz_前缀的原始JSON，若无则提示先运行/chuangxingao"
+  }
+]

@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "scenario": "happy-典型触发",
+    "prompt": "今天收盘了，帮我看看哪些股票创了100个交易日新高",
+    "expected": "识别创新高意图，执行 cd .claude/skills/chuangxingao && pip install -r requirements.txt && python main.py，完成后展示创新高总数+输出文件路径+前10只股票(代码/名称/收盘价/100日最高)"
+  },
+  {
+    "id": 2,
+    "scenario": "边界-已有当天数据",
+    "prompt": "再跑一次创新高筛选",
+    "expected": "若 data/当天.json 已存在，应提示'今日数据已存在'并询问是否覆盖，而非静默重跑10-20分钟拉全市场"
+  }
+]
