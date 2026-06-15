@@ -1,0 +1,33 @@
+{
+  "date": "2026-06-15",
+  "source": "zt_2026-06-15.json",
+  "description": "缩量回踩（策略1：成交量递减+价格回落）",
+  "strategy": "shrinking_volume",
+  "count": 2,
+  "stocks": [
+    {
+      "code": "600458",
+      "name": "时代新材",
+      "last_zt_date": "2026-06-09",
+      "last_zt_close": 15.73,
+      "last_zt_pct": 10.0,
+      "current_close": 15.9,
+      "pullback_start_date": "2026-06-10",
+      "pullback_days": 2,
+      "volume_shrink_ratio": 0.639,
+      "close": 15.9
+    },
+    {
+      "code": "002955",
+      "name": "鸿合科技",
+      "last_zt_date": "2026-06-01",
+      "last_zt_close": 25.36,
+      "last_zt_pct": 10.02,
+      "current_close": 32.67,
+      "pullback_start_date": "2026-06-02",
+      "pullback_days": 2,
+      "volume_shrink_ratio": 0.5011,
+      "close": 32.67
+    }
+  ]
+}
