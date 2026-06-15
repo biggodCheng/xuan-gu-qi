@@ -109,8 +109,8 @@ def main():
     parser.add_argument(
         "--volume-ratio",
         type=float,
-        default=0.6,
-        help="策略2/3参数：成交量比例阈值（策略2默认0.6，策略3默认0.5）",
+        default=None,
+        help="策略2/3参数：成交量比例阈值（不传则策略2用0.6、策略3用0.7）",
     )
     parser.add_argument(
         "--min-days",
@@ -127,9 +127,9 @@ def main():
         params["min_days"] = args.min_days
     elif args.strategy == "2":
         params["ma_days"] = args.ma_days
-        params["volume_ratio"] = args.volume_ratio
+        params["volume_ratio"] = args.volume_ratio if args.volume_ratio is not None else 0.6
     elif args.strategy == "3":
-        params["volume_ratio"] = args.volume_ratio if args.volume_ratio != 0.6 else 0.7
+        params["volume_ratio"] = args.volume_ratio if args.volume_ratio is not None else 0.7
 
     success = run_filter(args.json_path, args.strategy, params)
     sys.exit(0 if success else 1)

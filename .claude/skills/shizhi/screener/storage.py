@@ -25,7 +25,7 @@ def save_results(
         "count": len(stocks),
         "stocks": stocks,
     }
-    filepath = os.path.join(output_dir, f"sz_{date_str}.json")
+    filepath = os.path.join(output_dir, f"sz_{date_str}_{threshold_yi}.json")
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
     return filepath

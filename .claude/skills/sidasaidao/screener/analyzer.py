@@ -97,40 +97,28 @@ def _calc_confidence(
 ) -> str:
     """根据匹配情况计算置信度。
 
-    规则：
-    - 行业直接命中 + 概念命中 → 高
-    - 匹配到 3+ 个概念关键词 → 高
-    - 匹配到 2 个概念关键词 → 中
-    - 匹配到 1 个概念关键词 → 低
-    - 匹配到子分类 → 提升置信度
+    核心原则：行业（主业）是否直接命中该赛道，是"高"的必要条件。
+    - 无行业命中（主业不在该赛道）→ 封顶"中"，防止非核心股票因附带概念
+      （如车厂的 IDC/半导体 概念）被误判为该赛道核心
+    - 行业命中（主业相关）→ 可达"高"
     """
     industry_hits = len(matched_from.get("industry", []))
     concept_hits = len(matched_from.get("concepts", []))
     sub_cat_hits = len(matched_sub_cats)
     total_kw = len(matched_keywords)
 
-    # 行业直接命中 + 至少 1 个概念 → 高
-    if industry_hits > 0 and concept_hits > 0:
+    # 无行业命中 → 封顶"中"
+    if industry_hits == 0:
+        if total_kw >= 2 or sub_cat_hits >= 1:
+            return "中"
+        return "低"
+
+    # 行业命中（主业相关）→ 可达"高"
+    if concept_hits > 0 or sub_cat_hits >= 2 or total_kw >= 3:
         return "高"
 
-    # 匹配到 3+ 个子分类 → 高
-    if sub_cat_hits >= 3:
-        return "高"
-
-    # 匹配到 3+ 个关键词 → 高
-    if total_kw >= 3:
-        return "高"
-
-    # 匹配到 2 个关键词 → 中
-    if total_kw >= 2:
-        return "中"
-
-    # 行业直接命中但无概念匹配 → 中
-    if industry_hits > 0:
-        return "中"
-
-    # 只匹配到 1 个概念 → 低
-    return "低"
+    # 行业命中但无其他支撑 → 中
+    return "中"
 
 
 def generate_cross_track_note(matched_tracks: list[dict]) -> str:

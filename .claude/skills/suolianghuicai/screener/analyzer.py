@@ -107,7 +107,7 @@ def strategy_single_day(
     after_zt: list[dict],
     zt_volume: float,
     zt_close: float,
-    volume_ratio: float = 0.5,
+    volume_ratio: float = 0.7,
 ) -> dict | None:
     """策略3：涨停后某天成交量低于涨停日的volume_ratio倍，且价格回落。
 

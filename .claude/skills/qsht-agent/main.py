@@ -8,6 +8,7 @@ SKILLS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 CHUANGXINGAO = os.path.join(SKILLS_DIR, "chuangxingao", "main.py")
 SHIZHI = os.path.join(SKILLS_DIR, "shizhi", "main.py")
+SZ_THRESHOLD = 200  # 第4步市值筛选阈值（亿），与 shizhi 输出文件名 sz_<date>_<threshold>.json 对应
 ZHANGTING = os.path.join(SKILLS_DIR, "zhangting", "main.py")
 SUOLIANGHUICAI = os.path.join(SKILLS_DIR, "suolianghuicai", "main.py")
 
@@ -164,7 +165,7 @@ def main():
     # Step 3: 缩量回踩 (input=zt_out) → 保存到输入同目录 → chuangxingao/data/slhc_{date}.json
     slhc_out = os.path.join(SKILLS_DIR, "chuangxingao", "data", f"slhc_{date_str}.json")
     # Step 4: 市值 (input=slhc_out) → 保存到 shizhi/data/sz_{date}.json
-    sz_out = os.path.join(SKILLS_DIR, "shizhi", "data", f"sz_{date_str}.json")
+    sz_out = os.path.join(SKILLS_DIR, "shizhi", "data", f"sz_{date_str}_{SZ_THRESHOLD}.json")
 
     stats = []
     step_stocks = {}
@@ -216,7 +217,7 @@ def main():
     _normalize_close(slhc_data, slhc_out)
 
     # Step 4: 市值筛选
-    if not run_step("市值筛选", [sys.executable, SHIZHI, slhc_out]):
+    if not run_step("市值筛选", [sys.executable, SHIZHI, slhc_out, "--threshold", str(SZ_THRESHOLD)]):
         sys.exit(1)
     sz_data = check_file(sz_out, "市值筛选")
     if not sz_data:

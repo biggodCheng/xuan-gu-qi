@@ -99,6 +99,8 @@ def main():
     )
 
     args = parser.parse_args()
+    if args.threshold <= 0:
+        parser.error(f"--threshold 必须为正数（单位：亿），当前值: {args.threshold}")
     success = run_filter(args.json_path, args.threshold)
     sys.exit(0 if success else 1)
 
