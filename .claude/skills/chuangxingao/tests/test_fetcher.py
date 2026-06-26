@@ -87,3 +87,20 @@ def test_get_stock_history_error_returns_empty():
     with patch("screener.fetcher._session.get", side_effect=Exception("timeout")):
         result = get_stock_history("000001")
     assert result == []
+
+
+def test_get_stock_history_fallback_when_tencent_sparse():
+    """腾讯返回数据过少（残缺，如北交所只给 1 条）时应回退新浪取完整历史。
+
+    复现真实 bug：腾讯对 920xxx 只返回 1 条（=今日价），新浪却有完整数据。
+    """
+    fake_sina = MagicMock()
+    fake_sina.json.return_value = [
+        {"day": f"2026-01-{i:02d}", "close": str(10 + i)} for i in range(1, 11)
+    ]
+    with patch("screener.fetcher._fetch_tencent_closes", return_value=[12.02]), \
+         patch("screener.fetcher._session.get", return_value=fake_sina):
+        result = get_stock_history("920000", days=100)
+
+    assert len(result) == 10  # 用新浪的完整 10 条，而非腾讯残缺的 1 条
+    assert result != [12.02]

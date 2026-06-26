@@ -74,26 +74,36 @@ def get_all_stocks_today() -> pd.DataFrame:
 
 
 def get_stock_history(
-    code: str, days: int = 100, exclude_last: bool = False, retries: int = 3
+    code: str,
+    days: int = 100,
+    exclude_last: bool = False,
+    retries: int = 3,
+    min_bars: int | None = None,
 ) -> list[float]:
     """获取单只股票的历史收盘价。
 
-    优先使用腾讯财经 API，失败时回退到新浪 API。
+    优先使用腾讯财经 API，失败或返回数据残缺时回退到新浪 API。
 
     Args:
         code: 股票代码（纯数字，如 600000）
         days: 获取最近多少个交易日的数据
         exclude_last: 是否排除最后一个交易日
         retries: 重试次数
+        min_bars: 腾讯返回数据被视为可用的最少条数。少于该值视为残缺
+            （如腾讯对北交所 920xxx 只返回 1 条 = 今日价），回退新浪。
+            默认 days//2。设为 0 则只判非空。
 
     Returns:
         收盘价列表，按时间正序。失败返回空列表。
     """
-    # 优先腾讯 API
+    if min_bars is None:
+        min_bars = max(1, days // 2)
+
+    # 优先腾讯 API（返回条数过少视为残缺，回退新浪）
     for attempt in range(retries):
         try:
             closes = _fetch_tencent_closes(code, days)
-            if closes:
+            if closes and len(closes) >= min_bars:
                 if exclude_last and len(closes) > 1:
                     closes = closes[:-1]
                 return closes

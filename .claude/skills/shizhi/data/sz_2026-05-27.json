@@ -1,9 +1,0 @@
-{
-  "date": "2026-05-27",
-  "source": "2026-05-27.json",
-  "description": "涨停股中市值小于200亿的股票",
-  "threshold_yi": 200,
-  "total_input": 73,
-  "count": 0,
-  "stocks": []
-}

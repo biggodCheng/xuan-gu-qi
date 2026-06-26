@@ -21,11 +21,13 @@ def _make_today_df():
 
 
 def _make_history_high():
-    return [18.0, 19.0, 19.5, 17.0]
+    # 61 条历史，max=19.5 < 今日 close 20.0 → 创新高
+    return [18.0] * 60 + [19.5]
 
 
 def _make_history_low():
-    return [11.0, 12.0, 10.5, 10.0]
+    # 61 条历史，max=11.0 > 今日 close 10.0 → 未创新高
+    return [11.0] * 60 + [10.5]
 
 
 @patch("main.get_stock_history")
