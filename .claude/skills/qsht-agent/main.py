@@ -11,6 +11,7 @@ SHIZHI = os.path.join(SKILLS_DIR, "shizhi", "main.py")
 SZ_THRESHOLD = 200  # 第4步市值筛选阈值（亿），与 shizhi 输出文件名 sz_<date>_<threshold>.json 对应
 ZHANGTING = os.path.join(SKILLS_DIR, "zhangting", "main.py")
 SUOLIANGHUICAI = os.path.join(SKILLS_DIR, "suolianghuicai", "main.py")
+Q2ZHANWANG = os.path.join(SKILLS_DIR, "q2zhanwang", "batch_query.py")  # 第5步 Q2 业绩展望批量入口
 
 
 def run_step(name: str, cmd: list[str]) -> bool:
@@ -35,6 +36,25 @@ def check_file(path: str, label: str) -> dict | None:
         return json.load(f)
 
 
+def run_q2_step(zt_json_path: str) -> dict:
+    """对近期涨停股批量推断 Q2 业绩展望（调用 q2zhanwang/batch_query.py）。
+
+    成功返回 batch 结果 dict（含 stocks/total/count/failed，stocks 按 verdict 排序、
+    偏正在前）；subprocess 失败或输出文件缺失时返回 {"stocks": [], "failed": True}，
+    不抛异常、不阻断主报告。
+    """
+    if not run_step("Q2业绩展望", [sys.executable, Q2ZHANWANG, zt_json_path]):
+        return {"stocks": [], "failed": True}
+
+    # batch_query 内部用 date.today() 写 data/batch_<today>.json
+    today = datetime.now().strftime("%Y-%m-%d")
+    batch_out = os.path.join(SKILLS_DIR, "q2zhanwang", "data", f"batch_{today}.json")
+    data = check_file(batch_out, "Q2展望")
+    if not data:
+        return {"stocks": [], "failed": True}
+    return data
+
+
 def _stocks_table(stocks: list[dict], columns: list[tuple[str, str]]) -> list[str]:
     """生成 markdown 表格行。columns: [(key, header), ...]"""
     lines = []
@@ -45,13 +65,79 @@ def _stocks_table(stocks: list[dict], columns: list[tuple[str, str]]) -> list[st
     for s in stocks:
         vals = []
         for key, _ in columns:
-            v = s.get(key, "")
-            if isinstance(v, float):
+            v = s.get(key)
+            if v is None:
+                v = "-"  # 字段缺失或值为 None（如数据不足的同比）统一显示 "-"
+            elif isinstance(v, float):
                 v = round(v, 2)
-            if isinstance(v, list):
+            elif isinstance(v, list):
                 v = ", ".join(str(x) for x in v)
             vals.append(str(v))
         lines.append("| " + " | ".join(vals) + " |")
+    return lines
+
+
+def _q2_section(q2_data: dict) -> list[str]:
+    """生成第5步 Q2 业绩展望 section（表格 + 偏正/中性公司列表，置于文档最后）。"""
+    lines = []
+    stocks = q2_data.get("stocks", [])
+
+    if not stocks:
+        lines.append("## 第5步：Q2业绩展望·近期涨停")
+        lines.append("")
+        lines.append("Q2展望分析未取得有效数据（财报接口异常或全部数据不足）。")
+        return lines
+
+    # verdict 分布（偏正/中性/偏负/数据不足）
+    dist = {}
+    for s in stocks:
+        v = s.get("verdict", "")
+        dist[v] = dist.get(v, 0) + 1
+    dist_str = "  ".join(f"{k} {dist[k]}" for k in ["偏正", "中性", "偏负", "数据不足"] if dist.get(k))
+
+    lines.append(f"## 第5步：Q2业绩展望·近期涨停（{len(stocks)}只 · {dist_str}）")
+    lines.append("")
+    lines.append("> 基于 2026Q1 已披露业绩推断；verdict 为方向判断非精确预测；confidence=低者仅供参考。")
+    lines.append("")
+    lines.extend(_stocks_table(stocks, [
+        ("name", "股票名称"),
+        ("code", "股票代码"),
+        ("industry", "行业"),
+        ("verdict", "Q2展望"),
+        ("confidence", "置信度"),
+        ("netprofit_yoy", "净利同比%"),
+        ("revenue_yoy", "营收同比%"),
+        ("q2_note", "展望说明"),
+    ]))
+    lines.append("")
+
+    # 偏正/中性公司列表（按置信度高/中/低分段，中文逗号分隔）
+    picks = [s for s in stocks if s.get("verdict") in ("偏正", "中性")]
+    pos = sum(1 for s in picks if s.get("verdict") == "偏正")
+    neu = sum(1 for s in picks if s.get("verdict") == "中性")
+    lines.append(f"### 偏正/中性公司（偏正 {pos} + 中性 {neu} = {len(picks)} 只 · 按置信度分段）")
+    lines.append("")
+
+    if not picks:
+        lines.append("无")
+        return lines
+
+    # 按置信度分三档：高=两信号同向最可靠；中=信号矛盾或含持平；低=数据缺期/基数过小仅供参考
+    by_conf = {"高": [], "中": [], "低": []}
+    for s in picks:
+        c = s.get("confidence", "")
+        if c in by_conf:
+            by_conf[c].append(s.get("name", ""))
+    hints = {
+        "高": "两信号同向，最可靠",
+        "中": "信号矛盾或含持平",
+        "低": "数据缺期或基数过小，仅供参考",
+    }
+    for level in ("高", "中", "低"):
+        names = by_conf[level]
+        lines.append(f"**置信度{level} · {len(names)} 只**（{hints[level]}）：")
+        lines.append("，".join(names) if names else "无")
+        lines.append("")
     return lines
 
 
@@ -60,6 +146,7 @@ def generate_markdown(
     stats: list[dict],
     step_stocks: dict[str, list[dict]],
     final_stocks: list[dict],
+    q2_data: dict | None = None,
 ) -> str:
     lines = [f"# 选股报告 - {date_str}", ""]
 
@@ -138,6 +225,11 @@ def generate_markdown(
         ]))
     lines.append("")
 
+    # 第5步：Q2业绩展望（近期涨停）— 文档最后
+    if q2_data is not None:
+        lines.extend(_q2_section(q2_data))
+        lines.append("")
+
     return "\n".join(lines)
 
 
@@ -181,7 +273,7 @@ def main():
     step_stocks["创新高"] = cxg_data.get("stocks", [])
     if cxg_data.get("count", 0) == 0:
         print("[提示] 创新高筛选无结果，流水线结束。", flush=True)
-        _output_report(date_str, stats, step_stocks, [])
+        _finish(date_str, stats, step_stocks, [], q2_input=None)
         return
 
     # Step 2: 涨停筛选
@@ -194,7 +286,7 @@ def main():
     step_stocks["近期涨停"] = zt_data.get("stocks", [])
     if zt_data.get("count", 0) == 0:
         print("[提示] 涨停筛选无结果，流水线结束。", flush=True)
-        _output_report(date_str, stats, step_stocks, [])
+        _finish(date_str, stats, step_stocks, [], q2_input=None)
         return
 
     # Step 3: 缩量回踩（策略1）
@@ -210,7 +302,7 @@ def main():
     step_stocks["缩量回踩"] = slhc_data.get("stocks", [])
     if slhc_data.get("count", 0) == 0:
         print("[提示] 缩量回踩筛选无结果，流水线结束。", flush=True)
-        _output_report(date_str, stats, step_stocks, [])
+        _finish(date_str, stats, step_stocks, [], q2_input=zt_out)
         return
 
     # 归一化 current_close → close，确保市值筛选器兼容
@@ -226,7 +318,19 @@ def main():
     step_stocks["市值<200亿"] = sz_data.get("stocks", [])
     final_stocks = sz_data.get("stocks", [])
 
-    _output_report(date_str, stats, step_stocks, final_stocks)
+    _finish(date_str, stats, step_stocks, final_stocks, q2_input=zt_out)
+
+
+def _finish(
+    date_str: str,
+    stats: list[dict],
+    step_stocks: dict[str, list[dict]],
+    final_stocks: list[dict],
+    q2_input: str | None = None,
+):
+    """统一收尾：近期涨停非空时跑 Q2 展望，再生成报告。"""
+    q2_data = run_q2_step(q2_input) if q2_input else None
+    _output_report(date_str, stats, step_stocks, final_stocks, q2_data)
 
 
 def _output_report(
@@ -234,8 +338,9 @@ def _output_report(
     stats: list[dict],
     step_stocks: dict[str, list[dict]],
     stocks: list[dict],
+    q2_data: dict | None = None,
 ):
-    md = generate_markdown(date_str, stats, step_stocks, stocks)
+    md = generate_markdown(date_str, stats, step_stocks, stocks, q2_data)
     output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output")
     os.makedirs(output_dir, exist_ok=True)
     md_path = os.path.join(output_dir, f"{date_str}.md")
