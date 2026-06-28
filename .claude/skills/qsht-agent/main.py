@@ -12,6 +12,7 @@ SZ_THRESHOLD = 200  # 第4步市值筛选阈值（亿），与 shizhi 输出文�
 ZHANGTING = os.path.join(SKILLS_DIR, "zhangting", "main.py")
 SUOLIANGHUICAI = os.path.join(SKILLS_DIR, "suolianghuicai", "main.py")
 Q2ZHANWANG = os.path.join(SKILLS_DIR, "q2zhanwang", "batch_query.py")  # 第5步 Q2 业绩展望批量入口
+QIBAO = os.path.join(SKILLS_DIR, "qibao", "main.py")  # 起爆点筛选（创新高派生）
 
 
 def run_step(name: str, cmd: list[str]) -> bool:
@@ -212,6 +213,23 @@ def generate_markdown(
         ]))
         lines.append("")
 
+    # 起爆点信号（创新高派生）
+    qb_stocks = step_stocks.get("起爆点", [])
+    if qb_stocks:
+        lines.append(f"## 起爆点信号·创新高股（{len(qb_stocks)}只）")
+        lines.append("")
+        lines.append("> 起爆=突破布林上轨+倍量+MACD水上金叉；兼蓄势=起爆前横盘+放量阳线(无L2资金流)")
+        lines.append("")
+        lines.extend(_stocks_table(qb_stocks, [
+            ("name", "股票名称"),
+            ("code", "股票代码"),
+            ("close", "现价"),
+            ("pct_chg", "涨幅%"),
+            ("vol_ratio", "量比"),
+            ("signals", "信号"),
+        ]))
+        lines.append("")
+
     # 最终结果
     lines.append("## 最终结果")
     if not final_stocks:
@@ -275,6 +293,14 @@ def main():
         print("[提示] 创新高筛选无结果，流水线结束。", flush=True)
         _finish(date_str, stats, step_stocks, [], q2_input=None)
         return
+
+    # Step 1.5: 起爆点（创新高派生，失败不阻断主流程）
+    qibao_out = os.path.join(SKILLS_DIR, "qibao", "data", f"qb_{date_str}.json")
+    if run_step("起爆点筛选", [sys.executable, QIBAO, cxg_out]):
+        qb_data = check_file(qibao_out, "起爆点")
+        if qb_data:
+            stats.append({"name": "起爆点", "count": qb_data.get("count", 0)})
+            step_stocks["起爆点"] = qb_data.get("stocks", [])
 
     # Step 2: 涨停筛选
     if not run_step("涨停筛选", [sys.executable, ZHANGTING, cxg_out]):
