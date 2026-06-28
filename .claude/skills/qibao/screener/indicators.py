@@ -58,3 +58,23 @@ def boll_upper(closes: list[float], n: int = 20, w: float = 2) -> list[float | N
         None if (m is None or s is None) else m + w * s
         for m, s in zip(ma_vals, std_vals)
     ]
+
+
+def macd(
+    closes: list[float], fast: int = 12, slow: int = 26, signal: int = 9
+) -> tuple[list[float], list[float]]:
+    """返回 (dif, dea)。dif = EMA(close,fast) - EMA(close,slow)；dea = EMA(dif,signal)。"""
+    dif = [f - s for f, s in zip(ema(closes, fast), ema(closes, slow))]
+    dea = ema(dif, signal)
+    return dif, dea
+
+
+def cross(a: list, b: list) -> list[bool]:
+    """a 上穿 b：昨日 a<b 且今日 a>b。遇 None 视为不满足。"""
+    result = [False] * len(a)
+    for i in range(1, len(a)):
+        if None in (a[i], b[i], a[i - 1], b[i - 1]):
+            continue
+        if a[i - 1] < b[i - 1] and a[i] > b[i]:
+            result[i] = True
+    return result

@@ -45,3 +45,31 @@ def test_boll_upper():
     closes = [10.0] * 20 + [11.0]
     result = boll_upper(closes, 20, 2)
     assert abs(result[19] - 10.0) < 1e-9          # 前20根常数：MA=10, STD=0
+
+
+from screener.indicators import macd, cross
+
+
+def test_macd():
+    closes = [float(i) for i in range(1, 41)]     # 1..40 递增
+    dif, dea = macd(closes, 12, 26, 9)
+    assert len(dif) == len(closes) and len(dea) == len(closes)
+    ef = ema(closes, 12)
+    es = ema(closes, 26)
+    for i in range(len(closes)):                   # dif = ema_fast - ema_slow
+        assert abs(dif[i] - (ef[i] - es[i])) < 1e-9
+    expected_dea = ema(dif, 9)                      # dea = ema(dif, 9)
+    for i in range(len(closes)):
+        assert abs(dea[i] - expected_dea[i]) < 1e-9
+
+
+def test_cross():
+    a = [1.0, 1.0, 3.0, 3.0]
+    b = [2.0, 2.0, 2.0, 2.0]
+    assert cross(a, b) == [False, False, True, False]
+
+
+def test_cross_ignores_none():
+    a = [None, 1.0, 3.0]
+    b = [None, 2.0, 2.0]
+    assert cross(a, b) == [False, False, True]
