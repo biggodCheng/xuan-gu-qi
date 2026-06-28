@@ -43,3 +43,24 @@ def test_no_volume():
 def test_min_history_skip():
     kline = _flat_then_breakout()[:39]         # 仅 39 根，不足 MIN_HISTORY(40)
     assert analyze_qibao(kline) is None
+
+
+from screener.analyzer import filter_qibao
+
+
+def test_filter_qibao():
+    boom = _flat_then_breakout()
+    flat = boom[:]
+    flat[-1] = {"date": "d39", "open": 10.0, "high": 10.6, "low": 9.4,
+                "close": 10.0, "volume": 1000.0}     # 不起爆
+    stocks = [
+        {"code": "600001", "name": "甲股"},
+        {"code": "600002", "name": "乙股"},
+        {"code": "600003", "name": "丙股"},          # 无K线，跳过
+    ]
+    kline_map = {"600001": boom, "600002": flat}
+    result = filter_qibao(stocks, kline_map)
+    assert len(result) == 1
+    assert result[0]["code"] == "600001"
+    assert result[0]["name"] == "甲股"
+    assert "close" in result[0]

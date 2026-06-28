@@ -71,3 +71,27 @@ def analyze_qibao(kline_data: list[dict]) -> dict | None:
         "xushi": xushi,
         "signals": signals,
     }
+
+
+def filter_qibao(stocks: list[dict], kline_map: dict[str, list[dict]]) -> list[dict]:
+    """批量筛选起爆股。
+
+    Args:
+        stocks: [{code, name, ...}, ...]（来自上游创新高 JSON）
+        kline_map: {code: [{date,open,high,low,close,volume}, ...]}
+
+    Returns:
+        [{code, name, close, pct_chg, vol_ratio, boll_breakout,
+          macd_above_zero, xushi, signals}, ...]
+    """
+    result = []
+    for stock in stocks:
+        code = stock["code"]
+        kline = kline_map.get(code, [])
+        if not kline:
+            continue
+        hit = analyze_qibao(kline)
+        if hit is None:
+            continue
+        result.append({"code": code, "name": stock["name"], **hit})
+    return result
