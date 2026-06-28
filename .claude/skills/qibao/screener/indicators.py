@@ -69,7 +69,7 @@ def macd(
     return dif, dea
 
 
-def cross(a: list, b: list) -> list[bool]:
+def cross(a: list[float | None], b: list[float | None]) -> list[bool]:
     """a 上穿 b：昨日 a<b 且今日 a>b。遇 None 视为不满足。"""
     result = [False] * len(a)
     for i in range(1, len(a)):

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from screener.indicators import boll_upper, cross, hhv, llv, ma, macd
+from screener.indicators import boll_upper, cross, hhv, ma, macd
 
 MIN_HISTORY = 40          # 布林(20)+MACD(26+9) warmup 留余量
 BOLL_N = 20
@@ -41,7 +41,7 @@ def analyze_qibao(kline_data: list[dict]) -> dict | None:
     # 起爆条件（均看末根）
     b1 = cross(closes, boll_up)[last]                       # B1 收盘上穿布林上轨
     b2 = volumes[last] > hhv_vol[prev] * BOOM_VOL_MULT      # B2 倍量
-    b3 = dif[last] > dea[last] and dif[last] > 0            # B3 MACD 水上金叉状态
+    b3 = dif[last] > dea[last] and dif[last] > 0            # B3 MACD 水上多头状态(dif>dea且dif>0)
 
     if not (b1 and b2 and b3):
         return None
