@@ -35,3 +35,47 @@ def filter_announcements(items: list[dict], yoy_lower_min: float = YOY_LOWER_MIN
         if lo_f >= yoy_lower_min:
             out.append(it)
     return out
+
+
+def _r2(v):
+    """保留 2 位小数,None 透传。"""
+    return round(v, 2) if v is not None else None
+
+
+def compute_chg_total(base_price, curr_close) -> float | None:
+    """累计涨跌% = (今收 − 基准价)/基准价。基准为 0/None → None。"""
+    if not base_price or curr_close is None:
+        return None
+    return _r2((curr_close - base_price) / base_price * 100)
+
+
+def compute_chg_today(prev_close, curr_close) -> float | None:
+    """当日涨跌% = (今收 − 昨收)/昨收。无昨收(首日)→ None。"""
+    if not prev_close or curr_close is None:
+        return None
+    return _r2((curr_close - prev_close) / prev_close * 100)
+
+
+def build_daily(kline: list[dict], base_price: float) -> list[dict]:
+    """前复权日K序列 → 每日涨跌系列。
+
+    kline: [{"date","open","close"}, ...] 正序,基准日=首条。
+    返回 [{"date","close","chg_total","chg_today"}, ...],首条 chg_today=chg_total。
+    """
+    daily = []
+    prev_close = None
+    for bar in kline:
+        close = bar.get("close")
+        chg_total = compute_chg_total(base_price, close)
+        chg_today = compute_chg_today(prev_close, close)
+        if chg_today is None:  # 首条
+            chg_today = chg_total
+        daily.append({"date": bar.get("date"), "close": close,
+                      "chg_total": chg_total, "chg_today": chg_today})
+        prev_close = close
+    return daily
+
+
+def held_days(daily: list[dict]) -> int:
+    """持有交易日数 = len(daily) − 1(基准日为第 0 天)。"""
+    return max(0, len(daily) - 1)
