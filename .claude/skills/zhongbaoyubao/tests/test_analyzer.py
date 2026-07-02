@@ -69,3 +69,22 @@ def test_held_days():
 
 def test_build_daily_empty():
     assert build_daily([], 10.0) == []
+
+from screener.analyzer import should_expire
+
+
+def test_not_expired_at_29():
+    assert should_expire(29) is False
+
+
+def test_expired_at_30():
+    assert should_expire(30) is True
+
+
+def test_expired_above_30():
+    assert should_expire(35) is True
+
+
+def test_custom_hold_days():
+    assert should_expire(9, hold_days=10) is False
+    assert should_expire(10, hold_days=10) is True

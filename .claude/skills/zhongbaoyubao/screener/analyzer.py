@@ -79,3 +79,8 @@ def build_daily(kline: list[dict], base_price: float) -> list[dict]:
 def held_days(daily: list[dict]) -> int:
     """持有交易日数 = len(daily) − 1(基准日为第 0 天)。"""
     return max(0, len(daily) - 1)
+
+
+def should_expire(held: int, hold_days: int = HOLD_DAYS) -> bool:
+    """持有天数 ≥ 跟踪窗口 → 到期。"""
+    return held >= hold_days
