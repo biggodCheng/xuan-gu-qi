@@ -72,3 +72,26 @@ def test_refresh_active_overwrites_daily_and_fields(tmp_path):
     assert a["daily"] == daily          # 覆盖式
     assert a["last_close"] == 11.0
     assert a["held_days"] == 1
+
+
+from screener.storage import migrate_expired, add_skipped, remove_skipped
+
+
+def test_migrate_expired_moves_qualifying(tmp_path):
+    p = empty_pool()
+    p["active"] = [
+        {"code": "A", "held_days": 29, "daily": [{"date": "x"}]},
+        {"code": "B", "held_days": 30, "daily": [{"date": "y"}]},
+    ]
+    moved = migrate_expired(p)
+    assert moved == ["B"]
+    assert [a["code"] for a in p["active"]] == ["A"]
+    assert [e["code"] for e in p["expired"]] == ["B"]
+
+
+def test_add_and_remove_skipped(tmp_path):
+    p = empty_pool()
+    add_skipped(p, "C", "X", "2026-07-10", "K线拉取失败")
+    assert len(p["skipped"]) == 1
+    remove_skipped(p, "C")
+    assert p["skipped"] == []
