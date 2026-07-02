@@ -69,7 +69,7 @@ def get_kline_since(code: str, since_date: str) -> list[dict]:
     """
     rows = _fetch_tencent_kline(code, since_date)
     if not rows:
-        return []  # 回退新浪无 open,无法取基准价 → 空
+        return []  # 无日K,无法取基准价 → 上游标 skipped
     out = []
     for row in rows:
         try:
