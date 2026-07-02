@@ -57,3 +57,45 @@ def save_watchlist(pool: dict, path: str) -> None:
     pool["updated_at"] = datetime.date.today().strftime("%Y-%m-%d")
     with open(path, "w", encoding="utf-8") as f:
         json.dump(pool, f, ensure_ascii=False, indent=2)
+
+
+def existing_codes(pool: dict) -> set:
+    """active+expired+skipped 的 code 并集(去重用)。"""
+    codes = set()
+    for sec in ("active", "expired", "skipped"):
+        for s in pool.get(sec, []):
+            if s.get("code"):
+                codes.add(s["code"])
+    return codes
+
+
+def add_active(pool: dict, stock: dict) -> None:
+    """新股入 active 占位(daily 待刷新填)。补默认字段。"""
+    entry = {
+        "code": stock.get("code"),
+        "name": stock.get("name"),
+        "industry": stock.get("industry", ""),
+        "predict_type": stock.get("predict_type", "预增"),
+        "yoy_lower": stock.get("yoy_lower"),
+        "yoy_upper": stock.get("yoy_upper"),
+        "notice_date": stock.get("notice_date"),
+        "base_date": "",
+        "base_price": None,
+        "held_days": 0,
+        "remain_days": 30,
+        "last_close": None,
+        "chg_total": None,
+        "chg_today": None,
+        "base_note": "",
+        "daily": [],
+    }
+    pool["active"].append(entry)
+
+
+def refresh_active(pool: dict, code: str, fields: dict) -> None:
+    """覆盖式更新某 active 股的 daily 及汇总字段(前复权口径每次整体覆盖)。"""
+    for s in pool["active"]:
+        if s["code"] == code:
+            s.update(fields)
+            return
+    raise KeyError(f"active 中找不到 {code}")

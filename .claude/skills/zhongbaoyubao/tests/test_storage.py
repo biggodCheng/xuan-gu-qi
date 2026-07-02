@@ -36,3 +36,39 @@ def test_load_corrupt_backups_and_rebuilds(tmp_path):
     p = load_watchlist(path)
     assert p["active"] == []  # 重建空池
     assert os.path.exists(path + ".bad")  # 损坏文件已备份
+
+
+from screener.storage import existing_codes, add_active, refresh_active
+
+
+def test_existing_codes_union(tmp_path):
+    p = empty_pool()
+    p["active"] = [{"code": "A"}]
+    p["expired"] = [{"code": "B"}]
+    p["skipped"] = [{"code": "C"}]
+    assert existing_codes(p) == {"A", "B", "C"}
+
+
+def test_add_active_appends(tmp_path):
+    p = empty_pool()
+    add_active(p, {"code": "A", "name": "X", "notice_date": "2026-07-10"})
+    assert len(p["active"]) == 1
+    assert p["active"][0]["daily"] == []
+    assert p["active"][0]["held_days"] == 0
+
+
+def test_refresh_active_overwrites_daily_and_fields(tmp_path):
+    p = empty_pool()
+    add_active(p, {"code": "A", "name": "X", "notice_date": "2026-07-10"})
+    daily = [{"date": "2026-07-11", "close": 11.0, "chg_total": 10.0, "chg_today": 10.0}]
+    refresh_active(p, "A", {
+        "base_date": "2026-07-11", "base_price": 10.0,
+        "daily": daily, "last_close": 11.0,
+        "chg_total": 10.0, "chg_today": 10.0,
+        "held_days": 1, "remain_days": 29,
+    })
+    a = p["active"][0]
+    assert a["base_price"] == 10.0
+    assert a["daily"] == daily          # 覆盖式
+    assert a["last_close"] == 11.0
+    assert a["held_days"] == 1
