@@ -24,3 +24,29 @@ def test_get_kline_since_empty_when_fetch_fails(monkeypatch):
     monkeypatch.setattr(fetcher, "_fetch_tencent_kline", lambda c, s: [])
     monkeypatch.setattr(fetcher, "_fetch_sina_closes", lambda c: [])
     assert fetcher.get_kline_since("600000", "2026-07-10") == []
+
+
+def test_get_announcements_parses_rows(monkeypatch):
+    payload = {
+        "success": True,
+        "result": {"data": [
+            {"SECURITY_CODE": "600160", "SECURITY_NAME_ABBR": "巨化股份",
+             "NOTICE_DATE": "2026-07-10 00:00:00", "REPORTDATE": "2026-06-30",
+             "FORECASTTYPE": "预增", "INCREASEL": 80.0, "INCREASET": 120.0,
+             "PUBLISHNAME": "化学制品"},
+        ]},
+    }
+    monkeypatch.setattr(fetcher, "_request_announcements",
+                        lambda report_date, page: (payload, True))
+    out = fetcher.get_announcements(report_date="2026-06-30")
+    assert out[0]["code"] == "600160"
+    assert out[0]["name"] == "巨化股份"
+    assert out[0]["notice_date"] == "2026-07-10"
+    assert out[0]["yoy_lower"] == 80.0
+    assert out[0]["yoy_upper"] == 120.0
+
+
+def test_get_announcements_empty_when_api_fails(monkeypatch):
+    monkeypatch.setattr(fetcher, "_request_announcements",
+                        lambda report_date, page: ({}, False))
+    assert fetcher.get_announcements() == []
