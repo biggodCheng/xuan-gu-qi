@@ -1,7 +1,6 @@
 import json
 import os
 import sys
-import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from screener.storage import empty_pool, load_watchlist, save_watchlist

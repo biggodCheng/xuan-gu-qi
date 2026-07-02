@@ -22,7 +22,6 @@ def test_get_kline_since_filters_before_since(monkeypatch):
 
 def test_get_kline_since_empty_when_fetch_fails(monkeypatch):
     monkeypatch.setattr(fetcher, "_fetch_tencent_kline", lambda c, s: [])
-    monkeypatch.setattr(fetcher, "_fetch_sina_closes", lambda c: [])
     assert fetcher.get_kline_since("600000", "2026-07-10") == []
 
 

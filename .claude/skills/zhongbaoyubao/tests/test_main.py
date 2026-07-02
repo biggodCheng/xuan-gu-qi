@@ -64,3 +64,19 @@ def test_run_retries_skipped(tmp_path):
     assert len(pool["active"]) == 1   # skipped 转为 active
     assert len(pool["skipped"]) == 0  # skipped 清空
     assert pool["active"][0]["base_price"] == 10.0
+
+
+def test_run_demotes_failed_to_skipped(tmp_path):
+    """新股入池后若 K线拉取失败(返回空),应降级到 skipped 而非留 active。"""
+    wl = str(tmp_path / "watchlist.json")
+
+    class NoKlineFetcher(FakeFetcher):
+        def get_kline_since(self, code, since_date):
+            return []
+
+    run(today_str="2026-07-14", watchlist_path=wl,
+        output_dir=str(tmp_path / "o"), fetcher=NoKlineFetcher())
+    pool = storage.load_watchlist(wl)
+    assert len(pool["active"]) == 0     # 无日K → 不留 active
+    assert len(pool["skipped"]) == 1    # 降级 skipped
+    assert pool["skipped"][0]["code"] == "600160"
