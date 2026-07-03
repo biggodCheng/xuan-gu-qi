@@ -165,6 +165,31 @@ def fmt(v, suffix="%", na="—"):
     return f"{v:+.2f}{suffix}"
 
 
+def compute_summary(events_x: list[tuple[dict, dict]]) -> dict:
+    """计算复盘统计汇总(供报告渲染与 stats JSON 共用)。"""
+    valid = [(e, m) for e, m in events_x if m["hold_days"] > 0]
+    n = len(valid)
+    if n == 0:
+        return {"n": 0}
+    avg_end = sum(m["end_ret"] for _, m in valid) / n
+    avg_mfe = sum(m["mfe"] for _, m in valid) / n
+    avg_mae = sum(m["mae"] for _, m in valid) / n
+    win = sum(1 for _, m in valid if m["end_ret"] > 0)
+    zt_cnt = sum(1 for _, m in valid if m["zt_days"])
+    zt_with_next = [m for _, m in valid if m["zt_days"] and m["zt_next"]]
+    zt_down = sum(1 for m in zt_with_next if m["zt_next"]["chg"] < 0)
+    return {
+        "n": n,
+        "avg_end_ret": round(avg_end, 2),
+        "avg_mfe": round(avg_mfe, 2),
+        "avg_mae": round(avg_mae, 2),
+        "win": win,
+        "zt_cnt": zt_cnt,
+        "zt_with_next": len(zt_with_next),
+        "zt_down": zt_down,
+    }
+
+
 def build_report(events_x: list[tuple[dict, dict]], latest_date: str) -> str:
     dates = sorted({e["identify_date"] for e, _ in events_x})
     codes = sorted({e["code"] for e, _ in events_x})
@@ -229,27 +254,18 @@ def build_report(events_x: list[tuple[dict, dict]], latest_date: str) -> str:
         lines.append("| — | — | — | — | — | — | 全样本识别后无涨停 |")
 
     # 统计汇总
-    valid = [(e, m) for e, m in events_x if m["hold_days"] > 0]
-    n = len(valid)
+    s = compute_summary(events_x)
+    n = s["n"]
     lines.append(f"\n## 三、统计汇总（{n} 个有后续数据的事件）\n")
     if n:
-        avg_end = sum(m["end_ret"] for _, m in valid) / n
-        avg_mfe = sum(m["mfe"] for _, m in valid) / n
-        avg_mae = sum(m["mae"] for _, m in valid) / n
-        win = sum(1 for _, m in valid if m["end_ret"] > 0)
-        zt_cnt = sum(1 for _, m in valid if m["zt_days"])
-        # 涨停次日下跌比例
-        zt_with_next = [m for _, m in valid if m["zt_days"] and m["zt_next"]]
-        zt_down = sum(1 for m in zt_with_next if m["zt_next"]["chg"] < 0)
-
-        lines.append(f"- 平均末值收益(识别日→最新): **{avg_end:+.2f}%**")
-        lines.append(f"- 平均最大涨幅 MFE: **{avg_mfe:+.2f}%**  /  平均最大回撤 MAE: **{avg_mae:+.2f}%**")
-        lines.append(f"- 末值正收益事件: {win}/{n}")
-        lines.append(f"- 识别后出现涨停的事件: {zt_cnt}/{n}")
-        if zt_with_next:
+        lines.append(f"- 平均末值收益(识别日→最新): **{s['avg_end_ret']:+.2f}%**")
+        lines.append(f"- 平均最大涨幅 MFE: **{s['avg_mfe']:+.2f}%**  /  平均最大回撤 MAE: **{s['avg_mae']:+.2f}%**")
+        lines.append(f"- 末值正收益事件: {s['win']}/{n}")
+        lines.append(f"- 识别后出现涨停的事件: {s['zt_cnt']}/{n}")
+        if s["zt_with_next"]:
             lines.append(
-                f"- 涨停次日下跌占比: {zt_down}/{len(zt_with_next)} "
-                f"({zt_down/len(zt_with_next)*100:.0f}%)"
+                f"- 涨停次日下跌占比: {s['zt_down']}/{s['zt_with_next']} "
+                f"({s['zt_down']/s['zt_with_next']*100:.0f}%)"
             )
 
     lines.append("\n## 四、结论\n")
@@ -269,7 +285,7 @@ def main():
     for ev in events:
         kl = kline_map.get(ev["code"], [])
         if not kl:
-            print(f"  [跳过] {ev['code']} {ev['name']} K线为空")
+            print(f"  [跳过] {ev['code']} {ev.get('name') or ev['code']} K线为空")
             continue
         evx = analyze_event(ev, kl)
         m = metrics(evx)
@@ -277,9 +293,9 @@ def main():
         zt = f"涨停{m['zt_days'][0]['date']}" if m["zt_days"] else "无涨停"
         nxt = f"次日{m['zt_next']['chg']:+.1f}%" if m["zt_next"] else ""
         print(
-            f"  {ev['identify_date']} {ev['code']} {ev['name']:<6} "
-            f"base={m['base']:.2f} 末值{m['end_ret']:+.2f}% "
-            f"MFE{m['mfe']:+.1f}%/MAE{m['mae']:+.1f}% | {zt} {nxt}"
+            f"  {ev['identify_date']} {ev['code']} {(ev.get('name') or ev['code']):<6} "
+            f"base={m['base']:.2f} 末值{fmt(m['end_ret'])} "
+            f"MFE{fmt(m['mfe'])}/MAE{fmt(m['mae'])} | {zt} {nxt}"
         )
 
     latest_date = max(e["identify_date"] for e in events)
@@ -290,6 +306,22 @@ def main():
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(report)
     print(f"\n报告已生成: {out_path}")
+
+    # 写统计快照(固定路径)，供 qsht-agent/main.py 嵌入主报告
+    dates = sorted({e["identify_date"] for e in events})
+    codes = sorted({e["code"] for e in events})
+    stats = {
+        "as_of": latest_date,
+        "span": f"{dates[0]}–{dates[-1]}" if dates[0] != dates[-1] else dates[0],
+        "events_total": len(events),
+        "stocks_total": len(codes),
+        **compute_summary(events_x),
+        "report_file": f"pullback_review_{latest_date}.md",
+    }
+    stats_path = os.path.join(OUTPUT_DIR, "pullback_stats.json")
+    with open(stats_path, "w", encoding="utf-8") as f:
+        json.dump(stats, f, ensure_ascii=False, indent=2)
+    print(f"统计快照: {stats_path}")
 
 
 if __name__ == "__main__":

@@ -14,6 +14,11 @@ SUOLIANGHUICAI = os.path.join(SKILLS_DIR, "suolianghuicai", "main.py")
 Q2ZHANWANG = os.path.join(SKILLS_DIR, "q2zhanwang", "batch_query.py")  # 第5步 Q2 业绩展望批量入口
 QIBAO = os.path.join(SKILLS_DIR, "qibao", "main.py")  # 起爆点筛选（创新高派生）
 
+# 回踩策略复盘(每日自动累积样本，独立于主漏斗，失败不阻断)
+_HERE = os.path.dirname(os.path.abspath(__file__))
+BACKTEST = os.path.join(_HERE, "backtest_pullback.py")
+BACKTEST_STATS = os.path.join(_HERE, "output", "pullback_stats.json")
+
 
 def run_step(name: str, cmd: list[str]) -> bool:
     print(f"\n{'=' * 50}", flush=True)
@@ -53,6 +58,20 @@ def run_q2_step(zt_json_path: str) -> dict:
     data = check_file(batch_out, "Q2展望")
     if not data:
         return {"stocks": [], "failed": True}
+    return data
+
+
+def run_backtest_step() -> dict | None:
+    """运行缩量回踩策略复盘(每日自动累积样本)，返回统计摘要或 None。
+
+    扫描全部历史 slhc 识别事件回拉真实日K，统计持有收益与涨停兑现情况。
+    独立于主漏斗：失败/无数据均不阻断主报告，仅跳过该 section。
+    """
+    if not run_step("回踩策略复盘", [sys.executable, BACKTEST]):
+        return None
+    data = check_file(BACKTEST_STATS, "回踩复盘")
+    if not data or data.get("n", 0) == 0:
+        return None
     return data
 
 
@@ -142,12 +161,42 @@ def _q2_section(q2_data: dict) -> list[str]:
     return lines
 
 
+def _backtest_section(s: dict) -> list[str]:
+    """生成回踩策略复盘摘要 section(累积样本，指向完整复盘报告)。"""
+    lines = []
+    as_of = s.get("as_of", "?")
+    span = s.get("span", "?")
+    n = s.get("n", 0)
+    stocks = s.get("stocks_total", "?")
+    avg_end = s.get("avg_end_ret", 0)
+    avg_mfe = s.get("avg_mfe", 0)
+    avg_mae = s.get("avg_mae", 0)
+    win = s.get("win", 0)
+    zt_cnt = s.get("zt_cnt", 0)
+    zt_down = s.get("zt_down", 0)
+    zt_with_next = s.get("zt_with_next", 0)
+    lines.append(f"## 第6步：回踩策略复盘（截至 {as_of} · 样本 {span} · {n}事件/{stocks}股）")
+    lines.append("")
+    lines.append("> 每日自动累积：扫描全部历史 slhc 识别事件，回拉识别日后真实日K统计有效性。小样本探索性结论，非统计显著。")
+    lines.append("")
+    lines.append(f"- 平均末值收益(识别日→最新): **{avg_end:+.2f}%** ｜ 平均 MFE {avg_mfe:+.2f}% / MAE {avg_mae:+.2f}%")
+    zt_part = f" ｜ 识别后涨停 {zt_cnt}/{n}"
+    if zt_with_next:
+        zt_part += f" ｜ 涨停次日下跌 {zt_down}/{zt_with_next}"
+    lines.append(f"- 末值正收益: {win}/{n}{zt_part}")
+    lines.append("")
+    report_file = s.get("report_file", "pullback_review.md")
+    lines.append(f"完整复盘见 [{report_file}](output/{report_file})")
+    return lines
+
+
 def generate_markdown(
     date_str: str,
     stats: list[dict],
     step_stocks: dict[str, list[dict]],
     final_stocks: list[dict],
     q2_data: dict | None = None,
+    backtest_summary: dict | None = None,
 ) -> str:
     lines = [f"# 选股报告 - {date_str}", ""]
 
@@ -243,9 +292,14 @@ def generate_markdown(
         ]))
     lines.append("")
 
-    # 第5步：Q2业绩展望（近期涨停）— 文档最后
+    # 第5步：Q2业绩展望（近期涨停）
     if q2_data is not None:
         lines.extend(_q2_section(q2_data))
+        lines.append("")
+
+    # 第6步：回踩策略复盘(累积样本，置于文档最末)
+    if backtest_summary is not None:
+        lines.extend(_backtest_section(backtest_summary))
         lines.append("")
 
     return "\n".join(lines)
@@ -354,9 +408,10 @@ def _finish(
     final_stocks: list[dict],
     q2_input: str | None = None,
 ):
-    """统一收尾：近期涨停非空时跑 Q2 展望，再生成报告。"""
+    """统一收尾：近期涨停非空时跑 Q2 展望，跑回踩复盘，再生成报告。"""
     q2_data = run_q2_step(q2_input) if q2_input else None
-    _output_report(date_str, stats, step_stocks, final_stocks, q2_data)
+    backtest_summary = run_backtest_step()
+    _output_report(date_str, stats, step_stocks, final_stocks, q2_data, backtest_summary)
 
 
 def _output_report(
@@ -365,8 +420,9 @@ def _output_report(
     step_stocks: dict[str, list[dict]],
     stocks: list[dict],
     q2_data: dict | None = None,
+    backtest_summary: dict | None = None,
 ):
-    md = generate_markdown(date_str, stats, step_stocks, stocks, q2_data)
+    md = generate_markdown(date_str, stats, step_stocks, stocks, q2_data, backtest_summary)
     output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output")
     os.makedirs(output_dir, exist_ok=True)
     md_path = os.path.join(output_dir, f"{date_str}.md")
