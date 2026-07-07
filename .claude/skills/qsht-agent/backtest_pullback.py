@@ -298,11 +298,13 @@ def main():
             f"MFE{fmt(m['mfe'])}/MAE{fmt(m['mae'])} | {zt} {nxt}"
         )
 
-    latest_date = max(e["identify_date"] for e in events)
-    report = build_report(events_x, latest_date)
+    latest_event_date = max(e["identify_date"] for e in events)
+    # 数据截止日 = 所有标的 K 线的最大日期(末值实际统计到的那天)；无 K 线时退化为最新事件日
+    data_as_of = max((k["date"] for kl in kline_map.values() for k in kl), default=latest_event_date)
+    report = build_report(events_x, data_as_of)
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    out_path = os.path.join(OUTPUT_DIR, f"pullback_review_{latest_date}.md")
+    out_path = os.path.join(OUTPUT_DIR, f"pullback_review_{data_as_of}.md")
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(report)
     print(f"\n报告已生成: {out_path}")
@@ -311,12 +313,12 @@ def main():
     dates = sorted({e["identify_date"] for e in events})
     codes = sorted({e["code"] for e in events})
     stats = {
-        "as_of": latest_date,
-        "span": f"{dates[0]}–{dates[-1]}" if dates[0] != dates[-1] else dates[0],
+        "as_of": data_as_of,  # 数据截止日(末值统计到这天)
+        "span": f"{dates[0]}–{latest_event_date}" if dates[0] != latest_event_date else dates[0],  # 事件跨度
         "events_total": len(events),
         "stocks_total": len(codes),
         **compute_summary(events_x),
-        "report_file": f"pullback_review_{latest_date}.md",
+        "report_file": f"pullback_review_{data_as_of}.md",
     }
     stats_path = os.path.join(OUTPUT_DIR, "pullback_stats.json")
     with open(stats_path, "w", encoding="utf-8") as f:
