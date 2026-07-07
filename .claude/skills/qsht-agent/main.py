@@ -19,6 +19,10 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 BACKTEST = os.path.join(_HERE, "backtest_pullback.py")
 BACKTEST_STATS = os.path.join(_HERE, "output", "pullback_stats.json")
 
+# 第0步大盘环境扫描(选股前打印温度，失败不阻断)
+MARKET_ENV = os.path.join(_HERE, "market_env.py")
+MARKET_ENV_JSON = os.path.join(_HERE, "output", "market_env.json")
+
 
 def run_step(name: str, cmd: list[str]) -> bool:
     print(f"\n{'=' * 50}", flush=True)
@@ -71,6 +75,19 @@ def run_backtest_step() -> dict | None:
         return None
     data = check_file(BACKTEST_STATS, "回踩复盘")
     if not data or data.get("n", 0) == 0:
+        return None
+    return data
+
+
+def run_market_env_step() -> dict | None:
+    """第0步：大盘环境扫描(上证/沪深300/创业板)，返回快照 dict 或 None。
+
+    在选股前运行，控制台打印大盘温度；失败不阻断主流程。
+    """
+    if not run_step("大盘环境扫描", [sys.executable, MARKET_ENV]):
+        return None
+    data = check_file(MARKET_ENV_JSON, "大盘环境")
+    if not data or not data.get("indexes"):
         return None
     return data
 
@@ -190,6 +207,28 @@ def _backtest_section(s: dict) -> list[str]:
     return lines
 
 
+def _market_env_section(env: dict) -> list[str]:
+    """生成大盘环境 section(置于主报告开头作为背景)。"""
+    lines = []
+    as_of = env.get("as_of", "?")
+    idxs = env.get("indexes", [])
+    lines.append(f"## 大盘环境（{as_of}）")
+    lines.append("")
+    lines.append("| 指数 | 收盘 | 当日% | 120日回撤% | 区间位置% | vs MA20/60 | 5日% | 20日% |")
+    lines.append("| --- | --- | --- | --- | --- | --- | --- | --- |")
+    for i in idxs:
+        ma_tag = ("↓" if i.get("below_ma20") else "↑") + "/" + (
+            "↓" if i.get("below_ma60") else "↑"
+        )
+        lines.append(
+            f"| {i['name']} | {i['close']} | {i['chg_pct']:+.2f} | {i['dd120']:.1f} | "
+            f"{i['pos120']:.0f} | {ma_tag} | {i['ret5']:+.1f} | {i['ret20']:+.1f} |"
+        )
+    lines.append("")
+    lines.append(f"> **环境判断**：{env.get('summary', '—')}")
+    return lines
+
+
 def generate_markdown(
     date_str: str,
     stats: list[dict],
@@ -197,8 +236,14 @@ def generate_markdown(
     final_stocks: list[dict],
     q2_data: dict | None = None,
     backtest_summary: dict | None = None,
+    market_env: dict | None = None,
 ) -> str:
     lines = [f"# 选股报告 - {date_str}", ""]
+
+    # 第0步：大盘环境(置于报告最开头作为背景)
+    if market_env is not None:
+        lines.extend(_market_env_section(market_env))
+        lines.append("")
 
     # 筛选流水线统计
     lines.append("## 筛选流水线")
@@ -321,6 +366,9 @@ def main():
     date_str = datetime.now().strftime("%Y-%m-%d")
     print(f"qsht-agent 选股流水线 - {date_str}", flush=True)
 
+    # 第0步：大盘环境扫描(选股前打印温度，失败不阻断)
+    market_env = run_market_env_step()
+
     # 预测各步骤输出路径
     # Step 1: 创新高 → chuangxingao/data/{date}.json
     cxg_out = os.path.join(SKILLS_DIR, "chuangxingao", "data", f"{date_str}.json")
@@ -345,7 +393,7 @@ def main():
     step_stocks["创新高"] = cxg_data.get("stocks", [])
     if cxg_data.get("count", 0) == 0:
         print("[提示] 创新高筛选无结果，流水线结束。", flush=True)
-        _finish(date_str, stats, step_stocks, [], q2_input=None)
+        _finish(date_str, stats, step_stocks, [], q2_input=None, market_env=market_env)
         return
 
     # Step 1.5: 起爆点（创新高派生，失败不阻断主流程）
@@ -366,7 +414,7 @@ def main():
     step_stocks["近期涨停"] = zt_data.get("stocks", [])
     if zt_data.get("count", 0) == 0:
         print("[提示] 涨停筛选无结果，流水线结束。", flush=True)
-        _finish(date_str, stats, step_stocks, [], q2_input=None)
+        _finish(date_str, stats, step_stocks, [], q2_input=None, market_env=market_env)
         return
 
     # Step 3: 缩量回踩（策略1）
@@ -382,7 +430,7 @@ def main():
     step_stocks["缩量回踩"] = slhc_data.get("stocks", [])
     if slhc_data.get("count", 0) == 0:
         print("[提示] 缩量回踩筛选无结果，流水线结束。", flush=True)
-        _finish(date_str, stats, step_stocks, [], q2_input=zt_out)
+        _finish(date_str, stats, step_stocks, [], q2_input=zt_out, market_env=market_env)
         return
 
     # 归一化 current_close → close，确保市值筛选器兼容
@@ -398,7 +446,7 @@ def main():
     step_stocks["市值<200亿"] = sz_data.get("stocks", [])
     final_stocks = sz_data.get("stocks", [])
 
-    _finish(date_str, stats, step_stocks, final_stocks, q2_input=zt_out)
+    _finish(date_str, stats, step_stocks, final_stocks, q2_input=zt_out, market_env=market_env)
 
 
 def _finish(
@@ -407,11 +455,12 @@ def _finish(
     step_stocks: dict[str, list[dict]],
     final_stocks: list[dict],
     q2_input: str | None = None,
+    market_env: dict | None = None,
 ):
     """统一收尾：近期涨停非空时跑 Q2 展望，跑回踩复盘，再生成报告。"""
     q2_data = run_q2_step(q2_input) if q2_input else None
     backtest_summary = run_backtest_step()
-    _output_report(date_str, stats, step_stocks, final_stocks, q2_data, backtest_summary)
+    _output_report(date_str, stats, step_stocks, final_stocks, q2_data, backtest_summary, market_env)
 
 
 def _output_report(
@@ -421,8 +470,9 @@ def _output_report(
     stocks: list[dict],
     q2_data: dict | None = None,
     backtest_summary: dict | None = None,
+    market_env: dict | None = None,
 ):
-    md = generate_markdown(date_str, stats, step_stocks, stocks, q2_data, backtest_summary)
+    md = generate_markdown(date_str, stats, step_stocks, stocks, q2_data, backtest_summary, market_env)
     output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output")
     os.makedirs(output_dir, exist_ok=True)
     md_path = os.path.join(output_dir, f"{date_str}.md")
