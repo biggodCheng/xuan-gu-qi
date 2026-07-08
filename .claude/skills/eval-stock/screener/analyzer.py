@@ -44,7 +44,7 @@ def check_recent_zt(kline: list[dict], threshold: float,
                     recent_days: int = RECENT_ZT_DAYS) -> dict:
     """近 recent_days 天内单日涨幅(close vs prev_close) >= threshold。"""
     if len(kline) < 2:
-        return {"pass": False, "count": 0, "dates": [], "_raw": []}
+        return {"pass": False, "count": 0, "label": "无", "dates": [], "_raw": []}
     window = kline[-(recent_days + 1):]
     raw = []
     for i in range(1, len(window)):
@@ -55,9 +55,15 @@ def check_recent_zt(kline: list[dict], threshold: float,
         if chg >= threshold:
             raw.append({"date": window[i]["date"], "chg": round(chg, 2),
                         "close": window[i]["close"], "volume": window[i]["volume"]})
+    if raw:
+        date_str = "、".join(z["date"][5:] for z in raw[:5])
+        label = f"{len(raw)} 次（{date_str}）"
+    else:
+        label = "无"
     return {
         "pass": len(raw) > 0,
         "count": len(raw),
+        "label": label,
         "dates": [{"date": z["date"], "chg": z["chg"]} for z in raw],
         "_raw": raw,
     }

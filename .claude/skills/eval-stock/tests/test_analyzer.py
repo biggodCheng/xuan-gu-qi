@@ -50,6 +50,7 @@ def test_recent_zt_hit():
     assert r["pass"] is True
     assert r["count"] == 1
     assert r["dates"][0]["chg"] == 10.0
+    assert "1 次" in r["label"]
 
 
 def test_recent_zt_outside_window():
