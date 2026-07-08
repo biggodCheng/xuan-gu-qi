@@ -109,8 +109,8 @@ def evaluate_one(query: str) -> dict:
             code, name = resolve(query)    # resolve 对代码/名称都能解析，顺带拿 name
         except Exception:
             code, name = None, None
-    if not code and re.match(r"^[03468]\d{5}$", query):
-        code = query                       # _SID 不可用/解析失败时，纯代码兜底（name 留空）
+    if not code and re.match(r"^[034689]\d{5}$", query):
+        code = query                       # _SID 不可用/解析失败时，纯代码兜底（含北交所920xxx，name 留空）
     if not code:
         return {"code": "", "name": query, "error": f"未找到股票或名称解析不可用: {query}"}
 
