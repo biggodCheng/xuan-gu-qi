@@ -25,10 +25,14 @@ def tencent_symbol(code: str) -> str:
 
 
 def get_board(code: str) -> str:
-    """main / kc_cy(科创创业) / bj。"""
+    """main / kc_cy(科创创业) / bj。
+
+    北交所覆盖：4(43xxxx/40xxxx)、8(83xxxx/87xxxx/88xxxx)、92(920xxx 新代码)。
+    前缀元组与 tencent_symbol 完全对齐，防漂移。
+    """
     if code.startswith(("68", "30")):
         return "kc_cy"
-    if code.startswith(("8", "4", "9")):
+    if code.startswith(("4", "8", "92")):
         return "bj"
     return "main"
 

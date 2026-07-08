@@ -19,6 +19,7 @@ def test_get_board():
     assert get_board("300001") == "kc_cy"
     assert get_board("688001") == "kc_cy"
     assert get_board("830001") == "bj"
+    assert get_board("920019") == "bj"
 
 
 def test_zt_threshold():
