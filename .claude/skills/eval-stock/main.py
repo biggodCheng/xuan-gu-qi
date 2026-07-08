@@ -103,14 +103,14 @@ def evaluate_one(query: str) -> dict:
     _lazy_load()
     query = query.strip()
     code, name = None, None
-    if re.match(r"^[03468]\d{5}$", query):
-        code = query                       # 纯代码直接用，不依赖 sidasaidao
-    elif _SID:
+    if _SID:
         resolve, _, _ = _SID
         try:
-            code, name = resolve(query)
+            code, name = resolve(query)    # resolve 对代码/名称都能解析，顺带拿 name
         except Exception:
             code, name = None, None
+    if not code and re.match(r"^[03468]\d{5}$", query):
+        code = query                       # _SID 不可用/解析失败时，纯代码兜底（name 留空）
     if not code:
         return {"code": "", "name": query, "error": f"未找到股票或名称解析不可用: {query}"}
 
