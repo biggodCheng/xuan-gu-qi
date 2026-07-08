@@ -102,3 +102,12 @@ def check_pullback(kline: list[dict], zt_raw: list[dict],
         return {"pass": True,
                 "label": f"{seg[0]['date']} 起 {best_len} 天，量比 {ratio:.2f}"}
     return {"pass": False, "label": "未形成缩量回踩"}
+
+
+def check_marketcap(total: float | None, circ: float | None = None,
+                    threshold: float = MKTCAP_THRESHOLD) -> dict:
+    if total is None:
+        return {"pass": False, "label": "市值数据不可用", "total": None, "circ": circ}
+    return {"pass": total < threshold,
+            "label": f"{total:.0f} 亿" + (f" / 流通 {circ:.0f} 亿" if circ else ""),
+            "total": total, "circ": circ}

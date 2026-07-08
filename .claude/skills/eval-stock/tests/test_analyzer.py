@@ -105,3 +105,21 @@ def test_pullback_price_recovers_resets():
     r = check_pullback(k, zt)
     # d4/d5/d6 连续缩量2天 → 命中
     assert r["pass"] is True
+
+
+from screener.analyzer import check_marketcap
+
+
+def test_marketcap_pass():
+    r = check_marketcap(150.0)
+    assert r["pass"] is True and r["total"] == 150.0
+
+
+def test_marketcap_fail():
+    r = check_marketcap(851.15)
+    assert r["pass"] is False
+
+
+def test_marketcap_none():
+    r = check_marketcap(None)
+    assert r["pass"] is False and "不可用" in r["label"]
