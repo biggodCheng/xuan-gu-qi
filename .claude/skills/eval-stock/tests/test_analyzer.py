@@ -67,3 +67,41 @@ def test_recent_zt_raw_keeps_close_volume():
     r = check_recent_zt(k, threshold=9.5)
     assert r["_raw"][0]["close"] == 11.0
     assert r["_raw"][0]["volume"] == 1000.0
+
+
+from screener.analyzer import check_pullback
+
+
+def _kline_cv(series):
+    """series: [(close, volume), ...] → kline。"""
+    return [{"date": f"d{i}", "close": c, "volume": v} for i, (c, v) in enumerate(series)]
+
+
+def test_pullback_hit():
+    # 涨停日 d5: close=11 vol=1000；之后连续2天 close<11 且量递减(<prev*0.8)
+    zt = [{"date": "d5", "chg": 10.0, "close": 11.0, "volume": 1000.0}]
+    k = _kline_cv([(10, 100)] * 5 + [(11, 1000), (10.5, 700), (10.2, 500), (10.0, 800)])
+    r = check_pullback(k, zt)
+    assert r["pass"] is True
+    assert "d6" in r["label"]
+
+
+def test_pullback_no_zt():
+    assert check_pullback(_kline_cv([(10, 100), (11, 200)]), []).get("pass") is False
+
+
+def test_pullback_volume_not_shrink():
+    # 涨停后价格回落但量不缩 → 不命中
+    zt = [{"date": "d1", "chg": 10.0, "close": 11.0, "volume": 1000.0}]
+    k = _kline_cv([(10, 100), (11, 1000), (10.5, 950), (10.2, 920)])  # 量仅微降
+    r = check_pullback(k, zt)
+    assert r["pass"] is False
+
+
+def test_pullback_price_recovers_resets():
+    # 中途价格回到>=涨停收盘，则中断
+    zt = [{"date": "d1", "chg": 10.0, "close": 11.0, "volume": 1000.0}]
+    k = _kline_cv([(10, 100), (11, 1000), (10.5, 700), (11.5, 600), (10.8, 400), (10.6, 300)])
+    r = check_pullback(k, zt)
+    # d4/d5/d6 连续缩量2天 → 命中
+    assert r["pass"] is True

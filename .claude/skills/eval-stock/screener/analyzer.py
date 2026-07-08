@@ -61,3 +61,44 @@ def check_recent_zt(kline: list[dict], threshold: float,
         "dates": [{"date": z["date"], "chg": z["chg"]} for z in raw],
         "_raw": raw,
     }
+
+
+def check_pullback(kline: list[dict], zt_raw: list[dict],
+                   shrink_ratio: float = SHRINK_RATIO,
+                   min_days: int = MIN_PULLBACK_DAYS) -> dict:
+    """策略1：最后一次涨停后连续 close<zt_close 且 volume<prev*shrink_ratio。"""
+    if not zt_raw:
+        return {"pass": False, "label": "无近期涨停"}
+    lz = zt_raw[-1]
+    zt_date, zt_close = lz["date"], lz["close"]
+    idx = next((i for i, d in enumerate(kline) if d["date"] == zt_date), None)
+    if idx is None:
+        return {"pass": False, "label": "涨停日不在K线"}
+    after = kline[idx + 1:]
+    if len(after) < min_days:
+        return {"pass": False, "label": "涨停后交易日不足"}
+
+    best_len = cur_len = 0
+    best_start = cur_start = -1
+    for i in range(len(after)):
+        if after[i]["close"] >= zt_close:
+            cur_start, cur_len = -1, 0
+            continue
+        if cur_start == -1:
+            cur_start, cur_len = i, 1
+        elif after[i]["volume"] < after[i - 1]["volume"] * shrink_ratio:
+            cur_len += 1
+        else:
+            if cur_len > best_len:
+                best_len, best_start = cur_len, cur_start
+            cur_start, cur_len = i, 1
+    if cur_len > best_len:
+        best_len, best_start = cur_len, cur_start
+
+    if best_len >= min_days and best_start >= 0:
+        seg = after[best_start:best_start + best_len]
+        fv = seg[0]["volume"] or 1
+        ratio = seg[-1]["volume"] / fv
+        return {"pass": True,
+                "label": f"{seg[0]['date']} 起 {best_len} 天，量比 {ratio:.2f}"}
+    return {"pass": False, "label": "未形成缩量回踩"}
