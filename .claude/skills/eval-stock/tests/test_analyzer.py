@@ -26,8 +26,8 @@ def test_new_high_within_recent_20():
 
 
 def test_new_high_fail():
-    # 近20日均未创新高：前100日最高12（远在20日外），近20日最高10
-    closes = [12.0] + [8.0] * 99 + [10.0] * 20
+    # 前100日内有高点12（index80，在20日窗口外），近20日最高10，均未创新高
+    closes = [8.0] * 80 + [12.0] + [8.0] * 19 + [10.0] * 20
     r = check_new_high(_kline(closes))
     assert r["pass"] is False
     assert "距高点" in r["label"]

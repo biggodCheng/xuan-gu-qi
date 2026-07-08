@@ -20,15 +20,15 @@ def check_new_high(kline: list[dict],
         return {"pass": False, "label": "数据不足", "detail": f"K线仅 {len(kline)} 根"}
 
     today_close = kline[-1]["close"]
-    # 今日是否新高（与前 lookback 根比，严格高于才算新高）
-    if today_close > max(d["close"] for d in kline[-(lookback + 1):-1]):
+    # 今日是否新高（与前 lookback 根比）
+    if today_close >= max(d["close"] for d in kline[-(lookback + 1):-1]):
         return {"pass": True, "label": "今日新高",
                 "detail": f"今日 {today_close:.2f} 创 {lookback} 日新高"}
 
     # 近 recent_days 内是否曾新高（从最近往远找，取最近一次）
     for i in range(len(kline) - 1, len(kline) - recent_days - 1, -1):
         before = kline[max(0, i - lookback):i]
-        if kline[i]["close"] > max(d["close"] for d in before):
+        if kline[i]["close"] >= max(d["close"] for d in before):
             days_ago = len(kline) - 1 - i
             return {"pass": True,
                     "label": f"近 {days_ago} 日前 {kline[i]['date']} 创 {lookback} 日新高",
