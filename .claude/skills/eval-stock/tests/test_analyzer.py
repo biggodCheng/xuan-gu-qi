@@ -37,3 +37,33 @@ def test_new_high_insufficient_data():
     r = check_new_high(_kline([10.0] * 50))
     assert r["pass"] is False
     assert "数据不足" in r["label"]
+
+
+from screener.analyzer import check_recent_zt
+
+
+def test_recent_zt_hit():
+    # 最近15日内有一天涨幅 10%（>= 9.5%）
+    closes = [10.0] * 20 + [11.0] + [10.5] * 5  # 第21日 +10%
+    k = [{"date": f"d{i}", "close": c, "volume": 100.0} for i, c in enumerate(closes)]
+    r = check_recent_zt(k, threshold=9.5)
+    assert r["pass"] is True
+    assert r["count"] == 1
+    assert r["dates"][0]["chg"] == 10.0
+
+
+def test_recent_zt_outside_window():
+    # 涨停在20天前（窗口外）
+    closes = [10.0] * 5 + [11.0] + [10.0] * 20
+    k = [{"date": f"d{i}", "close": c, "volume": 100.0} for i, c in enumerate(closes)]
+    r = check_recent_zt(k, threshold=9.5)
+    assert r["pass"] is False
+    assert r["count"] == 0
+
+
+def test_recent_zt_raw_keeps_close_volume():
+    closes = [10.0] * 10 + [11.0]
+    k = [{"date": f"d{i}", "close": c, "volume": float(i) * 100} for i, c in enumerate(closes)]
+    r = check_recent_zt(k, threshold=9.5)
+    assert r["_raw"][0]["close"] == 11.0
+    assert r["_raw"][0]["volume"] == 1000.0

@@ -38,3 +38,26 @@ def check_new_high(kline: list[dict],
     pct = (today_close / high_recent - 1) * 100 if high_recent else 0
     return {"pass": False, "label": f"距高点 {pct:.1f}%",
             "detail": f"近 {recent_days} 日均未创新高"}
+
+
+def check_recent_zt(kline: list[dict], threshold: float,
+                    recent_days: int = RECENT_ZT_DAYS) -> dict:
+    """近 recent_days 天内单日涨幅(close vs prev_close) >= threshold。"""
+    if len(kline) < 2:
+        return {"pass": False, "count": 0, "dates": [], "_raw": []}
+    window = kline[-(recent_days + 1):]
+    raw = []
+    for i in range(1, len(window)):
+        prev = window[i - 1]["close"]
+        if prev <= 0:
+            continue
+        chg = (window[i]["close"] - prev) / prev * 100
+        if chg >= threshold:
+            raw.append({"date": window[i]["date"], "chg": round(chg, 2),
+                        "close": window[i]["close"], "volume": window[i]["volume"]})
+    return {
+        "pass": len(raw) > 0,
+        "count": len(raw),
+        "dates": [{"date": z["date"], "chg": z["chg"]} for z in raw],
+        "_raw": raw,
+    }
