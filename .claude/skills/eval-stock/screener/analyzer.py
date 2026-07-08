@@ -103,8 +103,8 @@ def check_pullback(kline: list[dict], zt_raw: list[dict],
 
     if best_len >= min_days and best_start >= 0:
         seg = after[best_start:best_start + best_len]
-        fv = seg[0]["volume"] or 1
-        ratio = seg[-1]["volume"] / fv
+        fv = seg[0]["volume"]
+        ratio = seg[-1]["volume"] / fv if fv > 0 else 0
         return {"pass": True,
                 "label": f"{seg[0]['date']} 起 {best_len} 天，量比 {ratio:.2f}"}
     return {"pass": False, "label": "未形成缩量回踩"}

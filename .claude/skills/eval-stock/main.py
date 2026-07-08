@@ -3,6 +3,7 @@
 对每只股票跑 qsht 6 维度，终端打印 markdown 汇总。
 """
 import os
+import re
 import sys
 from datetime import datetime
 
@@ -21,13 +22,24 @@ if sys.platform == "win32":
 KLINE_DAYS = 130
 _Q2 = None   # lazy
 _SID = None
+_LOADED = False
 
 
 def _lazy_load():
-    global _Q2, _SID
-    if _Q2 is None:
+    global _Q2, _SID, _LOADED
+    if _LOADED:
+        return
+    _LOADED = True
+    try:
         _Q2 = get_q2_funcs()       # (get_financial, analyze)
+    except Exception as e:
+        print(f"[eval-stock] Q2 模块加载失败: {e}", file=sys.stderr)
+        _Q2 = None
+    try:
         _SID = get_sid_funcs()     # (resolve, get_detail, match_tracks)
+    except Exception as e:
+        print(f"[eval-stock] 赛道模块加载失败: {e}", file=sys.stderr)
+        _SID = None
 
 
 def _is_intraday(last_date: str) -> bool:
@@ -36,11 +48,15 @@ def _is_intraday(last_date: str) -> bool:
     now = datetime.now()
     if last_date != now.strftime("%Y-%m-%d"):
         return False
-    # 交易时段粗判
-    return 9 <= now.hour < 15
+    # 交易时段：09:30–15:00
+    return (now.hour > 9 or (now.hour == 9 and now.minute >= 30)) and now.hour < 15
 
 
 def _eval_q2(code: str) -> dict:
+    if not _Q2:
+        return {"verdict": "数据不可用", "confidence": "低",
+                "netprofit_yoy": None, "revenue_yoy": None,
+                "summary": "Q2 模块未加载", "industry": ""}
     try:
         get_financial, analyze = _Q2
         fin = get_financial(code)
@@ -68,6 +84,8 @@ def _eval_q2(code: str) -> dict:
 
 def _eval_track(code: str) -> tuple:
     """返回 (track_dict, industry)。"""
+    if not _SID:
+        return {"tracks": [], "main": "", "main_conf": ""}, ""
     try:
         _, get_detail, match = _SID
         detail = get_detail(code)
@@ -83,13 +101,18 @@ def _eval_track(code: str) -> tuple:
 
 def evaluate_one(query: str) -> dict:
     _lazy_load()
-    resolve, _, _ = _SID
-    try:
-        code, name = resolve(query)
-    except Exception:
-        code, name = None, None
+    query = query.strip()
+    code, name = None, None
+    if re.match(r"^[03468]\d{5}$", query):
+        code = query                       # 纯代码直接用，不依赖 sidasaidao
+    elif _SID:
+        resolve, _, _ = _SID
+        try:
+            code, name = resolve(query)
+        except Exception:
+            code, name = None, None
     if not code:
-        return {"code": "", "name": query, "error": f"未找到股票: {query}"}
+        return {"code": "", "name": query, "error": f"未找到股票或名称解析不可用: {query}"}
 
     kline = fetch_kline(code, KLINE_DAYS)
     total, circ = fetch_marketcap(code)
