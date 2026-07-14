@@ -1,0 +1,28 @@
+# 东方财富股吧人气榜渲染后 DOM 行样本 (probe_rank.py 探测于 2026-07-14)
+# 页面: https://guba.eastmoney.com/rank/  (默认 = 人气榜/热度榜, .ranktit.hotrank.active)
+# 行 selector: table tbody tr  (等价 .rank_table tbody tr), 每页 20 行, 共 5 页 = 100
+# 单元格 selector: td  (每行 10 个 td; 表头 11 个 th, 新晋/铁杆粉丝合并在末列)
+#
+# td 列顺序 (index: 含义 : 解析方式):
+#   0: 当前排名 rank      — rank 1/2/3 文本为空, 须读 b 的 icon_rank1/2/3 类;
+#                          rank>=4 为数字文本. 兜底: 行序号(表格已按 rank 排序)
+#   1: 排名较昨日变动      — 文本自带符号 ('52' 正 / '-2' 负), int(text) 直接解析;
+#                          方向另由 b 的 icon_rankup / icon_rankdown 标识
+#   2: 历史趋势           — a.chart_line 的 data-strdata (JSON 历史排名), 可跳过
+#   3: 代码 code          — 纯数字文本, 可靠 (如 002384)
+#   4: 股票名称 name       — DOM 文本为空(二次 quote 填充, 实测不填), 须用 push2 f58 补
+#   5: 相关               — '排名详情 股吧' 链接, 跳过
+#   6: 最新价             — 非交易时段为 '--'
+#   7: 涨跌额             — '--'
+#   8: 涨跌幅             — '--'
+#   9: 新晋粉丝% / 铁杆粉丝% — 合并一格, 文本 'left%\nright%',
+#                          span.left_percent=新晋, span.right_percent=铁杆
+# 注意: DOM 无独立"热度值/popularity 数值"列 — 人气即 rank 本身.
+#
+# ===== 样本 (raw td 文本, 按真实顺序; td9 内换行用 '/' 表示) =====
+# 样本A: rank>=4 行 (文本完整)
+4,-2,,000725,,排名详情 股吧,--,--,--,13.42% / 86.58%
+# 样本B: rank 1 行 (top3, td0 文本空, rank 须从 icon_rank1 类解析)
+,52,,002384,,排名详情 股吧,--,--,--,29.08% / 70.92%
+# 样本C: 翻到第2页首行 (ajax 翻页, rank 从 21 开始)
+21,196,,301526,,排名详情 股吧,--,--,--,15.44% / 84.56%
