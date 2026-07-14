@@ -27,28 +27,35 @@ def test_fetch_industry_concepts_parses(monkeypatch):
     r = fetcher.fetch_industry_concepts("600000")
     assert r["industry"] == "银行"
     assert r["concepts"] == ["沪股通", "融资融券", "标准券"]
+    assert r["name"] == "浦发银行"
 
 
 def test_fetch_industry_concepts_empty_fields(monkeypatch):
-    payload = {"data": {"f127": "", "f129": ""}}
+    payload = {"data": {"f127": "", "f129": "", "f58": ""}}
     monkeypatch.setattr(fetcher, "_request_push2", lambda secid: payload)
     r = fetcher.fetch_industry_concepts("600000")
     assert r["industry"] == ""
     assert r["concepts"] == []
+    assert r["name"] == ""
 
 
 def test_fetch_industry_concepts_failure_returns_empty(monkeypatch):
     monkeypatch.setattr(fetcher, "_request_push2", lambda secid: {})
     r = fetcher.fetch_industry_concepts("600000")
-    assert r == {"industry": "", "concepts": []}
+    assert r == {"industry": "", "concepts": [], "name": ""}
 
 
 def test_fetch_industry_for_stocks_fills_inplace(monkeypatch):
     monkeypatch.setattr(fetcher, "_request_push2",
-                        lambda secid: {"data": {"f127": "电子", "f129": "AI算力,芯片"}})
+                        lambda secid: {"data": {"f127": "电子", "f129": "AI算力,芯片", "f58": "东方电子"}})
     stocks = [{"code": "600000"}, {"code": "000001"}]
     fetcher.fetch_industry_for_stocks(stocks, max_workers=2)
     assert stocks[0]["industry"] == "电子"
     assert stocks[0]["concepts"] == ["AI算力", "芯片"]
     assert stocks[0]["reason"] == "AI算力,芯片"
     assert stocks[1]["industry"] == "电子"
+    assert stocks[0]["name"] == "东方电子"   # DOM name 空 → 被 f58 补全
+
+    stocks2 = [{"code": "600000", "name": "已有名"}]
+    fetcher.fetch_industry_for_stocks(stocks2, max_workers=2)
+    assert stocks2[0]["name"] == "已有名"   # 不覆盖非空 name

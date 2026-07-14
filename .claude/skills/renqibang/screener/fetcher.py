@@ -42,12 +42,13 @@ def _request_push2(secid: str) -> dict:
 
 
 def fetch_industry_concepts(code: str) -> dict:
-    """取一只股票的行业 + 概念。失败/缺字段返回空(不抛)。"""
+    """取一只股票的行业 + 概念 + 名称。失败/缺字段返回空(不抛)。"""
     data = (_request_push2(build_secid(code)) or {}).get("data") or {}
     industry = (data.get("f127") or "").strip()
     raw = (data.get("f129") or "").strip()
     concepts = [c.strip() for c in raw.split(",") if c.strip()]
-    return {"industry": industry, "concepts": concepts}
+    name = (data.get("f58") or "").strip()
+    return {"industry": industry, "concepts": concepts, "name": name}
 
 
 def fetch_industry_for_stocks(stocks: list, max_workers: int = 10) -> None:
@@ -68,8 +69,10 @@ def fetch_industry_for_stocks(stocks: list, max_workers: int = 10) -> None:
                 continue
 
     for s in stocks:
-        info = result.get(s.get("code"), {"industry": "", "concepts": []})
+        info = result.get(s.get("code"), {"industry": "", "concepts": [], "name": ""})
         s["industry"] = info["industry"]
         s["concepts"] = info["concepts"]
-        s["rank_change"] = s.get("rank_change", "")
         s["reason"] = ",".join(info["concepts"])
+        if not s.get("name"):               # DOM name 空 → 用 push2 f58 补
+            s["name"] = info.get("name", "")
+        s["rank_change"] = s.get("rank_change", "")
