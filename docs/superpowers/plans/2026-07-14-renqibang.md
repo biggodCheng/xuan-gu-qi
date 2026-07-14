@@ -1110,3 +1110,21 @@ git commit -m "fix(renqibang): 榜单 selector/列顺序实测修正"
 - **占位符**:无 TBD/TODO。browser.py selector 常量给候选默认值(`table tbody tr` / `td` / `a:has-text('下一页')`),经 Task3 probe_rank.py 探测后单点修正;parse_one 列顺序由 IDX_* 常量驱动,探测后可单点调整;fixture `rank_row_sample.txt` 由探测产出(示例值已标注按真实替换)。
 - **类型一致**:`parse_one`→`fetch_top100`→`main.run`→`storage.save_results` 的 stock dict 字段(rank/code/name/popularity/rank_change + 补 industry/concepts/reason)跨任务一致;`fetch_industry_for_stocks` 就地补字段签名与 main 调用一致;`build_secid` 在 fetcher 内部自洽。
 - **已知简化**:`fetch_top100` 因驱动真实浏览器不写单测,靠 parse_one 单测 + Task 8 联调;`sort` 当前固定"热度榜"(spec 第 12 节 CHECKPOINT 留飙升榜为可选交互,本期不实现)。
+
+---
+
+## 实现偏差记录（2026-07-14 探测 + 联调后，实现已据此调整）
+
+实现中发现与 plan 早期假设的几处偏差（已实现，记录供维护）：
+
+1. **榜单 DOM 列结构**（Task 3 探测确认，覆盖 plan File Structure 里假设的 `[rank,code,name,pop,chg]`）：
+   - 真实 td 顺序：`td[0]`=rank（前 3 名 DOM 文本空，用累计序号 base_rank）、`td[1]`=rank_change、`td[2]`=历史趋势、`td[3]`=code、`td[4]`=**热帖摘要列（不是 name！）**、`td[5]`=链接、`td[6..8]`=价格、`td[9]`=新晋%/铁杆%
+   - `browser.py` 用 `IDX_CHG=1 / IDX_CODE=3 / IDX_FANS=9`（`IDX_NAME=4` 定义保留但 parse_one 不再读，因 td[4] 非名称）。
+2. **popularity 语义**：榜单**无独立热度值列**，人气即 rank 本身；`popularity` 取 `td[9]` 第一个百分比（新晋粉丝%）。
+3. **name 来源**：DOM 不含名称（td[4] 是热帖摘要），**完全由 push2 `f58` 补**——`fetch_industry_concepts` 返回加 `name`；`fetch_industry_for_stocks` 在 DOM name 为空时用 f58 补，不覆盖非空。
+4. **push2 网络适配**（Task 8 联调确认）：当前网络环境 push2 直连（trust_env=False）被服务端 RemoteDisconnected，需**走系统代理**（`trust_env=True`）+ `http`（非 https，代理下 https 成功率低）+ 重试（`RETRIES=3`）+ **多轮 sweep**（`sweeps=3`，每轮只重试仍缺 name 的 code，应对代理突发空响应）。与 chuangxingao 的"禁代理直连新浪/腾讯"不同——push2 服务端拒绝直连。参考 `zhuxian/screener/fetcher.py` 同问题。
+5. **selector 实测值**：`RANK_ROW_SELECTOR="table tbody tr"`（每页 20 行，5 页=100）、`RANK_CELL_SELECTOR="td"`、`NEXT_PAGE_SELECTOR="a:has-text('下一页')"`（ajax 翻页）、`HOT_TAB_SELECTOR=""`（默认 tab 即热度榜 `.ranktit.hotrank.active`）。
+6. **联调 concern（外部网络，非代码 bug）**：Clash 代理对 push2 间歇 502 时，部分股票的 name/industry/concepts 暂空；但 rank/code/popularity/rank_change 始终可靠（来自 DOM）。代理恢复后多轮 sweep 会自动补全。
+7. **fetch_industry_for_stocks 签名扩展**：加 `sweeps: int = 3` 参数（多轮扫描），`max_workers` 默认 10。
+
+实测样本（2026-07-14 联调）：东山精密(002384) rank1 / 元件 / 新晋粉丝 29.77% / 题材 [创投, LED概念, 苹果概念, 5G概念, ...]。
