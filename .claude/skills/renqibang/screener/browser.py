@@ -61,3 +61,74 @@ def parse_one(cells: list, base_rank: int):
         "popularity": popularity,
         "rank_change": rank_change,
     }
+
+
+def _row_cells(row_locator) -> list:
+    """取一行的 td 文本列表（每项 strip）。"""
+    return [c.strip() for c in row_locator.locator(RANK_CELL_SELECTOR).all_text_contents()]
+
+
+def fetch_top100(sort: str = "热度榜", headless: bool = True, max_pages: int = 8) -> list:
+    """Playwright 渲染东方财富人气榜，ajax 翻页取 Top100。
+
+    返回 list[{rank, code, name, popularity, rank_change}]（不足 100 取实际条数）。
+    rank 用累计序号(榜单已按 rank 排序)。按 code 去重。HOT_TAB_SELECTOR 非空时先点 tab
+    (当前默认即热度榜，留空则跳过)。
+    """
+    from playwright.sync_api import sync_playwright
+
+    stocks = []
+    seen = set()
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=headless)
+        page = browser.new_page()
+        page.goto(RANK_URL, wait_until="domcontentloaded", timeout=30000)
+
+        # 切到热度榜(若需要)
+        if HOT_TAB_SELECTOR:
+            try:
+                page.locator(HOT_TAB_SELECTOR).first.click()
+                page.wait_for_timeout(1500)
+            except Exception:
+                pass
+
+        # 等 JS 解密 + 渲染
+        page.wait_for_selector(RANK_ROW_SELECTOR, timeout=20000)
+        page.wait_for_timeout(3000)
+
+        for _ in range(max_pages):
+            if len(stocks) >= 100:
+                break
+            rows = page.locator(RANK_ROW_SELECTOR).all()
+            for row in rows:
+                if len(stocks) >= 100:
+                    break
+                try:
+                    cells = _row_cells(row)
+                except Exception:
+                    continue
+                base_rank = len(stocks) + 1
+                one = parse_one(cells, base_rank)
+                if not one or one["code"] in seen:
+                    continue
+                seen.add(one["code"])
+                one["rank"] = len(stocks) + 1   # 连续排名
+                stocks.append(one)
+
+            if len(stocks) >= 100:
+                break
+            # 翻下一页(ajax)
+            if not NEXT_PAGE_SELECTOR:
+                break
+            try:
+                btn = page.locator(NEXT_PAGE_SELECTOR).first
+                if btn.count() == 0:
+                    break
+                btn.click()
+                page.wait_for_selector(RANK_ROW_SELECTOR, timeout=15000)
+                page.wait_for_timeout(2000)
+            except Exception:
+                break
+
+        browser.close()
+    return stocks[:100]
