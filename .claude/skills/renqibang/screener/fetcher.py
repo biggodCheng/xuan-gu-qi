@@ -7,8 +7,6 @@
   必须跟随系统代理(trust_env=True),且用 http 而非 https(代理下 https 成功率
   仅 ~13%,http ~90%+)。push2 偶发空响应,带重试(RETRIES)。
 """
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -58,7 +56,7 @@ def fetch_industry_concepts(code: str) -> dict:
     return {"industry": industry, "concepts": concepts, "name": name}
 
 
-def fetch_industry_for_stocks(stocks: list, max_workers: int = 5,
+def fetch_industry_for_stocks(stocks: list, max_workers: int = 10,
                               sweeps: int = 3) -> None:
     """并发为 stocks 每条就地补 industry / concepts / reason / name。
 

@@ -113,7 +113,6 @@ def fetch_top100(sort: str = "热度榜", headless: bool = True, max_pages: int 
                 if not one or one["code"] in seen:
                     continue
                 seen.add(one["code"])
-                one["rank"] = len(stocks) + 1   # 连续排名
                 stocks.append(one)
 
             if len(stocks) >= 100:

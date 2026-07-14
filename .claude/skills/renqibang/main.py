@@ -53,7 +53,7 @@ def _print_summary(stocks: list, date_str: str) -> None:
         print(f"| {c} | {n} |")
 
 
-def run(today_str: str = None, output_dir: str = None,
+def run(today_str: str | None = None, output_dir: str | None = None,
         browser=None, fetcher=None) -> bool:
     today_str = today_str or datetime.date.today().strftime("%Y-%m-%d")
     base_dir = os.path.dirname(os.path.abspath(__file__))
