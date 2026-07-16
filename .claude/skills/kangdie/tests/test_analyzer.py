@@ -12,7 +12,7 @@ from screener.analyzer import (
     MARKET_CAP_MAX,
     compute_ret20,
     is_anticorrection,
-    market_new_low,
+    market_big_drop,
 )
 
 
@@ -78,39 +78,43 @@ def _good_stock_bars(n=70):
     return _make_bars(n, close_fn, low_fn, vol_fn)
 
 
-# ============ market_new_low ============
+# ============ market_big_drop ============
 
-def test_market_new_low_triggered():
-    """今日收盘 ≤ 前20日最低 → 触发。"""
-    bars = _make_index_bars(25, lambda i: 100.0, lambda i: 105.0)
-    # 最后一条 close=100，前20条 low=105 → 100 ≤ 105 → 触发
-    is_low, close, min_low = market_new_low(bars, n=20)
-    assert is_low is True
-    assert close == 100.0
-    assert min_low == 105.0
-
-
-def test_market_new_low_not_triggered():
-    """今日收盘 > 前20日最低 → 不触发。"""
-    bars = _make_index_bars(25, lambda i: 110.0, lambda i: 105.0)
-    # close=110 > 105 → 不触发
-    is_low, close, min_low = market_new_low(bars, n=20)
-    assert is_low is False
+def test_market_big_drop_triggered():
+    """今日跌幅 ≤ 阈值 → 触发。"""
+    bars = _make_index_bars(5, lambda i: 100.0, lambda i: 99.0)
+    bars[-2]["close"] = 100.0
+    bars[-1]["close"] = 98.0  # 跌幅 -2% ≤ -1.5 → 触发
+    is_drop, chg, close = market_big_drop(bars, threshold=-1.5)
+    assert is_drop is True
+    assert chg == -2.0
+    assert close == 98.0
 
 
-def test_market_new_low_insufficient_data():
-    """数据不足 21 条 → 不触发。"""
-    bars = _make_index_bars(15, lambda i: 90.0, lambda i: 100.0)
-    is_low, close, min_low = market_new_low(bars, n=20)
-    assert is_low is False
-    assert close == 0.0
+def test_market_big_drop_not_triggered():
+    """今日跌幅 > 阈值 → 不触发。"""
+    bars = _make_index_bars(5, lambda i: 100.0, lambda i: 99.0)
+    bars[-2]["close"] = 100.0
+    bars[-1]["close"] = 99.5  # 跌幅 -0.5% > -1.5 → 不触发
+    is_drop, chg, close = market_big_drop(bars, threshold=-1.5)
+    assert is_drop is False
 
 
-def test_market_new_low_exact_equal():
-    """收盘恰好等于前20日最低 → 触发（≤）。"""
-    bars = _make_index_bars(25, lambda i: 105.0, lambda i: 105.0)
-    is_low, _, _ = market_new_low(bars, n=20)
-    assert is_low is True  # 105 ≤ 105
+def test_market_big_drop_insufficient_data():
+    """数据不足 2 条 → 不触发。"""
+    bars = _make_index_bars(1, lambda i: 100.0, lambda i: 99.0)
+    is_drop, chg, close = market_big_drop(bars, threshold=-1.5)
+    assert is_drop is False
+    assert chg == 0.0
+
+
+def test_market_big_drop_exact_equal():
+    """跌幅恰好等于阈值 → 触发（≤）。"""
+    bars = _make_index_bars(5, lambda i: 100.0, lambda i: 99.0)
+    bars[-2]["close"] = 100.0
+    bars[-1]["close"] = 98.5  # 跌幅 -1.5% = 阈值 → 触发
+    is_drop, _, _ = market_big_drop(bars, threshold=-1.5)
+    assert is_drop is True
 
 
 # ============ compute_ret20 ============
