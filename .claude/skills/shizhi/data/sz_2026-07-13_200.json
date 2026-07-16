@@ -1,0 +1,16 @@
+{
+  "date": "2026-07-13",
+  "source": "slhc_2026-07-13.json",
+  "description": "涨停股中市值小于200亿的股票",
+  "threshold_yi": 200,
+  "total_input": 1,
+  "count": 1,
+  "stocks": [
+    {
+      "code": "301092",
+      "name": "争光股份",
+      "close": 61.28,
+      "market_cap_yi": 37.37
+    }
+  ]
+}

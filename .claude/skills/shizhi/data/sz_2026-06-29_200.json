@@ -1,0 +1,28 @@
+{
+  "date": "2026-06-29",
+  "source": "slhc_2026-06-29.json",
+  "description": "涨停股中市值小于200亿的股票",
+  "threshold_yi": 200,
+  "total_input": 4,
+  "count": 3,
+  "stocks": [
+    {
+      "code": "001256",
+      "name": "炜冈科技",
+      "close": 26.49,
+      "market_cap_yi": 28.32
+    },
+    {
+      "code": "001223",
+      "name": "欧克科技",
+      "close": 53.6,
+      "market_cap_yi": 37.43
+    },
+    {
+      "code": "603458",
+      "name": "勘设股份",
+      "close": 15.56,
+      "market_cap_yi": 47.63
+    }
+  ]
+}

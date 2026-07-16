@@ -1,0 +1,33 @@
+{
+  "date": "2026-07-09",
+  "source": "zt_2026-07-09.json",
+  "description": "缩量回踩（策略1：成交量递减+价格回落）",
+  "strategy": "shrinking_volume",
+  "count": 2,
+  "stocks": [
+    {
+      "code": "688120",
+      "name": "华海清科",
+      "last_zt_date": "2026-06-29",
+      "last_zt_close": 316.32,
+      "last_zt_pct": 20.0,
+      "current_close": 344.0,
+      "pullback_start_date": "2026-07-03",
+      "pullback_days": 2,
+      "volume_shrink_ratio": 0.7679,
+      "close": 344.0
+    },
+    {
+      "code": "688220",
+      "name": "翱捷科技",
+      "last_zt_date": "2026-06-30",
+      "last_zt_close": 124.32,
+      "last_zt_pct": 20.0,
+      "current_close": 125.68,
+      "pullback_start_date": "2026-07-01",
+      "pullback_days": 2,
+      "volume_shrink_ratio": 0.6921,
+      "close": 125.68
+    }
+  ]
+}

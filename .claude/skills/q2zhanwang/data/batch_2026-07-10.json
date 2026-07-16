@@ -1,0 +1,310 @@
+{
+  "report_period": "2026Q1",
+  "source": "zt_2026-07-10.json",
+  "total": 30,
+  "count": 30,
+  "failed": 0,
+  "failed_codes": [],
+  "stocks": [
+    {
+      "code": "002185",
+      "name": "华天科技",
+      "industry": "半导体",
+      "verdict": "偏正",
+      "confidence": "高",
+      "netprofit_yoy": 568.39,
+      "revenue_yoy": 34.49,
+      "q2_note": "Q2展望偏正(置信度高):增长加速、利润改善。"
+    },
+    {
+      "code": "603127",
+      "name": "昭衍新药",
+      "industry": "医疗服务",
+      "verdict": "偏正",
+      "confidence": "高",
+      "netprofit_yoy": 479.67,
+      "revenue_yoy": 10.02,
+      "q2_note": "Q2展望偏正(置信度高):增长加速、利润改善。"
+    },
+    {
+      "code": "002745",
+      "name": "木林森",
+      "industry": "光学光电子",
+      "verdict": "偏正",
+      "confidence": "高",
+      "netprofit_yoy": 193.26,
+      "revenue_yoy": 21.45,
+      "q2_note": "Q2展望偏正(置信度高):增长加速、利润改善。"
+    },
+    {
+      "code": "688710",
+      "name": "益诺思",
+      "industry": "医疗服务",
+      "verdict": "偏正",
+      "confidence": "高",
+      "netprofit_yoy": 121.23,
+      "revenue_yoy": 0.43,
+      "q2_note": "Q2展望偏正(置信度高):增长加速、利润改善。"
+    },
+    {
+      "code": "300434",
+      "name": "金石亚药",
+      "industry": "化学制药",
+      "verdict": "偏正",
+      "confidence": "高",
+      "netprofit_yoy": 84.59,
+      "revenue_yoy": 13.72,
+      "q2_note": "Q2展望偏正(置信度高):增长加速、利润改善。"
+    },
+    {
+      "code": "000977",
+      "name": "浪潮信息",
+      "industry": "计算机设备",
+      "verdict": "偏正",
+      "confidence": "高",
+      "netprofit_yoy": 30.74,
+      "revenue_yoy": -24.3,
+      "q2_note": "Q2展望偏正(置信度高):增长加速、利润改善。"
+    },
+    {
+      "code": "603019",
+      "name": "中科曙光",
+      "industry": "计算机设备",
+      "verdict": "偏正",
+      "confidence": "中",
+      "netprofit_yoy": 22.19,
+      "revenue_yoy": 23.71,
+      "q2_note": "Q2展望偏正(置信度中):增长加速。"
+    },
+    {
+      "code": "301307",
+      "name": "美利信",
+      "industry": "通信设备",
+      "verdict": "偏正",
+      "confidence": "中",
+      "netprofit_yoy": 10.94,
+      "revenue_yoy": 16.18,
+      "q2_note": "Q2展望偏正(置信度中):增长加速。"
+    },
+    {
+      "code": "600360",
+      "name": "华微电子",
+      "industry": "半导体",
+      "verdict": "偏正",
+      "confidence": "中",
+      "netprofit_yoy": 5.44,
+      "revenue_yoy": 3.61,
+      "q2_note": "Q2展望偏正(置信度中):增长加速。"
+    },
+    {
+      "code": "002457",
+      "name": "青龙管业",
+      "industry": "装修建材",
+      "verdict": "偏正",
+      "confidence": "中",
+      "netprofit_yoy": -18.18,
+      "revenue_yoy": -10.87,
+      "q2_note": "Q2展望偏正(置信度中):增长加速。"
+    },
+    {
+      "code": "603137",
+      "name": "恒尚节能",
+      "industry": "装修装饰Ⅱ",
+      "verdict": "偏正",
+      "confidence": "高",
+      "netprofit_yoy": -23.87,
+      "revenue_yoy": -42.56,
+      "q2_note": "Q2展望偏正(置信度高):增长加速、利润改善。"
+    },
+    {
+      "code": "603928",
+      "name": "兴业股份",
+      "industry": "塑料",
+      "verdict": "中性",
+      "confidence": "中",
+      "netprofit_yoy": 144.41,
+      "revenue_yoy": 14.1,
+      "q2_note": "Q2展望中性(置信度中):增长减速、利润改善。"
+    },
+    {
+      "code": "000938",
+      "name": "紫光股份",
+      "industry": "IT服务Ⅱ",
+      "verdict": "中性",
+      "confidence": "中",
+      "netprofit_yoy": 126.06,
+      "revenue_yoy": 34.61,
+      "q2_note": "Q2展望中性(置信度中):增长减速、利润改善。"
+    },
+    {
+      "code": "688328",
+      "name": "深科达",
+      "industry": "专用设备",
+      "verdict": "中性",
+      "confidence": "低",
+      "netprofit_yoy": 89.22,
+      "revenue_yoy": 5.22,
+      "q2_note": "Q2展望中性(置信度低):增长减速、利润改善。"
+    },
+    {
+      "code": "002841",
+      "name": "视源股份",
+      "industry": "消费电子",
+      "verdict": "中性",
+      "confidence": "中",
+      "netprofit_yoy": 52.45,
+      "revenue_yoy": 23.95,
+      "q2_note": "Q2展望中性(置信度中):增长减速、利润改善。"
+    },
+    {
+      "code": "002317",
+      "name": "众生药业",
+      "industry": "中药Ⅱ",
+      "verdict": "中性",
+      "confidence": "中",
+      "netprofit_yoy": 20.83,
+      "revenue_yoy": -1.58,
+      "q2_note": "Q2展望中性(置信度中):增长减速、利润改善。"
+    },
+    {
+      "code": "002303",
+      "name": "美盈森",
+      "industry": "包装印刷",
+      "verdict": "中性",
+      "confidence": "中",
+      "netprofit_yoy": -23.64,
+      "revenue_yoy": -6.6,
+      "q2_note": "Q2展望中性(置信度中):增长加速、利润承压。"
+    },
+    {
+      "code": "688584",
+      "name": "上海合晶",
+      "industry": "半导体",
+      "verdict": "中性",
+      "confidence": "中",
+      "netprofit_yoy": -34.66,
+      "revenue_yoy": -0.04,
+      "q2_note": "Q2展望中性(置信度中):增长加速、利润承压。"
+    },
+    {
+      "code": "605208",
+      "name": "永茂泰",
+      "industry": "工业金属",
+      "verdict": "偏负",
+      "confidence": "中",
+      "netprofit_yoy": 22.98,
+      "revenue_yoy": 13.79,
+      "q2_note": "Q2展望偏负(置信度中):增长减速。"
+    },
+    {
+      "code": "688432",
+      "name": "有研硅",
+      "industry": "半导体",
+      "verdict": "偏负",
+      "confidence": "高",
+      "netprofit_yoy": -1.24,
+      "revenue_yoy": 18.04,
+      "q2_note": "Q2展望偏负(置信度高):增长减速、利润承压。"
+    },
+    {
+      "code": "300487",
+      "name": "蓝晓科技",
+      "industry": "塑料",
+      "verdict": "偏负",
+      "confidence": "高",
+      "netprofit_yoy": -5.81,
+      "revenue_yoy": 5.24,
+      "q2_note": "Q2展望偏负(置信度高):增长减速、利润承压。"
+    },
+    {
+      "code": "603339",
+      "name": "四方科技",
+      "industry": "通用设备",
+      "verdict": "偏负",
+      "confidence": "中",
+      "netprofit_yoy": -13.42,
+      "revenue_yoy": -10.09,
+      "q2_note": "Q2展望偏负(置信度中):增长减速。"
+    },
+    {
+      "code": "002687",
+      "name": "乔治白",
+      "industry": "服装家纺",
+      "verdict": "偏负",
+      "confidence": "高",
+      "netprofit_yoy": -28.5,
+      "revenue_yoy": -3.7,
+      "q2_note": "Q2展望偏负(置信度高):增长减速、利润承压。"
+    },
+    {
+      "code": "603580",
+      "name": "艾艾精工",
+      "industry": "塑料",
+      "verdict": "偏负",
+      "confidence": "高",
+      "netprofit_yoy": -48.43,
+      "revenue_yoy": 115.18,
+      "q2_note": "Q2展望偏负(置信度高):增长减速、利润承压。"
+    },
+    {
+      "code": "301520",
+      "name": "万邦医药",
+      "industry": "医疗服务",
+      "verdict": "偏负",
+      "confidence": "高",
+      "netprofit_yoy": -102.21,
+      "revenue_yoy": -57.02,
+      "q2_note": "Q2展望偏负(置信度高):增长减速、利润承压。"
+    },
+    {
+      "code": "002774",
+      "name": "快意电梯",
+      "industry": "专用设备",
+      "verdict": "偏负",
+      "confidence": "高",
+      "netprofit_yoy": -117.6,
+      "revenue_yoy": -2.76,
+      "q2_note": "Q2展望偏负(置信度高):增长减速、利润承压。"
+    },
+    {
+      "code": "001229",
+      "name": "魅视科技",
+      "industry": "计算机设备",
+      "verdict": "偏负",
+      "confidence": "高",
+      "netprofit_yoy": -180.0,
+      "revenue_yoy": 16.72,
+      "q2_note": "Q2展望偏负(置信度高):增长减速、利润承压。"
+    },
+    {
+      "code": "000048",
+      "name": "京基智农",
+      "industry": "养殖业",
+      "verdict": "偏负",
+      "confidence": "低",
+      "netprofit_yoy": -306.27,
+      "revenue_yoy": 6.88,
+      "q2_note": "Q2展望偏负(置信度低):增长减速、利润承压。"
+    },
+    {
+      "code": "688371",
+      "name": "菲沃泰",
+      "industry": "电子化学品Ⅱ",
+      "verdict": "偏负",
+      "confidence": "高",
+      "netprofit_yoy": -435.96,
+      "revenue_yoy": -28.4,
+      "q2_note": "Q2展望偏负(置信度高):增长减速、利润承压。"
+    },
+    {
+      "code": "001270",
+      "name": "铖昌科技",
+      "industry": "军工电子Ⅱ",
+      "verdict": "数据不足",
+      "confidence": "低",
+      "netprofit_yoy": 50.0,
+      "revenue_yoy": 12.92,
+      "q2_note": "关键数据缺失,无法给出Q2展望"
+    }
+  ]
+}
