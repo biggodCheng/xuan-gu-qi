@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
-"""数据获取层 — 腾讯前复权日K + 腾讯qt市值。
-IO 函数（fetch_kline/fetch_marketcap）调网络后委托给纯解析函数。
+"""数据获取层 — 新浪日K(不复权) + 腾讯qt市值。
+
+腾讯日K接口(web.ifzq.gtimg.cn)于 2026-07-16 被 WAF 拦截(返回反爬跳转页),
+K线源改用新浪 CN_MarketData.getKLineData(直连可达)。腾讯qt简版行情
+(qt.gtimg.cn)未受影响,市值接口保留。
+
+新浪 getKLineData 返回不复权数据;100日趋势窗口内除权跳空影响有限
+(与 zhuxian 板块聚合一致),对新高/涨停/缩量回踩判断可接受。
+
+IO 函数(fetch_kline/fetch_marketcap)调网络后委托给纯解析函数。
 """
 import os
-from datetime import datetime, timedelta
 
 import requests
 
@@ -12,11 +19,21 @@ for _k in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"):
 os.environ["NO_PROXY"] = "*"
 _session = requests.Session()
 _session.trust_env = False
+_session.headers.update({
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
+    ),
+    "Referer": "https://finance.sina.com.cn",
+})
+
+_SINA_KLINE_URL = "https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData"
 
 
 # ---- 代码/板块/阈值（纯函数）----
 
 def tencent_symbol(code: str) -> str:
+    """A 股行情前缀（新浪/腾讯通用）：6→sh，4/8/92→bj，其余→sz。"""
     if code.startswith("6"):
         return f"sh{code}"
     if code.startswith(("4", "8", "92")):
@@ -43,17 +60,20 @@ def zt_threshold(code: str) -> float:
 
 # ---- 响应解析（纯函数）----
 
-def _parse_tencent_kline(payload: dict, symbol: str) -> list[dict]:
-    if not isinstance(payload, dict) or payload.get("code") != 0:
+def _parse_sina_kline(payload) -> list[dict]:
+    """新浪 getKLineData 返回 [{day,open,close,high,low,volume}] → 统一为 date 字段。
+
+    volume 缺失/空串容错为 0；非 list 载荷返回空。
+    """
+    if not isinstance(payload, list):
         return []
-    sd = payload.get("data", {}).get(symbol, {})
-    rows = sd.get("qfqday", []) or sd.get("day", [])
     out = []
-    for x in rows:
+    for k in payload:
         try:
-            out.append({"date": x[0], "open": float(x[1]), "close": float(x[2]),
-                        "high": float(x[3]), "low": float(x[4]), "volume": float(x[5])})
-        except (ValueError, IndexError, TypeError):
+            out.append({"date": k["day"], "open": float(k["open"]),
+                        "close": float(k["close"]), "high": float(k["high"]),
+                        "low": float(k["low"]), "volume": float(k.get("volume") or 0)})
+        except (KeyError, ValueError, TypeError):
             continue
     return out
 
@@ -73,11 +93,11 @@ def _parse_qt(raw: str) -> tuple:
 
 def fetch_kline(code: str, days: int = 130) -> list[dict]:
     sym = tencent_symbol(code)
-    start = (datetime.now() - timedelta(days=days * 2 + 90)).strftime("%Y-%m-%d")
-    url = "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get"
     try:
-        r = _session.get(url, params={"param": f"{sym},day,{start},,{days + 10},qfq"}, timeout=15)
-        return _parse_tencent_kline(r.json(), sym)
+        r = _session.get(_SINA_KLINE_URL,
+                         params={"symbol": sym, "scale": 240, "ma": "no", "datalen": days},
+                         timeout=15)
+        return _parse_sina_kline(r.json())
     except Exception:
         return []
 
