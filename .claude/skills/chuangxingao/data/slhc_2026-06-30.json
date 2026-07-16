@@ -1,0 +1,33 @@
+{
+  "date": "2026-06-30",
+  "source": "zt_2026-06-30.json",
+  "description": "缩量回踩（策略1：成交量递减+价格回落）",
+  "strategy": "shrinking_volume",
+  "count": 2,
+  "stocks": [
+    {
+      "code": "001256",
+      "name": "炜冈科技",
+      "last_zt_date": "2026-06-15",
+      "last_zt_close": 25.592,
+      "last_zt_pct": 10.11,
+      "current_close": 27.29,
+      "pullback_start_date": "2026-06-16",
+      "pullback_days": 2,
+      "volume_shrink_ratio": 0.5529,
+      "close": 27.29
+    },
+    {
+      "code": "300780",
+      "name": "德恩精工",
+      "last_zt_date": "2026-06-16",
+      "last_zt_close": 32.32,
+      "last_zt_pct": 20.01,
+      "current_close": 34.06,
+      "pullback_start_date": "2026-06-17",
+      "pullback_days": 2,
+      "volume_shrink_ratio": 0.5338,
+      "close": 34.06
+    }
+  ]
+}

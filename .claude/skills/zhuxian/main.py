@@ -37,10 +37,10 @@ def run_screener(output_dir: str | None = None, top_n: int = 10, force: bool = F
         print("未获取到板块数据，可能是网络异常或非交易日。", flush=True)
         return False
 
-    print(f"共获取 {len(sectors)} 个概念板块，开始并发获取K线数据（20线程）...", flush=True)
+    print(f"共获取 {len(sectors)} 个概念板块，开始并发获取K线数据（成分股聚合，10线程）...", flush=True)
 
     kline_map = {}
-    with ThreadPoolExecutor(max_workers=20) as executor:
+    with ThreadPoolExecutor(max_workers=10) as executor:
         futures = {executor.submit(_fetch_kline, s): s["code"] for s in sectors}
         done_count = 0
         for future in as_completed(futures):
@@ -63,11 +63,19 @@ def run_screener(output_dir: str | None = None, top_n: int = 10, force: bool = F
         if analysis is None:
             continue
 
+        # close/change_pct：板块行情接口有值时优先用（东财），否则从合成K线回填（新浪聚合）
+        close = sector.get("close")
+        change_pct = sector.get("change_pct")
+        if close is None and kline:
+            close = round(kline[-1]["close"], 2)
+            if len(kline) >= 2 and kline[-2]["close"]:
+                change_pct = round((kline[-1]["close"] / kline[-2]["close"] - 1) * 100, 2)
+
         analyzed.append({
             "code": code,
             "name": sector["name"],
-            "close": sector["close"],
-            "change_pct": sector.get("change_pct"),
+            "close": close,
+            "change_pct": change_pct,
             **analysis,
         })
 

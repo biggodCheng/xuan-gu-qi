@@ -1,0 +1,15 @@
+{
+  "as_of": "2026-07-16",
+  "span": "2026-06-26–2026-07-16",
+  "events_total": 21,
+  "stocks_total": 17,
+  "n": 20,
+  "avg_end_ret": -20.46,
+  "avg_mfe": 1.66,
+  "avg_mae": -20.81,
+  "win": 1,
+  "zt_cnt": 3,
+  "zt_with_next": 3,
+  "zt_down": 3,
+  "report_file": "pullback_review_2026-07-16.md"
+}

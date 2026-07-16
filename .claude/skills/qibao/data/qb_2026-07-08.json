@@ -1,0 +1,47 @@
+{
+  "date": "2026-07-08",
+  "source": "2026-07-08.json",
+  "description": "起爆=突破布林上轨+倍量+MACD水上金叉；蓄势=横盘+放量阳线(无L2资金流)",
+  "count": 3,
+  "stocks": [
+    {
+      "code": "688448",
+      "name": "磁谷科技",
+      "close": 64.1,
+      "pct_chg": 11.69,
+      "vol_ratio": 2.2,
+      "boll_breakout": true,
+      "macd_above_zero": true,
+      "xushi": false,
+      "signals": [
+        "起爆"
+      ]
+    },
+    {
+      "code": "688508",
+      "name": "芯朋微",
+      "close": 98.09,
+      "pct_chg": 16.8,
+      "vol_ratio": 2.19,
+      "boll_breakout": true,
+      "macd_above_zero": true,
+      "xushi": false,
+      "signals": [
+        "起爆"
+      ]
+    },
+    {
+      "code": "301251",
+      "name": "威尔高",
+      "close": 60.92,
+      "pct_chg": 19.99,
+      "vol_ratio": 2.48,
+      "boll_breakout": true,
+      "macd_above_zero": true,
+      "xushi": false,
+      "signals": [
+        "起爆"
+      ]
+    }
+  ]
+}

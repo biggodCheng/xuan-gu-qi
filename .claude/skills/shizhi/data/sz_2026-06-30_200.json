@@ -1,0 +1,22 @@
+{
+  "date": "2026-06-30",
+  "source": "slhc_2026-06-30.json",
+  "description": "涨停股中市值小于200亿的股票",
+  "threshold_yi": 200,
+  "total_input": 2,
+  "count": 2,
+  "stocks": [
+    {
+      "code": "001256",
+      "name": "炜冈科技",
+      "close": 27.29,
+      "market_cap_yi": 29.18
+    },
+    {
+      "code": "300780",
+      "name": "德恩精工",
+      "close": 34.06,
+      "market_cap_yi": 36.63
+    }
+  ]
+}

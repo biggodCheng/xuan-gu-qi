@@ -1,0 +1,21 @@
+{
+  "date": "2026-06-30",
+  "source": "2026-06-30.json",
+  "description": "起爆=突破布林上轨+倍量+MACD水上金叉；蓄势=横盘+放量阳线(无L2资金流)",
+  "count": 1,
+  "stocks": [
+    {
+      "code": "300873",
+      "name": "海晨股份",
+      "close": 33.77,
+      "pct_chg": 20.01,
+      "vol_ratio": 2.51,
+      "boll_breakout": true,
+      "macd_above_zero": true,
+      "xushi": false,
+      "signals": [
+        "起爆"
+      ]
+    }
+  ]
+}

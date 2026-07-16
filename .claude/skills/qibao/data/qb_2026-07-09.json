@@ -1,0 +1,21 @@
+{
+  "date": "2026-07-09",
+  "source": "2026-07-09.json",
+  "description": "起爆=突破布林上轨+倍量+MACD水上金叉；蓄势=横盘+放量阳线(无L2资金流)",
+  "count": 1,
+  "stocks": [
+    {
+      "code": "000063",
+      "name": "中兴通讯",
+      "close": 40.33,
+      "pct_chg": 9.38,
+      "vol_ratio": 2.38,
+      "boll_breakout": true,
+      "macd_above_zero": true,
+      "xushi": false,
+      "signals": [
+        "起爆"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "date": "2026-06-29",
+  "source": "zt_2026-06-29.json",
+  "description": "缩量回踩（策略1：成交量递减+价格回落）",
+  "strategy": "shrinking_volume",
+  "count": 4,
+  "stocks": [
+    {
+      "code": "600459",
+      "name": "贵研铂业",
+      "last_zt_date": "2026-06-22",
+      "last_zt_close": 28.341,
+      "last_zt_pct": 9.67,
+      "current_close": 29.17,
+      "pullback_start_date": "2026-06-23",
+      "pullback_days": 2,
+      "volume_shrink_ratio": 0.6384,
+      "close": 29.17
+    },
+    {
+      "code": "603458",
+      "name": "勘设股份",
+      "last_zt_date": "2026-06-17",
+      "last_zt_close": 14.72,
+      "last_zt_pct": 10.01,
+      "current_close": 15.56,
+      "pullback_start_date": "2026-06-18",
+      "pullback_days": 2,
+      "volume_shrink_ratio": 0.6746,
+      "close": 15.56
+    },
+    {
+      "code": "001223",
+      "name": "欧克科技",
+      "last_zt_date": "2026-06-17",
+      "last_zt_close": 49.83,
+      "last_zt_pct": 10.0,
+      "current_close": 53.6,
+      "pullback_start_date": "2026-06-18",
+      "pullback_days": 2,
+      "volume_shrink_ratio": 0.6462,
+      "close": 53.6
+    },
+    {
+      "code": "001256",
+      "name": "炜冈科技",
+      "last_zt_date": "2026-06-15",
+      "last_zt_close": 25.592,
+      "last_zt_pct": 10.11,
+      "current_close": 26.49,
+      "pullback_start_date": "2026-06-16",
+      "pullback_days": 2,
+      "volume_shrink_ratio": 0.5529,
+      "close": 26.49
+    }
+  ]
+}

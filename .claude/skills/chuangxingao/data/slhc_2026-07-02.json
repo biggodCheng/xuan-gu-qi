@@ -1,0 +1,21 @@
+{
+  "date": "2026-07-02",
+  "source": "zt_2026-07-02.json",
+  "description": "缩量回踩（策略1：成交量递减+价格回落）",
+  "strategy": "shrinking_volume",
+  "count": 1,
+  "stocks": [
+    {
+      "code": "600322",
+      "name": "津投城开",
+      "last_zt_date": "2026-06-23",
+      "last_zt_close": 2.93,
+      "last_zt_pct": 10.15,
+      "current_close": 3.09,
+      "pullback_start_date": "2026-06-24",
+      "pullback_days": 4,
+      "volume_shrink_ratio": 0.3444,
+      "close": 3.09
+    }
+  ]
+}
