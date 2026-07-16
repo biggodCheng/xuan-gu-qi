@@ -1,9 +1,9 @@
-"""抗跌观察池 — 大盘下跌创新低时，全市场扫描抗跌个股。
+"""抗跌观察池 — 大盘大跌时，全市场扫描抗跌个股。
 
-逻辑：创业板指创近20日新低 → 扫全A → 筛"不破前低 + 跑赢大盘 + 缩量 +
-市值50-500亿 + Q2偏正"的抗跌股，作为企稳后备选种子（只看不动）。
+逻辑：创业板指当日跌幅 ≤ -1.5%（可 --drop 调） → 扫全A → 筛"不破前低 +
+跑赢大盘 + 缩量 + 市值50-500亿 + Q2偏正"的抗跌股，作为企稳后备选种子（只看不动）。
 
-独立运行（不吃上游输入）：python main.py [--no-q2]
+独立运行（不吃上游输入）：python main.py [--no-q2] [--drop -1.5]
 """
 import os
 import sys
@@ -25,7 +25,7 @@ from screener.analyzer import (
     MARKET_CAP_MAX,
     compute_ret20,
     is_anticorrection,
-    market_new_low,
+    market_big_drop,
 )
 from screener.storage import save_results
 
@@ -37,12 +37,17 @@ _STOCK_KLINE_DAYS = 70  # 满足 60 日最低价比较 + 21 日 ret20
 _MAX_WORKERS = 20
 
 
-def run_screener(output_dir: str | None = None, use_q2: bool = True) -> bool:
+def run_screener(
+    output_dir: str | None = None,
+    use_q2: bool = True,
+    drop_threshold: float = -1.5,
+) -> bool:
     """执行抗跌观察池扫描。
 
     Args:
         output_dir: 输出目录，默认 <skill>/data。
         use_q2: 是否启用 Q2 业绩展望过滤（默认开）。
+        drop_threshold: 大盘大跌触发阈值(%)，当日跌幅 ≤ 此值即触发。默认 -1.5。
 
     Returns:
         True 表示流程正常完成（无论是否命中），False 表示异常。
@@ -53,51 +58,53 @@ def run_screener(output_dir: str | None = None, use_q2: bool = True) -> bool:
     start_time = time.time()
     date_str = datetime.now().strftime("%Y-%m-%d")
 
-    # ---- Step 1: 拉创业板指，判大盘是否创20日新低 ----
+    # ---- Step 1: 拉创业板指，判大盘是否大跌 ----
     print(f"[{date_str}] 拉取{_INDEX_NAME}({_INDEX_SYMBOL}) 近{_INDEX_DAYS}日K线...", flush=True)
     index_bars = get_index_kline(_INDEX_SYMBOL, days=_INDEX_DAYS)
-    if not index_bars or len(index_bars) < 21:
+    if not index_bars or len(index_bars) < 2:
         print(f"  {_INDEX_NAME}数据获取失败或不足，退出。", flush=True)
         save_results(date_str, [], output_dir, trigger={
             "index": _INDEX_NAME,
-            "new_low_20d": False,
+            "big_drop": False,
+            "chg_pct": 0,
             "close": 0,
-            "index_low_20d": 0,
+            "threshold": drop_threshold,
             "error": "index_data_unavailable",
         })
         return False
 
-    is_new_low, idx_close, idx_min_low = market_new_low(index_bars, n=20)
+    is_drop, idx_chg, idx_close = market_big_drop(index_bars, threshold=drop_threshold)
     index_ret20 = compute_ret20(index_bars)
     if index_ret20 is None:
         index_ret20 = 0.0
 
-    if not is_new_low:
+    if not is_drop:
         print(
-            f"  今日{_INDEX_NAME}未创近20日新低"
-            f"（收盘{idx_close:.2f} > 近20日最低{idx_min_low:.2f}），抗跌池不适用。",
+            f"  今日{_INDEX_NAME}未大跌（跌幅{idx_chg:+.2f}% > 阈值{drop_threshold}%），抗跌池不适用。",
             flush=True,
         )
         save_results(date_str, [], output_dir, trigger={
             "index": _INDEX_NAME,
-            "new_low_20d": False,
-            "close": round(idx_close, 2),
-            "index_low_20d": round(idx_min_low, 2),
+            "big_drop": False,
+            "chg_pct": idx_chg,
+            "close": idx_close,
+            "threshold": drop_threshold,
         })
         print(f"  已写空结果到 kd_{date_str}.json（count=0）。", flush=True)
         return True
 
     print(
-        f"  ✓ {_INDEX_NAME}创20日新低：收盘{idx_close:.2f} ≤ 近20日最低{idx_min_low:.2f}"
+        f"  ✓ {_INDEX_NAME}大跌触发：跌幅{idx_chg:+.2f}% ≤ 阈值{drop_threshold}%"
         f"（20日涨幅{index_ret20:+.1f}%），启动抗跌扫描。",
         flush=True,
     )
 
     trigger = {
         "index": _INDEX_NAME,
-        "new_low_20d": True,
-        "close": round(idx_close, 2),
-        "index_low_20d": round(idx_min_low, 2),
+        "big_drop": True,
+        "chg_pct": idx_chg,
+        "close": idx_close,
+        "threshold": drop_threshold,
     }
 
     # ---- Step 2: 全A股列表 ----
@@ -228,5 +235,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--no-q2", action="store_true", help="跳过 Q2 业绩展望过滤"
     )
+    parser.add_argument(
+        "--drop", type=float, default=-1.5,
+        help="大盘大跌触发阈值(%)，当日跌幅 ≤ 此值即触发（默认 -1.5）",
+    )
     args = parser.parse_args()
-    run_screener(use_q2=not args.no_q2)
+    run_screener(use_q2=not args.no_q2, drop_threshold=args.drop)

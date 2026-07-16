@@ -22,24 +22,26 @@ def _get(bar: dict, *keys):
     raise KeyError(f"none of {keys} found in bar")
 
 
-def market_new_low(index_bars: list[dict], n: int = 20) -> tuple[bool, float, float]:
-    """判断大盘今日是否创近 n 日新低。
+def market_big_drop(index_bars: list[dict], threshold: float = -1.5) -> tuple[bool, float, float]:
+    """判断大盘今日是否大跌（当日跌幅 ≤ threshold 即触发）。
 
-    判定：今日收盘 ≤ 前 n 个交易日（不含今日）的最低 intraday low。
+    判定：(close[-1] - close[-2]) / close[-2] × 100 ≤ threshold。
 
     Args:
         index_bars: 指数日K列表（按日期正序）。
-        n: 回看窗口（交易日）。
+        threshold: 触发阈值(%)，当日跌幅 ≤ 此值即触发。默认 -1.5。
 
     Returns:
-        (is_new_low, today_close, prev_n_min_low)
+        (is_triggered, chg_pct, today_close)
     """
-    if len(index_bars) < n + 1:
+    if len(index_bars) < 2:
         return False, 0.0, 0.0
-    today_close = index_bars[-1]["close"]
-    prev_lows = [_get(b, "low") for b in index_bars[-(n + 1):-1]]
-    prev_min_low = min(prev_lows)
-    return today_close <= prev_min_low, today_close, prev_min_low
+    today = index_bars[-1]["close"]
+    prev = index_bars[-2]["close"]
+    if prev == 0:
+        return False, 0.0, 0.0
+    chg = (today - prev) / prev * 100
+    return chg <= threshold, round(chg, 2), round(today, 2)
 
 
 def compute_ret20(bars: list[dict]) -> float | None:
