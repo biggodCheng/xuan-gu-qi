@@ -207,11 +207,27 @@ def _backtest_section(s: dict) -> list[str]:
     return lines
 
 
+WEAK_REGIMES = {"weak", "oversold", "pullback"}
+
+
 def _market_env_section(env: dict) -> list[str]:
-    """生成大盘环境 section(置于主报告开头作为背景)。"""
+    """生成大盘环境 section(置于主报告开头作为背景)。
+
+    偏弱态(weak/oversold/pullback)时在最开头打⚠️空仓警示 + /kangdie 提示。
+    """
     lines = []
     as_of = env.get("as_of", "?")
     idxs = env.get("indexes", [])
+    regime = env.get("regime", "")
+    if regime in WEAK_REGIMES:
+        lines.append(
+            f"> ⚠️ **当前大盘偏弱（regime={regime}），回踩策略历史胜率仅 5%——"
+            "建议空仓，不追涨/不回踩**"
+        )
+        lines.append(
+            "> 💡 企稳前可跑 `/kangdie` 查看抗跌观察池（大盘新低它不新低的标的），只看不动。"
+        )
+        lines.append("")
     lines.append(f"## 大盘环境（{as_of}）")
     lines.append("")
     lines.append("| 指数 | 收盘 | 当日% | 120日回撤% | 区间位置% | vs MA20/60 | 5日% | 20日% |")
@@ -225,7 +241,8 @@ def _market_env_section(env: dict) -> list[str]:
             f"{i['pos120']:.0f} | {ma_tag} | {i['ret5']:+.1f} | {i['ret20']:+.1f} |"
         )
     lines.append("")
-    lines.append(f"> **环境判断**：{env.get('summary', '—')}")
+    reg_tag = f" [regime={regime}]" if regime else ""
+    lines.append(f"> **环境判断**：{env.get('summary', '—')}{reg_tag}")
     return lines
 
 
