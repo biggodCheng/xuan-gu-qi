@@ -87,23 +87,27 @@ def analyze(name: str, sym: str) -> dict | None:
     }
 
 
-def env_summary(idxs: list[dict]) -> str:
-    """根据指数指标给一句环境判断。"""
+def env_summary(idxs: list[dict]) -> tuple[str, str]:
+    """根据指数指标给环境判断，返回 (summary 文字, regime 枚举)。
+
+    regime 取值: missing / oversold / pullback / weak / neutral_strong / neutral。
+    weak|oversold|pullback 为偏弱态，qsht-agent 据此触发空仓警示。
+    """
     if not idxs:
-        return "数据缺失"
+        return "数据缺失", "missing"
     avg_dd = sum(i["dd120"] for i in idxs) / len(idxs)
     all_ret20_pos = all(i["ret20"] > 0 for i in idxs)
     all_ret5_neg = all(i["ret5"] < 0 for i in idxs)
     all_below = all(i["below_ma20"] and i["below_ma60"] for i in idxs)
     if avg_dd <= -15:
-        return f"超跌态(均回撤{avg_dd:.0f}%)，留意阶段底部信号"
+        return f"超跌态(均回撤{avg_dd:.0f}%)，留意阶段底部信号", "oversold"
     if all_ret20_pos and all_ret5_neg:
-        return "高位回调态：20日仍正但5日急跌，非阶段见底"
+        return "高位回调态：20日仍正但5日急跌，非阶段见底", "pullback"
     if all_below and all_ret5_neg:
-        return "弱势下行：三大指数跌破MA20/60且短期续跌"
+        return "弱势下行：三大指数跌破MA20/60且短期续跌", "weak"
     if all(i["ret20"] > 0 for i in idxs):
-        return "震荡偏强：20日仍正，短期分化"
-    return "震荡分化"
+        return "震荡偏强：20日仍正，短期分化", "neutral_strong"
+    return "震荡分化", "neutral"
 
 
 def main():
@@ -120,10 +124,15 @@ def main():
                 f"120日回撤{m['dd120']:.1f}% 位置{m['pos120']:.0f}% | {ma_tag} | "
                 f"5日{m['ret5']:+.1f}% 20日{m['ret20']:+.1f}%"
             )
-    summary = env_summary(idxs)
-    print(f"  → {summary}")
+    summary, regime = env_summary(idxs)
+    print(f"  → {summary} [regime={regime}]")
 
-    out = {"as_of": (idxs[0]["date"] if idxs else None), "indexes": idxs, "summary": summary}
+    out = {
+        "as_of": (idxs[0]["date"] if idxs else None),
+        "indexes": idxs,
+        "summary": summary,
+        "regime": regime,
+    }
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     path = os.path.join(OUTPUT_DIR, "market_env.json")
     with open(path, "w", encoding="utf-8") as f:
