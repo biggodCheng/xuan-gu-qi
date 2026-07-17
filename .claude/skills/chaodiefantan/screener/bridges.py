@@ -1,6 +1,6 @@
 """桥接 kangdie 的数据层（新浪全A列表 + 个股OHLCV + 市值），复用数据源。
 
-chaojie 的数据需求与 kangdie 完全相同，故不重复实现 fetcher，
+chaodiefantan 的数据需求与 kangdie 完全相同，故不重复实现 fetcher，
 通过 importlib 加载 kangdie/screener/fetcher.py（绕开 screener 包名冲突）。
 """
 import importlib.util
@@ -8,12 +8,12 @@ import sys
 import types
 from pathlib import Path
 
-# bridges.py 位于 <root>/.claude/skills/chaojie/screener/bridges.py
-# parents[0]=screener [1]=chaojie [2]=skills [3]=.claude [4]=xuan-gu-qi
+# bridges.py 位于 <root>/.claude/skills/chaodiefantan/screener/bridges.py
+# parents[0]=screener [1]=chaodiefantan [2]=skills [3]=.claude [4]=xuan-gu-qi
 _PROJECT_ROOT = Path(__file__).resolve().parents[4]
 _KANGDIE_SCREENER = _PROJECT_ROOT / ".claude" / "skills" / "kangdie" / "screener"
 
-_PKG = "cj_kangdie"
+_PKG = "cdf_kangdie"
 
 
 def _load_kangdie_fetcher():
