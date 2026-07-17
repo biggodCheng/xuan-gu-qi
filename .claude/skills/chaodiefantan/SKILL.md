@@ -1,5 +1,5 @@
 ---
-name: chaojie
+name: chaodiefantan
 description: 超跌反弹选股 — 全市场扫描"近5日急跌(>15%) + T-1日缩量长下影 + T日放量阳包阴"的标的，捕捉超跌后资金进场的反抽信号。左侧短线，严止损。当用户说"超跌反弹"、"超跌反抽"、"长下影阳包阴"、"急跌反弹"时触发。
 ---
 
@@ -13,10 +13,10 @@ description: 超跌反弹选股 — 全市场扫描"近5日急跌(>15%) + T-1日
 
 ## 使用方式
 
-输入 `/chaojie` 触发执行。
+输入 `/chaodiefantan` 触发执行。
 
 ```bash
-cd .claude/skills/chaojie && python main.py
+cd .claude/skills/chaodiefantan && python main.py
 ```
 > 全程约 5-10 分钟（市值过滤后 ~2600 只，20 线程并发拉 OHLCV）。
 > 数据层复用 kangdie（新浪全A+OHLCV+市值，经 bridges 桥接，不重复实现）。
