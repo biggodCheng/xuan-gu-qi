@@ -1,8 +1,0 @@
-{
-  "date": "2026-07-08",
-  "source": "zt_2026-07-08.json",
-  "description": "缩量回踩（策略1：成交量递减+价格回落）",
-  "strategy": "shrinking_volume",
-  "count": 0,
-  "stocks": []
-}
