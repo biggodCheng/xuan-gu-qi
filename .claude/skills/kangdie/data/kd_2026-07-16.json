@@ -1,0 +1,373 @@
+{
+  "date": "2026-07-16",
+  "trigger": {
+    "index": "创业板指",
+    "big_drop": true,
+    "chg_pct": -2.95,
+    "close": 3692.46,
+    "threshold": -1.5
+  },
+  "count": 36,
+  "stocks": [
+    {
+      "code": "920599",
+      "name": "同力股份",
+      "close": 16.47,
+      "ret20": -5.72,
+      "rs_vs_idx": 5.67,
+      "vol_shrink": 0.62,
+      "market_cap": 76.18,
+      "q2": "偏正"
+    },
+    {
+      "code": "600060",
+      "name": "海信视像",
+      "close": 26.2,
+      "ret20": 2.1,
+      "rs_vs_idx": 13.49,
+      "vol_shrink": 0.775,
+      "market_cap": 341.9,
+      "q2": "偏正"
+    },
+    {
+      "code": "600172",
+      "name": "黄河旋风",
+      "close": 12.88,
+      "ret20": -3.16,
+      "rs_vs_idx": 8.23,
+      "vol_shrink": 0.766,
+      "market_cap": 185.75,
+      "q2": "偏正"
+    },
+    {
+      "code": "600201",
+      "name": "生物股份",
+      "close": 12.02,
+      "ret20": 1.01,
+      "rs_vs_idx": 12.4,
+      "vol_shrink": 0.788,
+      "market_cap": 133.63,
+      "q2": "偏正"
+    },
+    {
+      "code": "600400",
+      "name": "红豆股份",
+      "close": 2.76,
+      "ret20": 3.37,
+      "rs_vs_idx": 14.76,
+      "vol_shrink": 0.592,
+      "market_cap": 63.24,
+      "q2": "偏正"
+    },
+    {
+      "code": "600906",
+      "name": "财达证券",
+      "close": 7.09,
+      "ret20": -4.32,
+      "rs_vs_idx": 7.07,
+      "vol_shrink": 0.47,
+      "market_cap": 230.07,
+      "q2": "偏正"
+    },
+    {
+      "code": "601108",
+      "name": "财通证券",
+      "close": 8.84,
+      "ret20": 12.18,
+      "rs_vs_idx": 23.57,
+      "vol_shrink": 0.754,
+      "market_cap": 410.51,
+      "q2": "偏正"
+    },
+    {
+      "code": "601136",
+      "name": "首创证券",
+      "close": 14.07,
+      "ret20": -2.36,
+      "rs_vs_idx": 9.03,
+      "vol_shrink": 0.782,
+      "market_cap": 384.58,
+      "q2": "偏正"
+    },
+    {
+      "code": "601233",
+      "name": "桐昆股份",
+      "close": 20.33,
+      "ret20": -6.01,
+      "rs_vs_idx": 5.38,
+      "vol_shrink": 0.776,
+      "market_cap": 483.65,
+      "q2": "偏正"
+    },
+    {
+      "code": "601878",
+      "name": "浙商证券",
+      "close": 9.57,
+      "ret20": 1.92,
+      "rs_vs_idx": 13.31,
+      "vol_shrink": 0.61,
+      "market_cap": 437.71,
+      "q2": "偏正"
+    },
+    {
+      "code": "603257",
+      "name": "中国瑞林",
+      "close": 68.59,
+      "ret20": -3.39,
+      "rs_vs_idx": 7.99,
+      "vol_shrink": 0.678,
+      "market_cap": 82.31,
+      "q2": "偏正"
+    },
+    {
+      "code": "603995",
+      "name": "甬金股份",
+      "close": 22.04,
+      "ret20": 3.09,
+      "rs_vs_idx": 14.48,
+      "vol_shrink": 0.538,
+      "market_cap": 80.14,
+      "q2": "偏正"
+    },
+    {
+      "code": "605178",
+      "name": "时空科技",
+      "close": 98.5,
+      "ret20": 55.85,
+      "rs_vs_idx": 67.24,
+      "vol_shrink": 0.775,
+      "market_cap": 97.59,
+      "q2": "偏正"
+    },
+    {
+      "code": "688028",
+      "name": "沃尔德",
+      "close": 108.74,
+      "ret20": -4.51,
+      "rs_vs_idx": 6.88,
+      "vol_shrink": 0.665,
+      "market_cap": 164.14,
+      "q2": "偏正"
+    },
+    {
+      "code": "688227",
+      "name": "品高股份",
+      "close": 85.6,
+      "ret20": 0.41,
+      "rs_vs_idx": 11.8,
+      "vol_shrink": 0.543,
+      "market_cap": 96.78,
+      "q2": "偏正"
+    },
+    {
+      "code": "688485",
+      "name": "九州一轨",
+      "close": 52.99,
+      "ret20": -6.34,
+      "rs_vs_idx": 5.04,
+      "vol_shrink": 0.772,
+      "market_cap": 79.64,
+      "q2": "偏正"
+    },
+    {
+      "code": "688530",
+      "name": "欧莱新材",
+      "close": 63.47,
+      "ret20": -1.34,
+      "rs_vs_idx": 10.05,
+      "vol_shrink": 0.741,
+      "market_cap": 101.58,
+      "q2": "偏正"
+    },
+    {
+      "code": "688593",
+      "name": "新相微",
+      "close": 30.89,
+      "ret20": -5.22,
+      "rs_vs_idx": 6.17,
+      "vol_shrink": 0.774,
+      "market_cap": 141.95,
+      "q2": "偏正"
+    },
+    {
+      "code": "000686",
+      "name": "东北证券",
+      "close": 8.03,
+      "ret20": -0.5,
+      "rs_vs_idx": 10.89,
+      "vol_shrink": 0.705,
+      "market_cap": 187.94,
+      "q2": "偏正"
+    },
+    {
+      "code": "000691",
+      "name": "亚太实业",
+      "close": 11.17,
+      "ret20": -3.54,
+      "rs_vs_idx": 7.85,
+      "vol_shrink": 0.607,
+      "market_cap": 54.16,
+      "q2": "偏正"
+    },
+    {
+      "code": "000728",
+      "name": "国元证券",
+      "close": 7.36,
+      "ret20": 1.52,
+      "rs_vs_idx": 12.91,
+      "vol_shrink": 0.563,
+      "market_cap": 321.17,
+      "q2": "偏正"
+    },
+    {
+      "code": "000750",
+      "name": "国海证券",
+      "close": 3.84,
+      "ret20": 3.23,
+      "rs_vs_idx": 14.61,
+      "vol_shrink": 0.753,
+      "market_cap": 245.23,
+      "q2": "偏正"
+    },
+    {
+      "code": "000783",
+      "name": "长江证券",
+      "close": 8.71,
+      "ret20": 8.2,
+      "rs_vs_idx": 19.59,
+      "vol_shrink": 0.671,
+      "market_cap": 481.67,
+      "q2": "偏正"
+    },
+    {
+      "code": "002167",
+      "name": "东方锆业",
+      "close": 17.3,
+      "ret20": 18.01,
+      "rs_vs_idx": 29.4,
+      "vol_shrink": 0.665,
+      "market_cap": 134.02,
+      "q2": "偏正"
+    },
+    {
+      "code": "002293",
+      "name": "罗莱生活",
+      "close": 10.74,
+      "ret20": 6.55,
+      "rs_vs_idx": 17.94,
+      "vol_shrink": 0.766,
+      "market_cap": 89.92,
+      "q2": "偏正"
+    },
+    {
+      "code": "002631",
+      "name": "德尔未来",
+      "close": 7.9,
+      "ret20": -3.66,
+      "rs_vs_idx": 7.73,
+      "vol_shrink": 0.53,
+      "market_cap": 62.99,
+      "q2": "偏正"
+    },
+    {
+      "code": "002668",
+      "name": "TCL智家",
+      "close": 10.38,
+      "ret20": 3.18,
+      "rs_vs_idx": 14.57,
+      "vol_shrink": 0.741,
+      "market_cap": 112.53,
+      "q2": "偏正"
+    },
+    {
+      "code": "002797",
+      "name": "第一创业",
+      "close": 6.57,
+      "ret20": 0.92,
+      "rs_vs_idx": 12.31,
+      "vol_shrink": 0.587,
+      "market_cap": 276.1,
+      "q2": "偏正"
+    },
+    {
+      "code": "002926",
+      "name": "华西证券",
+      "close": 8.56,
+      "ret20": 4.65,
+      "rs_vs_idx": 16.03,
+      "vol_shrink": 0.783,
+      "market_cap": 224.7,
+      "q2": "偏正"
+    },
+    {
+      "code": "002939",
+      "name": "长城证券",
+      "close": 8.26,
+      "ret20": -1.78,
+      "rs_vs_idx": 9.61,
+      "vol_shrink": 0.641,
+      "market_cap": 333.24,
+      "q2": "偏正"
+    },
+    {
+      "code": "300085",
+      "name": "银之杰",
+      "close": 31.49,
+      "ret20": 12.95,
+      "rs_vs_idx": 24.34,
+      "vol_shrink": 0.701,
+      "market_cap": 222.52,
+      "q2": "偏正"
+    },
+    {
+      "code": "300185",
+      "name": "通裕重工",
+      "close": 2.71,
+      "ret20": -2.87,
+      "rs_vs_idx": 8.52,
+      "vol_shrink": 0.576,
+      "market_cap": 109.38,
+      "q2": "偏正"
+    },
+    {
+      "code": "300497",
+      "name": "富祥股份",
+      "close": 18.99,
+      "ret20": 4.23,
+      "rs_vs_idx": 15.62,
+      "vol_shrink": 0.654,
+      "market_cap": 102.29,
+      "q2": "偏正"
+    },
+    {
+      "code": "300503",
+      "name": "昊志机电",
+      "close": 79.01,
+      "ret20": -2.44,
+      "rs_vs_idx": 8.94,
+      "vol_shrink": 0.784,
+      "market_cap": 243.53,
+      "q2": "偏正"
+    },
+    {
+      "code": "300671",
+      "name": "富满微",
+      "close": 74.14,
+      "ret20": 36.16,
+      "rs_vs_idx": 47.55,
+      "vol_shrink": 0.671,
+      "market_cap": 164.14,
+      "q2": "偏正"
+    },
+    {
+      "code": "301392",
+      "name": "汇成真空",
+      "close": 225.45,
+      "ret20": 11.61,
+      "rs_vs_idx": 23.0,
+      "vol_shrink": 0.747,
+      "market_cap": 225.45,
+      "q2": "偏正"
+    }
+  ]
+}

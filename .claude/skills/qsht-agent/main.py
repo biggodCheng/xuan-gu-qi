@@ -8,7 +8,7 @@ SKILLS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 CHUANGXINGAO = os.path.join(SKILLS_DIR, "chuangxingao", "main.py")
 SHIZHI = os.path.join(SKILLS_DIR, "shizhi", "main.py")
-SZ_THRESHOLD = 200  # 第4步市值筛选阈值（亿），与 shizhi 输出文件名 sz_<date>_<threshold>.json 对应
+SZ_THRESHOLD = 500  # 第4步市值筛选阈值（亿），与 shizhi 输出文件名 sz_<date>_<threshold>.json 对应
 ZHANGTING = os.path.join(SKILLS_DIR, "zhangting", "main.py")
 SUOLIANGHUICAI = os.path.join(SKILLS_DIR, "suolianghuicai", "main.py")
 Q2ZHANWANG = os.path.join(SKILLS_DIR, "q2zhanwang", "batch_query.py")  # 第5步 Q2 业绩展望批量入口
@@ -311,10 +311,10 @@ def generate_markdown(
         ]))
         lines.append("")
 
-    # 第4步：市值<200亿
-    sz_stocks = step_stocks.get("市值<200亿", [])
+    # 第4步：市值<500亿
+    sz_stocks = step_stocks.get("市值<500亿", [])
     if sz_stocks:
-        lines.append(f"## 第4步：市值<200亿（{len(sz_stocks)}只）")
+        lines.append(f"## 第4步：市值<500亿（{len(sz_stocks)}只）")
         lines.append("")
         lines.extend(_stocks_table(sz_stocks, [
             ("name", "股票名称"),
@@ -459,8 +459,8 @@ def main():
     sz_data = check_file(sz_out, "市值筛选")
     if not sz_data:
         sys.exit(1)
-    stats.append({"name": "市值<200亿", "count": sz_data.get("count", 0)})
-    step_stocks["市值<200亿"] = sz_data.get("stocks", [])
+    stats.append({"name": "市值<500亿", "count": sz_data.get("count", 0)})
+    step_stocks["市值<500亿"] = sz_data.get("stocks", [])
     final_stocks = sz_data.get("stocks", [])
 
     _finish(date_str, stats, step_stocks, final_stocks, q2_input=zt_out, market_env=market_env)

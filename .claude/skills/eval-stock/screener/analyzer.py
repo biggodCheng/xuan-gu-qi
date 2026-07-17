@@ -6,7 +6,7 @@ LOOKBACK = 100          # 新高回看交易日
 RECENT_ZT_DAYS = 15
 SHRINK_RATIO = 0.8
 MIN_PULLBACK_DAYS = 2
-MKTCAP_THRESHOLD = 200  # 亿元
+MKTCAP_THRESHOLD = 500  # 亿元
 
 
 def check_new_high(kline: list[dict],
