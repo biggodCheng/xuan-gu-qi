@@ -30,6 +30,7 @@ def _load_sub(pkg_name: str, sub: str, path: Path):
         return sys.modules[full]
     spec = importlib.util.spec_from_file_location(full, path)
     mod = importlib.util.module_from_spec(spec)
+    mod.__package__ = pkg_name  # 支持模块内相对导入(from .xxx)
     sys.modules[full] = mod
     spec.loader.exec_module(mod)
     return mod
@@ -49,3 +50,20 @@ def get_q2_funcs():
     """返回 (get_financial, analyze)。失败抛异常，由调用方兜底。"""
     f, a = _load_skill("q2zhanwang")
     return f.get_financial, a.analyze
+
+
+# ---- 四大赛道 ----
+
+def get_sid_funcs():
+    """返回 (get_stock_detail, match_tracks)。失败抛异常，由调用方兜底。
+
+    get_stock_detail(code) -> {code,name,industry,concepts}
+    match_tracks(industry, concepts) -> [{"track":"大工业","confidence":"高",...},...]
+    注意：sidasaidao/analyzer 依赖同级 tracks.py，必须先加载 tracks 再加载 analyzer。
+    """
+    screener_dir = _SKILLS_DIR / "sidasaidao" / "screener"
+    pkg = _ensure_pkg("kd_sidasaidao", screener_dir)
+    _load_sub(pkg, "tracks", screener_dir / "tracks.py")  # analyzer 的 from .tracks 依赖
+    fetcher = _load_sub(pkg, "fetcher", screener_dir / "fetcher.py")
+    analyzer = _load_sub(pkg, "analyzer", screener_dir / "analyzer.py")
+    return fetcher.get_stock_detail, analyzer.match_tracks
