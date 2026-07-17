@@ -7,6 +7,7 @@
 """
 from screener.analyzer import (
     OUTPERFORM_GAP,
+    RET20_MAX,
     VOL_SHRINK_THRESHOLD,
     MARKET_CAP_MIN,
     MARKET_CAP_MAX,
@@ -52,18 +53,18 @@ def _make_index_bars(n, close_fn, low_fn):
 
 
 def _good_stock_bars(n=70):
-    """构造满足全部 4 条抗跌条件的个股 K 线。
+    """构造满足全部抗跌条件的个股 K 线（ret20 控制在 ~10%，满足 RET20_MAX=15）。
 
-    - 近20日 low ~11-16 ≥ 前40日 low ~8-11（不破前低）
-    - close[-1]≈17.4, close[-21]≈12.06 → ret20≈44%
+    - 近20日 low ~11-12.2 ≥ 前40日 low ~8-11（不破前低）
+    - close[-1]≈13.2, close[-21]≈12 → ret20≈10%
     - 近5日 volume=50 < 近20日 volume=100 × 0.8=80（缩量）
     """
     def close_fn(i):
         # 前50条 close 从 15 线性降到 12（制造 low=8 的历史）
-        # 之后回升到 20
+        # 之后回升到 ~13.2（ret20≈10%，满足涨幅上限 15%）
         if i < 50:
             return 15.0 - 0.06 * i
-        return 12.0 + 0.27 * (i - 49)
+        return 12.0 + 0.06 * (i - 49)
 
     def low_fn(i):
         if i < 50:
@@ -161,8 +162,16 @@ def test_is_anticorrection_broke_low():
 def test_is_anticorrection_not_outperforming():
     """条件2失败：20日跑赢大盘不足 5 个百分点。"""
     bars = _good_stock_bars(70)
-    # stock ret20 ≈ 44%，设 index_ret20 = 42% → rs ≈ 2% < 5
+    # stock ret20 ≈ 10%，设 index_ret20 = 42% → rs ≈ -32% < 5
     result = is_anticorrection(bars, index_ret20=42.0, market_cap=200.0)
+    assert result is None
+
+
+def test_is_anticorrection_ret20_too_high():
+    """条件2b失败：20日涨幅超过 RET20_MAX(15%) → 已暴涨高位股，排除。"""
+    bars = _good_stock_bars(70)  # ret20 ≈ 10%
+    bars[-1]["close"] = bars[-21]["close"] * 1.20  # 抬高收盘 → ret20 = 20%
+    result = is_anticorrection(bars, index_ret20=-5.0, market_cap=200.0)
     assert result is None
 
 

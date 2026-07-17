@@ -94,7 +94,7 @@ def run_screener(
         return True
 
     print(
-        f"  ✓ {_INDEX_NAME}大跌触发：跌幅{idx_chg:+.2f}% ≤ 阈值{drop_threshold}%"
+        f"  [触发] {_INDEX_NAME}大跌：跌幅{idx_chg:+.2f}% <= 阈值{drop_threshold}%"
         f"（20日涨幅{index_ret20:+.1f}%），启动抗跌扫描。",
         flush=True,
     )
@@ -221,7 +221,7 @@ def _q2_filter(candidates: list[dict]) -> list[dict]:
 
     filtered_out = len(candidates) - len(passed)
     print(
-        f"  Q2 过滤：{len(candidates)} → {len(passed)} 只"
+        f"  Q2 过滤：{len(candidates)} -> {len(passed)} 只"
         f"（过滤 {filtered_out} 只中性/偏负）。",
         flush=True,
     )
