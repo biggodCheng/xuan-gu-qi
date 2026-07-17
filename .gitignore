@@ -1,2 +1,12 @@
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+
+# 选股 skill 每日运行产物（创新高/涨停/缩量回踩/市值/Q2/抗跌等结果 JSON，不入库）
+.claude/skills/*/data/
+.claude/skills/*/output/
+
+# trade-review 运行缓存与输出（kline_cache 8.3MB 不入库；history.json 基线小，保留）
+docs/trade-review/kline_cache.json
+docs/trade-review/output/
