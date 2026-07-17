@@ -209,8 +209,23 @@ def _backtest_section(s: dict) -> list[str]:
 
 WEAK_REGIMES = {"weak", "oversold", "pullback"}
 
+# 企稳确认：三指都站稳MA20 + 创新高回到100+
+STABILIZE_CXG_MIN = 100
 
-def _market_env_section(env: dict) -> list[str]:
+
+def _is_stabilized(env: dict, cxg_count: int) -> bool:
+    """企稳信号：三指收盘都在MA20之上 + 创新高数 >= 100。
+
+    用于提示策略2(抗跌池布局)/策略4(右侧回踩)可启用。
+    """
+    idxs = env.get("indexes", [])
+    if not idxs:
+        return False
+    all_above_ma20 = all(not i.get("below_ma20") for i in idxs)
+    return all_above_ma20 and cxg_count >= STABILIZE_CXG_MIN
+
+
+def _market_env_section(env: dict, cxg_count: int = 0) -> list[str]:
     """生成大盘环境 section(置于主报告开头作为背景)。
 
     偏弱态(weak/oversold/pullback)时在最开头打⚠️空仓警示 + /kangdie 提示。
@@ -226,6 +241,12 @@ def _market_env_section(env: dict) -> list[str]:
         )
         lines.append(
             "> 💡 企稳前可跑 `/kangdie` 查看抗跌观察池（大盘新低它不新低的标的），只看不动。"
+        )
+        lines.append("")
+    elif _is_stabilized(env, cxg_count):
+        lines.append(
+            f"> ✅ **企稳信号出现（三指站稳MA20 + 创新高 {cxg_count}≥{STABILIZE_CXG_MIN}）——"
+            "策略2/4可启用：抗跌池种子可择机布局，主线龙头回踩买点进入观察**"
         )
         lines.append("")
     lines.append(f"## 大盘环境（{as_of}）")
@@ -259,7 +280,8 @@ def generate_markdown(
 
     # 第0步：大盘环境(置于报告最开头作为背景)
     if market_env is not None:
-        lines.extend(_market_env_section(market_env))
+        cxg_count = len(step_stocks.get("创新高", []))
+        lines.extend(_market_env_section(market_env, cxg_count))
         lines.append("")
 
     # 筛选流水线统计
