@@ -41,6 +41,7 @@ def run_screener(
     output_dir: str | None = None,
     use_q2: bool = True,
     drop_threshold: float = -1.5,
+    use_sid: bool = True,
 ) -> bool:
     """执行抗跌观察池扫描。
 
@@ -48,6 +49,7 @@ def run_screener(
         output_dir: 输出目录，默认 <skill>/data。
         use_q2: 是否启用 Q2 业绩展望过滤（默认开）。
         drop_threshold: 大盘大跌触发阈值(%)，当日跌幅 ≤ 此值即触发。默认 -1.5。
+        use_sid: 是否启用四大赛道标注（默认开，经 bridges 桥接 sidasaidao）。
 
     Returns:
         True 表示流程正常完成（无论是否命中），False 表示异常。
@@ -179,6 +181,10 @@ def run_screener(
         for c in candidates:
             c["q2"] = "跳过"
 
+    # ---- Step 6.5: 四大赛道标注（默认开，--no-sid 可关）----
+    if use_sid and candidates:
+        _sid_annotate(candidates)
+
     # ---- Step 7: 保存 ----
     save_results(date_str, candidates, output_dir, trigger=trigger)
 
@@ -228,6 +234,32 @@ def _q2_filter(candidates: list[dict]) -> list[dict]:
     return passed
 
 
+def _sid_annotate(candidates: list[dict]) -> None:
+    """给候选标注四大赛道（原地修改 c["tracks"]）。桥接失败降级为跳过，不阻断。"""
+    try:
+        from screener import bridges
+        get_detail, match_tracks = bridges.get_sid_funcs()
+        print("  四大赛道桥接成功，开始标注...", flush=True)
+    except Exception as e:
+        print(f"  四大赛道桥接失败({e})，降级为跳过（不阻断）。", flush=True)
+        for c in candidates:
+            c["tracks"] = "跳过"
+        return
+
+    sid_cnt = 0
+    for c in candidates:
+        try:
+            det = get_detail(c["code"])
+            matched = match_tracks(det.get("industry", ""), det.get("concepts", []))
+            tracks = [t["track"] for t in matched]
+            c["tracks"] = ",".join(tracks) if tracks else "无"
+            if tracks:
+                sid_cnt += 1
+        except Exception:
+            c["tracks"] = "数据不足"
+    print(f"  四大赛道标注完成：{sid_cnt}/{len(candidates)} 只属四大赛道。", flush=True)
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -239,5 +271,12 @@ if __name__ == "__main__":
         "--drop", type=float, default=-1.5,
         help="大盘大跌触发阈值(%)，当日跌幅 ≤ 此值即触发（默认 -1.5）",
     )
+    parser.add_argument(
+        "--no-sid", action="store_true", help="跳过四大赛道标注"
+    )
     args = parser.parse_args()
-    run_screener(use_q2=not args.no_q2, drop_threshold=args.drop)
+    run_screener(
+        use_q2=not args.no_q2,
+        drop_threshold=args.drop,
+        use_sid=not args.no_sid,
+    )
