@@ -9,6 +9,7 @@ bar 格式（个股/指数统一）：
 
 # ---- 阈值 ----
 OUTPERFORM_GAP = 5.0       # 20日跑赢大盘至少 5 个百分点
+RET20_MAX = 15.0           # 20日涨幅上限(%)，排除已暴涨的高位股
 VOL_SHRINK_THRESHOLD = 0.8  # 近5日均量 < 近20日均量 × 0.8
 MARKET_CAP_MIN = 50         # 流通市值下限（亿）
 MARKET_CAP_MAX = 500        # 流通市值上限（亿）
@@ -98,6 +99,10 @@ def is_anticorrection(
         return None
     rs_vs_idx = stock_ret20 - index_ret20
     if rs_vs_idx < OUTPERFORM_GAP:
+        return None
+
+    # 条件2b：20日涨幅不超过上限（排除已暴涨的高位股，只留"还没启动"的抗跌种子）
+    if stock_ret20 > RET20_MAX:
         return None
 
     # 条件3：近5日缩量（近5日均量 < 近20日均量 × 0.8）
