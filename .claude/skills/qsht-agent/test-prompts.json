@@ -3,7 +3,7 @@
     "id": 1,
     "scenario": "happy-一键选股",
     "prompt": "跑一遍完整选股",
-    "expected": "执行 python .claude/skills/qsht-agent/main.py，编排4步(创新高→涨停→缩量回踩→市值<200亿)，用默认参数(策略1/0.8/2天/200亿)，Read输出报告展示"
+    "expected": "执行 python .claude/skills/qsht-agent/main.py，编排4步(创新高→涨停→缩量回踩→市值<500亿)，用默认参数(策略1/0.8/2天/500亿)，Read输出报告展示"
   },
   {
     "id": 2,

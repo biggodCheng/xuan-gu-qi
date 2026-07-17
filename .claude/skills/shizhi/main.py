@@ -11,7 +11,7 @@ from screener.storage import load_source, save_results
 WAN_TO_YI = 1e-4
 
 
-def run_filter(json_path: str, threshold_yi: int = 200) -> bool:
+def run_filter(json_path: str, threshold_yi: int = 500) -> bool:
     start_time = time.time()
     json_path = os.path.abspath(json_path)
 
@@ -94,8 +94,8 @@ def main():
     parser.add_argument(
         "--threshold",
         type=int,
-        default=200,
-        help="市值上限，单位：亿（默认200）",
+        default=500,
+        help="市值上限，单位：亿（默认500）",
     )
 
     args = parser.parse_args()

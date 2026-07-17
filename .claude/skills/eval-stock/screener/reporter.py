@@ -5,7 +5,7 @@ _FUNNEL_STEPS = [
     ("① 趋势新高", "new_high", "趋势新高"),
     ("② 近15天涨停", "zt", "涨停"),
     ("③ 缩量回踩", "pullback", "缩量回踩"),
-    ("④ 市值<200亿", "marketcap", "市值"),
+    ("④ 市值<500亿", "marketcap", "市值"),
 ]
 
 
@@ -35,7 +35,7 @@ def _oneliner(stock: dict) -> str:
         parts.append(where)
     if not stock.get("new_high", {}).get("pass", False):
         parts.append("非新高/趋势走弱")
-    if stock.get("marketcap", {}).get("total") and stock["marketcap"]["total"] >= 200:
+    if stock.get("marketcap", {}).get("total") and stock["marketcap"]["total"] >= 500:
         parts.append("大票")
     q2v = stock.get("q2", {}).get("verdict")
     if q2v == "偏负":
