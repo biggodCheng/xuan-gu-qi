@@ -49,3 +49,27 @@ def end_return(after_bars: list[dict], d_close: float) -> float | None:
     if not after_bars or d_close == 0:
         return None
     return round((after_bars[-1]["close"] - d_close) / d_close * 100, 2)
+
+
+def first_rebound(
+    after_bars: list[dict],
+    d_close: float,
+    idx_after_bars: list[dict],
+    idx_d_close: float,
+) -> bool | None:
+    """第一时间反弹判定：D+1~D+3 区间，个股累计涨幅 > 0 且 > 创业板同期累计 → True。
+
+    数据不足或基准为 0 返回 None。
+    """
+    if len(after_bars) < 3 or len(idx_after_bars) < 3:
+        return None
+    if d_close == 0 or idx_d_close == 0:
+        return None
+    stock_cum = (after_bars[2]["close"] - d_close) / d_close * 100
+    idx_cum = (idx_after_bars[2]["close"] - idx_d_close) / idx_d_close * 100
+    return stock_cum > 0 and stock_cum > idx_cum
+
+
+def is_mature(after_bars: list[dict]) -> bool:
+    """是否已过 D+MATURE_DAYS 个交易日（数据成熟，停止更新）。"""
+    return len(after_bars) >= MATURE_DAYS
