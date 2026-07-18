@@ -11,7 +11,7 @@
   },
   {
     "id": 3,
-    "prompt": "/renqibang (东财 push2 接口2026-07-14起全线被封的现状下)",
-    "expected": "诚实标注当前 push2/榜单接口失效状态(名称/行业/题材靠 push2 补全,被封则字段大面积缺失),不假装能正常抓取;指出须待接口恢复或改数据源"
+    "prompt": "/renqibang (push2 偶发空响应、部分股字段补不上时)",
+    "expected": "代码3轮sweep重试补全,仍缺则字段留空不阻断;push2须跟随系统代理(trust_env)+http非https"
   }
 ]
