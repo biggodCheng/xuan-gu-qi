@@ -1,0 +1,17 @@
+[
+  {
+    "id": 1,
+    "prompt": "大盘企稳了,/youcehuicai",
+    "expected": "先过三指站稳MA20门控,再扫上涨趋势中缩量回踩MA10/MA20+市值100-500亿,输出含 pullback_ma/stop_loss"
+  },
+  {
+    "id": 2,
+    "prompt": "/youcehuicai (三指仍跌破MA20,大盘未企稳)",
+    "expected": "count=0、trigger.stabilized=false,诚实退出;说明回踩策略在下跌市失效,本 skill 只在上涨趋势找回踩上升均线"
+  },
+  {
+    "id": 3,
+    "prompt": "这个和 suolianghuicai 有什么区别,不都是缩量回踩吗",
+    "expected": "区分:youcehuicai 是右侧(大盘企稳+个股均线多头时回踩MA10/MA20,上涨市正确用法);suolianghuicai 是左侧(涨停后缩量回踩,下跌市已验证失效胜率5%)"
+  }
+]
