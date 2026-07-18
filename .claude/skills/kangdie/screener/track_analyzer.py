@@ -31,3 +31,21 @@ def window_return(after_bars: list[dict], d_close: float, n: int) -> float | Non
         return None
     c = after_bars[n - 1]["close"]
     return round((c - d_close) / d_close * 100, 2)
+
+
+def mfe_mae(after_bars: list[dict], d_close: float) -> tuple[float | None, float | None]:
+    """D 之后区间最大涨幅 MFE / 最大跌幅 MAE(%)，相对 d_close。空数据返回 (None, None)。"""
+    if not after_bars or d_close == 0:
+        return None, None
+    highs = [b["high"] for b in after_bars]
+    lows = [b["low"] for b in after_bars]
+    mfe = round((max(highs) - d_close) / d_close * 100, 2)
+    mae = round((min(lows) - d_close) / d_close * 100, 2)
+    return mfe, mae
+
+
+def end_return(after_bars: list[dict], d_close: float) -> float | None:
+    """末值收益(%)：D 之后最后一根收盘相对 d_close。空数据返回 None。"""
+    if not after_bars or d_close == 0:
+        return None
+    return round((after_bars[-1]["close"] - d_close) / d_close * 100, 2)

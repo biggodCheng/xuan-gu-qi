@@ -61,3 +61,27 @@ def test_window_return_negative():
 def test_window_return_zero_base():
     after = _bars([101.0])
     assert window_return(after, 0.0, 1) is None
+
+
+from screener.track_analyzer import mfe_mae, end_return
+
+
+def test_mfe_mae_normal():
+    after = _bars([101.0, 105.0, 99.0])
+    mfe, mae = mfe_mae(after, 100.0)
+    assert mfe == 6.0
+    assert mae == -2.0
+
+
+def test_mfe_mae_empty():
+    assert mfe_mae([], 100.0) == (None, None)
+    assert mfe_mae([{"close": 1}], 0.0) == (None, None)
+
+
+def test_end_return_normal():
+    after = _bars([101.0, 102.0, 98.0])
+    assert end_return(after, 100.0) == -2.0
+
+
+def test_end_return_empty():
+    assert end_return([], 100.0) is None
