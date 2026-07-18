@@ -67,7 +67,8 @@ description: 人气榜 — 抓取东方财富股吧个股人气榜前100(热度�
 | 非交易日 | 人气榜基于股吧行为仍有数据，正常抓取 |
 | 榜单不足 100 | 取实际条数，count 如实显示 |
 | 榜单 selector 失效（前端改版） | 报错/数据为空，重跑 probe_rank.py 更新 selector |
-| push2 字段为空（部分北交所/新股） | 行业/题材/名称留空，不阻断 |
+| push2 偶发空响应（突发式，非仅新股） | 代码 3 轮 sweep 重试补全（`fetch_industry_for_stocks`），仍缺则字段留空不阻断 |
+| push2 连接被关闭（直连） | 必须跟随系统代理（`trust_env=True`）且用 **http 非 https**（代理下 https 成功率仅~13%） |
 | 今日快照已存在 | CHECKPOINT 询问是否覆盖 |
 
 ## ❌ 不要做
