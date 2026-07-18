@@ -20,3 +20,14 @@ def align_after(bars: list[dict], drop_date: str) -> tuple[list[dict], float] | 
         if d == drop_date:
             return bars[i + 1:], b["close"]
     return None
+
+
+def window_return(after_bars: list[dict], d_close: float, n: int) -> float | None:
+    """D+N 累计涨幅(%)：(close[D+N] - d_close) / d_close × 100。
+
+    after_bars[n-1] = D+N。数据不足或 d_close=0 返回 None。
+    """
+    if len(after_bars) < n or d_close == 0:
+        return None
+    c = after_bars[n - 1]["close"]
+    return round((c - d_close) / d_close * 100, 2)
