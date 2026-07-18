@@ -102,7 +102,7 @@ description: Q2业绩展望器 — 基于A股股票2026年一季度已披露业�
     "summary": "Q2展望偏负(置信度高):增长减速、利润承压。"
   },
   "data_date": "2026-04-29",
-  "source": "东方财富 datacenter RPT_LICO_FN_CPD"
+  "source": "东方财富 datacenter RPT_LICO_FN_CPD（实际财报接口；非业绩预告 RPT_PUBLIC_OP_PREDICT，二者同名易混）"
 }
 ```
 
