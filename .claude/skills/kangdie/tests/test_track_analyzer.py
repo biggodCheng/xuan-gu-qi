@@ -38,3 +38,26 @@ def test_align_after_d_is_last():
     after, d_close = align_after(bars, "2026-07-11")
     assert d_close == 101.0
     assert after == []
+
+
+from screener.track_analyzer import window_return
+
+
+def test_window_return_normal():
+    after = _bars([101.0, 102.0, 103.0, 104.0, 105.0])
+    assert window_return(after, 100.0, 5) == 5.0
+
+
+def test_window_return_insufficient():
+    after = _bars([101.0, 102.0])
+    assert window_return(after, 100.0, 5) is None
+
+
+def test_window_return_negative():
+    after = _bars([98.0, 97.0, 96.0])
+    assert window_return(after, 100.0, 3) == -4.0
+
+
+def test_window_return_zero_base():
+    after = _bars([101.0])
+    assert window_return(after, 0.0, 1) is None
