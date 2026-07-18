@@ -153,7 +153,7 @@ def _summarize(events: list[dict]) -> dict:
 
     return {
         "n": n,
-        "stocks_total": len({e["code"] for e in events if e.get("code")}),
+        "stocks_total": len({e["code"] for e in valid if e.get("code")}),
         "avg_end_ret": avg("end_ret"),
         "avg_mfe": avg("mfe"),
         "avg_mae": avg("mae"),
@@ -176,6 +176,11 @@ def _cell(e, k):
     return "—" if v is None else (f"{v}%" if isinstance(v, (int, float)) else v)
 
 
+def _fmt_pct(v):
+    """百分比格式化：None → —，否则 v%。"""
+    return "—" if v is None else f"{v}%"
+
+
 def _write_report(path: str, events: list[dict], stats: dict, as_of: str) -> None:
     """写人读 markdown 报告（汇总+明细表）。"""
     lines = [
@@ -186,14 +191,14 @@ def _write_report(path: str, events: list[dict], stats: dict, as_of: str) -> Non
         f"样本跨度 {_span(events)} · {stats['n']} 事件 / {stats['stocks_total']} 股",
         "",
         "## 汇总",
-        f"- 平均末值收益: {stats['avg_end_ret']}% ｜ 平均 MFE {stats['avg_mfe']}% / MAE {stats['avg_mae']}%",
+        f"- 平均末值收益: {_fmt_pct(stats['avg_end_ret'])} ｜ 平均 MFE {_fmt_pct(stats['avg_mfe'])} / MAE {_fmt_pct(stats['avg_mae'])}",
         f"- 末值正收益(胜率): {stats['win']}/{stats['n']}",
         f"- 第一时间反弹(D+1~3 跑赢创业板): {stats['first_rebound_cnt']}/{stats['first_rebound_total']}",
         "- 各窗口平均涨幅:",
     ]
     for w in WINDOWS:
         v = stats["by_window"][f"d{w}"]
-        lines.append(f"  - D+{w}: {v}%")
+        lines.append(f"  - D+{w}: {_fmt_pct(v)}")
     lines.append("")
     lines.append("## 明细（按 drop_date、code）")
     lines.append("")
