@@ -72,6 +72,21 @@ Q2 过滤（可选，默认开）：经 q2zhanwang 判定 `verdict=="偏正"` �
 | 候选为 0 | 属正常（条件较严），写入 count=0 |
 | 已有当天数据 | 提示用户，询问是否覆盖 |
 
+## 反弹跟踪（反弹复盘）
+
+`track.py` 跟踪历史抗跌种子在暴跌日 D 之后的反弹表现，验证"抗跌→反弹领涨"假设。独立于"今天是否暴跌"，任何一天都能跑。
+
+```bash
+cd .claude/skills/kangdie && python track.py                    # 扫所有历史 kd_*.json
+cd .claude/skills/kangdie && python track.py --date 2026-07-17   # 只跟踪指定批次
+```
+
+- **工作流**：暴跌当天跑 `main.py` 存种子（`kd_<date>.json`）→ 后续（尤其大盘反弹后）跑 `track.py` 复盘。
+- **衡量**：以 D 收盘为基准，算 D+1/3/5/10/20 涨幅 + 区间最大涨幅 MFE + 末值；对照创业板同期；"第一时间反弹"= D+1~3 跑赢创业板。
+- **生命周期**：种子从 D 起跟踪到 D+20 个交易日后成熟（停止更新）。
+- **输出**：`data/track_history.json`（累积数据）+ `output/track_review_<date>.md`（人读报告）。
+- 小样本探索性结论，非统计显著，**非买卖建议**。
+
 ## 输出格式
 
 ```json
