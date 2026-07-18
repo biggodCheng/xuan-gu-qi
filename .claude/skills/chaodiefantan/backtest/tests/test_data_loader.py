@@ -28,7 +28,7 @@ def test_cache_roundtrip(tmp_path):
 
 def test_mtf_dividend_qfq_smooth():
     """茅台 2024-06-19 除权日: 前复权下 6-19 相对 6-18 不应有大跌跳口(不复权约-1.3%)。"""
-    df = fetch_kline("600519", start="20240617", end="20240621", adjust="qfq")
+    df = fetch_kline("600519", start="2024-06-17", end="2024-06-21", adjust="qfq")
     if df is None or len(df) < 3:
         import pytest
         pytest.skip("akshare/东财网络不可用,跳过复权sanity")
