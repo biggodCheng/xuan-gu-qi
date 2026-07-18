@@ -13,7 +13,7 @@ description: 超跌反弹选股 — 全市场扫描"近5日急跌(>15%) + T-1日
 
 ## 使用方式
 
-输入 `/chaodiefantan` 触发执行。
+输入 `/chaodiefantan` 触发执行。独立运行，不吃上游输入。
 
 ```bash
 cd .claude/skills/chaodiefantan && python main.py
@@ -21,15 +21,45 @@ cd .claude/skills/chaodiefantan && python main.py
 > 全程约 5-10 分钟（市值过滤后 ~2600 只，20 线程并发拉 OHLCV）。
 > 数据层复用 kangdie（新浪全A+OHLCV+市值，经 bridges 桥接，不重复实现）。
 
+## 执行步骤
+
+1. 🔴 CHECKPOINT（运行前检查今日数据是否已存在）：
+   ```bash
+   ls .claude/skills/chaodiefantan/data/cj_$(date +%Y-%m-%d).json 2>/dev/null
+   ```
+   - 已存在 → 🛑 STOP，提示"今日超跌反弹数据已扫描，重跑会覆盖"，询问确认。
+   - 不存在 → 继续。
+
+2. 运行选股脚本：
+   ```bash
+   cd .claude/skills/chaodiefantan && python main.py
+   ```
+
+3. 脚本会：拉全A行情+市值 → 市值 50-500 亿过滤 → 并发拉个股 70 日 OHLCV → 判定 5 条筛选条件 → 保存 `data/cj_YYYY-MM-DD.json`。
+
+4. 读取输出，向用户展示：候选总数、输出文件路径、逐只（代码/名称/收盘/5日跌幅/止损位/量比），并强调**左侧短线严止损、反弹多一日游**。
+
 ## 筛选条件（5 条全满足）
 
 | 条件 | 判定 | 含义 |
 |------|------|------|
 | 近5日急跌 | `(close[-1]-close[-6])/close[-6] <= -15%` | 5 日跌幅超 15% |
-| T-1 长下影 | 下影 >= 2×实体 且 >= 价格 3% | 昨日盘中恐慌被承接 |
-| T-1 缩量 | `vol[-2] < mean(vol[-6:-2]) × 0.8` | 昨日缩量（卖压枯竭） |
-| T 放量阳包阴 | 阳线 + 放量1.5倍 + 收复前日开 + 突破前日高 | 今日资金进场确认 |
+| T-1 长下影 | `(min(open,close)-low) >= 2×\|open-close\| 且 >= close×3%` | 昨日盘中恐慌被承接 |
+| T-1 缩量 | `vol[-2] < mean(vol[-6:-2]) × 0.8` | 昨日缩量（前 4 日均量，卖压枯竭） |
+| T 放量阳包阴 | `close>open 且 vol[-1]>=vol[-2]×1.5 且 close[-1]>open[-2] 且 high[-1]>high[-2]` | 阳线放量、收复前日开、突破前日高 |
 | 市值 | `50 ≤ market_cap ≤ 500` | 流通市值 50-500 亿 |
+
+> 阈值常量在 `screener/analyzer.py` 顶部（DROP_5D/LOWER_SHADOW_MULT/VOL_CONFIRM_RATIO 等），改阈值改这里。
+
+## 边界条件
+
+| 触发条件 | 一线处理 | 仍失败兜底 |
+|---|---|---|
+| 当日无超跌反弹信号 | `count=0` 正常保存，**禁止放宽阈值凑数** | — |
+| 全A行情为空（非交易日） | 写空结果 `trigger={"error":"no_market_data"}`，提示"未获取到行情数据" | — |
+| 市值 50-500 亿过滤后为空 | 写空结果 `trigger={"note":"cap_filtered_empty"}` | — |
+| 个股 OHLCV 拉取失败 / K线<7条 / 一字板无实体 | 静默跳过该股（不汇总打印） | — |
+| 新浪接口异常 | 重试 | 提示"数据获取失败，稍后重试" |
 
 ## 纪律（铁律）
 
@@ -37,6 +67,15 @@ cd .claude/skills/chaodiefantan && python main.py
 - **止盈**：+5%~8% 或遇阻力即走（反弹是兑现窗口，不恋战）
 - **仓位**：单只 ≤ 10%
 - ⚠️ 警告：反弹多为一日游，**只做阳包阴确认的，不抄底阴跌股**
+
+## ❌ 反例黑名单
+
+| 不要 | 原因 | 正确做法 |
+|---|---|---|
+| 抄底阴跌股（无阳包阴确认） | 阴跌无承接，反弹未启动 | 只做 T 日阳包阴确认的标的 |
+| 放宽阈值凑数（无信号日降跌幅门槛） | 制造假信号，违背纪律 | count=0 诚实退出，等真信号 |
+| 补仓摊平超跌套牢 | 左侧逆势，越补越深 | 破 stop_loss 即认错，不补仓 |
+| 把超跌反弹当中线持有 | 反弹多一日游，易回吐 | +5-8% 或遇阻力即走 |
 
 ## 输出格式
 
@@ -46,7 +85,7 @@ cd .claude/skills/chaodiefantan && python main.py
   "trigger": {"signal": "oversold_rebound"},
   "count": 5,
   "stocks": [
-    {"code": "...", "name": "...", "close": 9.5, "drop5": -18.2, "stop_loss": 8.3, "vol_ratio": 2.1}
+    {"code": "...", "name": "...", "close": 9.5, "drop5": -18.2, "stop_loss": 8.3, "vol_ratio": 2.1, "market_cap": 120.0}
   ]
 }
 ```
