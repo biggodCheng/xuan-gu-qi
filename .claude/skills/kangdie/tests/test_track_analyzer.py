@@ -85,3 +85,37 @@ def test_end_return_normal():
 
 def test_end_return_empty():
     assert end_return([], 100.0) is None
+
+
+from screener.track_analyzer import first_rebound, is_mature
+
+
+def test_first_rebound_true():
+    after = _bars([101.0, 103.0, 105.0])
+    idx_after = _bars([100.5, 101.0, 102.0], key="date")
+    assert first_rebound(after, 100.0, idx_after, 100.0) is True
+
+
+def test_first_rebound_stock_dropped():
+    after = _bars([99.0, 98.5, 98.0])
+    idx_after = _bars([99.0, 98.0, 97.0], key="date")
+    assert first_rebound(after, 100.0, idx_after, 100.0) is False
+
+
+def test_first_rebound_stock_up_but_underperform():
+    after = _bars([101.0, 101.5, 102.0])
+    idx_after = _bars([103.0, 104.0, 105.0], key="date")
+    assert first_rebound(after, 100.0, idx_after, 100.0) is False
+
+
+def test_first_rebound_insufficient():
+    after = _bars([101.0, 102.0])
+    idx_after = _bars([101.0, 102.0], key="date")
+    assert first_rebound(after, 100.0, idx_after, 100.0) is None
+
+
+def test_is_mature():
+    assert is_mature([]) is False
+    assert is_mature(_bars([1.0] * 19)) is False
+    assert is_mature(_bars([1.0] * 20)) is True
+    assert is_mature(_bars([1.0] * 25)) is True
