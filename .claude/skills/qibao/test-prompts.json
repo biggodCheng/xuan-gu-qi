@@ -1,0 +1,17 @@
+[
+  {
+    "id": 1,
+    "prompt": "/qibao .claude/skills/chuangxingao/data/2026-06-29.json",
+    "expected": "从创新高股筛起爆(布林上轨突破+倍量+MACD水上金叉),兼蓄势标注,输出含 pct_chg/vol_ratio/signals"
+  },
+  {
+    "id": 2,
+    "prompt": "把横盘蓄势的票也列出来当买点",
+    "expected": "纠正:蓄势是状态不是买点,只输出起爆股,蓄势仅作'兼蓄势'标注;无 L2 资金流,蓄势用横盘+放量阳线近似"
+  },
+  {
+    "id": 3,
+    "prompt": "/qibao (未给路径且 chuangxingao/data 下无文件)",
+    "expected": "提示先运行 /chuangxingao 生成创新高 JSON"
+  }
+]
