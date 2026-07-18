@@ -36,3 +36,4 @@ _kf = _load_kangdie_fetcher()
 get_all_stocks_today = _kf.get_all_stocks_today
 get_stock_kline = _kf.get_stock_kline
 get_market_cap_map = _kf.get_market_cap_map
+get_index_kline = _kf.get_index_kline
