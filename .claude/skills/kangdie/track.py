@@ -40,18 +40,23 @@ _OUTPUT_DIR = os.path.join(_HERE, "output")
 _HISTORY_FILE = os.path.join(_DATA_DIR, "track_history.json")
 
 
-def _compute_event(stock: dict, drop_date: str, idx_aligned) -> dict:
-    """对单只种子算跟踪指标。idx_aligned = (idx_after_bars, idx_d_close) 或 None。"""
-    code = stock["code"]
-    event = {
+def _empty_event(stock: dict, drop_date: str) -> dict:
+    """15 键空 event 模板，供 _compute_event 初始化与异常兜底共用。"""
+    return {
         "drop_date": drop_date,
-        "code": code,
+        "code": stock["code"],
         "name": stock.get("name", ""),
         "d_close": stock.get("close"),
         "d1": None, "d3": None, "d5": None, "d10": None, "d20": None,
         "mfe": None, "mae": None, "end_ret": None,
         "idx_end": None, "first_rebound": None, "mature": False,
     }
+
+
+def _compute_event(stock: dict, drop_date: str, idx_aligned) -> dict:
+    """对单只种子算跟踪指标。idx_aligned = (idx_after_bars, idx_d_close) 或 None。"""
+    code = stock["code"]
+    event = _empty_event(stock, drop_date)
 
     bars = get_stock_kline(code, _KLINE_DAYS)
     aligned = align_after(bars, drop_date) if bars else None
@@ -106,14 +111,9 @@ def run_track(date_filter: str | None = None) -> bool:
             for fut in as_completed(futures):
                 try:
                     events.append(fut.result())
-                except Exception:
-                    events.append({
-                        "drop_date": drop_date,
-                        "code": futures[fut].get("code", ""),
-                        "name": futures[fut].get("name", ""),
-                        "d_close": futures[fut].get("close"),
-                        "mature": False,
-                    })
+                except Exception as e:
+                    print(f"[{drop_date}] {futures[fut].get('code', '')} 跟踪失败: {e}", flush=True)
+                    events.append(_empty_event(futures[fut], drop_date))
 
     stats = _summarize(events)
     os.makedirs(_OUTPUT_DIR, exist_ok=True)
@@ -137,6 +137,7 @@ def run_track(date_filter: str | None = None) -> bool:
 
 
 def _summarize(events: list[dict]) -> dict:
+    """汇总统计：胜率/平均MFE/第一时间反弹占比/各窗口均值。"""
     valid = [e for e in events if e.get("end_ret") is not None]
     n = len(valid)
     fr = [e for e in events if e.get("first_rebound") is True]
@@ -148,7 +149,7 @@ def _summarize(events: list[dict]) -> dict:
     by_window = {}
     for w in WINDOWS:
         key = f"d{w}"
-        by_window[key] = {"stock": avg(key), "idx": None}
+        by_window[key] = avg(key)
 
     return {
         "n": n,
@@ -170,7 +171,13 @@ def _span(events: list[dict]) -> str:
     return dates[0] if len(dates) == 1 else f"{dates[0]}–{dates[-1]}"
 
 
+def _cell(e, k):
+    v = e.get(k)
+    return "—" if v is None else (f"{v}%" if isinstance(v, (int, float)) else v)
+
+
 def _write_report(path: str, events: list[dict], stats: dict, as_of: str) -> None:
+    """写人读 markdown 报告（汇总+明细表）。"""
     lines = [
         f"# 抗跌反弹跟踪报告 · {as_of}",
         "",
@@ -185,7 +192,7 @@ def _write_report(path: str, events: list[dict], stats: dict, as_of: str) -> Non
         "- 各窗口平均涨幅:",
     ]
     for w in WINDOWS:
-        v = stats["by_window"][f"d{w}"]["stock"]
+        v = stats["by_window"][f"d{w}"]
         lines.append(f"  - D+{w}: {v}%")
     lines.append("")
     lines.append("## 明细（按 drop_date、code）")
@@ -193,16 +200,13 @@ def _write_report(path: str, events: list[dict], stats: dict, as_of: str) -> Non
     lines.append("| drop_date | code | name | D收盘 | D+1 | D+3 | D+5 | D+10 | D+20 | MFE | 末值 | 第一时间 | 成熟 |")
     lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
     for e in events:
-        def cell(k):
-            v = e.get(k)
-            return "—" if v is None else (f"{v}%" if isinstance(v, (int, float)) else v)
         fr = e.get("first_rebound")
         fr_s = "—" if fr is None else ("✅" if fr else "❌")
         mature_s = "✅" if e.get("mature") else "·"
         lines.append(
             f"| {e['drop_date']} | {e['code']} | {e.get('name','')} | {e.get('d_close','—')} | "
-            f"{cell('d1')} | {cell('d3')} | {cell('d5')} | {cell('d10')} | {cell('d20')} | "
-            f"{cell('mfe')} | {cell('end_ret')} | {fr_s} | {mature_s} |"
+            f"{_cell(e, 'd1')} | {_cell(e, 'd3')} | {_cell(e, 'd5')} | {_cell(e, 'd10')} | {_cell(e, 'd20')} | "
+            f"{_cell(e, 'mfe')} | {_cell(e, 'end_ret')} | {fr_s} | {mature_s} |"
         )
     with open(path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
