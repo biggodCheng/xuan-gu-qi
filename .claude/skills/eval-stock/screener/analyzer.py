@@ -10,7 +10,7 @@ MKTCAP_THRESHOLD = 500  # 亿元
 SUPPORT_WINDOW = 10        # 承接观察窗口（近 N 交易日）
 SUPPORT_LOOKBACK = 20      # 支撑基准回看（回调前平台）
 SUPPORT_TOLERANCE = 0.98   # 不破支撑容忍度（防假跌破）
-LOWER_SHADOW_RATIO = 0.5   # 长下影阈值（下影占振幅比）
+LOWER_SHADOW_RATIO = 0.5   # 长下影阈值（下影占振幅比）；0.5 较宽松，对称十字星(open==close 居中)恰=0.5 也会命中
 SUPPORT_HIT_THRESHOLD = 2  # "承接有力"命中信号门槛
 
 
@@ -129,7 +129,9 @@ def check_support(kline: list[dict]) -> dict:
 
     返回 {hit_count, signals, label, detail}。pass 键按 hit_count 三态：
     >= SUPPORT_HIT_THRESHOLD → True（✅）；==0 → False（❌）；
-    ==1 或数据不足(None) → 省略该键（reporter._lamp 走 else → ➖）。
+    ==1 或数据不足(None) → 省略该键（下游靠"有 pass 键"判通过/失败，无 pass 键视为中性 ➖）。
+
+    signals 字段([s1,s2,s3] 布尔)供调试/未来扩展，reporter 当前不消费。
     """
     need = SUPPORT_WINDOW + SUPPORT_LOOKBACK
     if len(kline) < need:
@@ -145,13 +147,14 @@ def check_support(kline: list[dict]) -> dict:
     s1_ratio = None
     for i in range(start, len(kline)):
         prev = kline[i - 1]
-        if kline[i]["close"] < prev["close"] and prev["volume"] > 0:
+        if kline[i]["close"] < prev["close"] and prev["volume"] > 0 and kline[i]["volume"] > 0:
             ratio = kline[i]["volume"] / prev["volume"]
             if ratio < SHRINK_RATIO:
                 s1, s1_ratio = True, ratio
                 break
 
-    # 信号2：不破支撑 — 近窗口最低价 ≥ 回调前平台低点 × 容忍度
+    # 信号2：不破支撑 — 近窗口最低价 ≥ 前段(近10日之前20日)最低价 × 容忍度
+    #         注：固定窗口近似，非真实平台支撑；持续下跌股此基准为下跌中途低点
     base_low = min(d["low"] for d in base)
     recent_low = min(d["low"] for d in recent)
     s2 = recent_low >= base_low * SUPPORT_TOLERANCE

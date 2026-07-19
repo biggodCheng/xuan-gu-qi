@@ -158,13 +158,14 @@ def test_support_only_shadow():
     r = check_support(_kline_ohlc(base + recent))
     assert r["hit_count"] == 1
     assert "pass" not in r  # 一般 ➖
+    assert r["signals"] == [False, False, True]
 
 
 def test_support_none():
     # 全不命中：放量下跌破支撑、无长下影
     base = [(10, 10.3, 9.0, 10, 100)] * 20
     recent = [
-        (10.0, 10.1, 9.8, 9.5, 200),   # 下跌放量
+        (10.0, 10.1, 9.5, 9.6, 200),   # 下跌放量（close 9.6>low 9.5，有效K线）
         (9.5, 9.6, 8.5, 8.6, 250),     # 继续下跌破支撑
     ] + [(8.6, 8.7, 8.0, 8.1, 300)] * 8
     r = check_support(_kline_ohlc(base + recent))
@@ -190,3 +191,4 @@ def test_support_bearish_candle_not_counted():
     r = check_support(_kline_ohlc(base + recent))
     assert r["hit_count"] == 2  # 信号1+2，大阴线未贡献信号3
     assert r["pass"] is True
+    assert r["signals"] == [True, True, False]
