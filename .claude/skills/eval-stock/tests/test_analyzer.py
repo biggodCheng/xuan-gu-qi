@@ -124,3 +124,69 @@ def test_marketcap_fail():
 def test_marketcap_none():
     r = check_marketcap(None)
     assert r["pass"] is False and "不可用" in r["label"]
+
+
+from screener.analyzer import check_support
+
+
+def _kline_ohlc(records):
+    """records: [(open, high, low, close, volume), ...] → kline。"""
+    return [{"date": f"d{i}", "open": o, "high": h, "low": l, "close": c, "volume": v}
+            for i, (o, h, l, c, v) in enumerate(records)]
+
+
+def test_support_all_hit():
+    # base 20 根平台 low=9.0；recent 10 根：缩量下跌 + 不破支撑 + 长下影收回
+    base = [(10, 10.3, 9.0, 10, 100)] * 20
+    recent = [
+        (10.0, 10.3, 9.8, 10.1, 100),
+        (10.1, 10.3, 9.9, 9.9, 70),    # 缩量下跌：close 9.9<10.1，vol 70<100*0.8
+        (10.0, 10.3, 9.0, 10.2, 100),  # 长下影收回：下影比 0.77
+    ] + [(10.2, 10.3, 9.5, 10.0, 100)] * 7
+    r = check_support(_kline_ohlc(base + recent))
+    assert r["hit_count"] == 3
+    assert r["pass"] is True
+
+
+def test_support_only_shadow():
+    # 仅砸盘收回：recent 无下跌日（信号1✗）、跌破前平台（信号2✗）、有长下影（信号3✓）
+    base = [(10, 10.3, 9.0, 10, 100)] * 20
+    recent = [
+        (10.0, 10.3, 8.5, 10.1, 200),  # low 8.5 跌破 9.0*0.98；close 涨
+        (10.1, 10.3, 8.5, 10.2, 150),  # 长下影收回：下影比 0.89
+    ] + [(10.2, 10.5, 8.5, 10.3, 120)] * 8
+    r = check_support(_kline_ohlc(base + recent))
+    assert r["hit_count"] == 1
+    assert "pass" not in r  # 一般 ➖
+
+
+def test_support_none():
+    # 全不命中：放量下跌破支撑、无长下影
+    base = [(10, 10.3, 9.0, 10, 100)] * 20
+    recent = [
+        (10.0, 10.1, 9.8, 9.5, 200),   # 下跌放量
+        (9.5, 9.6, 8.5, 8.6, 250),     # 继续下跌破支撑
+    ] + [(8.6, 8.7, 8.0, 8.1, 300)] * 8
+    r = check_support(_kline_ohlc(base + recent))
+    assert r["hit_count"] == 0
+    assert r["pass"] is False
+
+
+def test_support_insufficient():
+    r = check_support(_kline_ohlc([(10, 10, 9, 10, 100)] * 20))
+    assert r["hit_count"] is None
+    assert "数据不足" in r["label"]
+    assert "pass" not in r
+
+
+def test_support_bearish_candle_not_counted():
+    # 大阴线（open高 close低）下影比必 <0.5，不应被算作砸盘收回
+    base = [(10, 10.3, 9.0, 10, 100)] * 20
+    recent = [
+        (10.0, 10.2, 9.9, 10.0, 100),  # 小实体无下影
+        (10.1, 10.3, 9.9, 9.9, 70),    # 缩量下跌 → 信号1 ✓
+        (10.5, 10.6, 8.9, 9.0, 100),   # 大阴线：下影比 0.06 → 信号3 ✗
+    ] + [(9.0, 10.3, 9.0, 10.0, 100)] * 7  # recent_low 8.9 ≥ 8.82 → 信号2 ✓
+    r = check_support(_kline_ohlc(base + recent))
+    assert r["hit_count"] == 2  # 信号1+2，大阴线未贡献信号3
+    assert r["pass"] is True
