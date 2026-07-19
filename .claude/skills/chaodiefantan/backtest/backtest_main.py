@@ -1,14 +1,13 @@
-"""回测编排入口 — 串联数据→信号→模拟→报告。
+"""回测编排入口 — 串联数据→信号→模拟→报告。支持任意回测区间。
 
 用法:
-    python -m backtest.backtest_main                 # 全量(2024-01~2026-07)
-    python -m backtest.backtest_main --smoke         # 小样本冒烟
+    python -m backtest.backtest_main                                # 默认 2024-01~2026-07
+    python -m backtest.backtest_main --start 2018-01-02 --end 2026-07-17   # 8年长周期
+    python -m backtest.backtest_main --smoke                        # 小样本冒烟
 """
 import argparse
 import os
 import sys
-
-import pandas as pd
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SKILL_DIR = os.path.dirname(HERE)                     # chaodiefantan/
@@ -22,16 +21,24 @@ from backtest.signal_scan import scan_signals, dedup_signals  # noqa: E402
 from backtest.simulator import simulate_exit  # noqa: E402
 from backtest.report import (  # noqa: E402
     compute_trade_returns, aggregate_overall, aggregate_by_cap,
-    render_markdown, FEE_NET)
+    aggregate_by_year, render_markdown, FEE_NET)
 
-START = "2024-01-02"
-END = "2026-07-17"
-FETCH_START = "2023-09-01"                            # 留 70 日 buffer
+DEFAULT_START = "2024-01-02"
+DEFAULT_END = "2026-07-17"
 MAX_HOLD = 10
 CACHE_DIR = os.path.join(HERE, "data")
-REPORT_PATH = os.path.join(
-    SKILL_DIR, "..", "..", "..", "docs",
-    "chaodiefantan_backtest_2024-01_2026-07.md")
+
+
+def _fetch_start(start: str, buffer_days: int = 100) -> str:
+    """start 往前推 buffer 天(留 70 日 K线 buffer)。"""
+    from datetime import datetime, timedelta
+    d = datetime.strptime(start, "%Y-%m-%d") - timedelta(days=buffer_days)
+    return d.strftime("%Y-%m-%d")
+
+
+def _report_path(start: str, end: str) -> str:
+    return os.path.join(SKILL_DIR, "..", "..", "..", "docs",
+                        f"chaodiefantan_backtest_{start}_{end}.md")
 
 
 def load_pool_and_shares():
@@ -105,7 +112,11 @@ def compute_elasticity(signals, klines_qfq):
     }
 
 
-def run(smoke: bool = False):
+def run(smoke: bool = False, start: str = DEFAULT_START, end: str = DEFAULT_END):
+    fetch_start = _fetch_start(start)
+    report_path = _report_path(start, end)
+    print(f"[回测区间] {start} ~ {end} (K线拉取起点 {fetch_start})", flush=True)
+
     print("[1] 股票池+股本 ...", flush=True)
     pool, shares_by_code, names = load_pool_and_shares()
     if smoke:
@@ -115,17 +126,20 @@ def run(smoke: bool = False):
     print(f"    池: {len(pool)} 只", flush=True)
 
     print("[2] 数据源预测试 ...", flush=True)
-    rate = prefetch_waf_check(pool, FETCH_START, END, sample=10 if smoke else 50)
+    rate = prefetch_waf_check(pool, fetch_start, end, sample=10 if smoke else 50)
     if rate < 0.8:
         raise RuntimeError(f"数据源预测试成功率 {rate:.0%} < 80%，中止(数据源不可用)")
 
     print("[3] 拉取前复权+不复权 K线 ...", flush=True)
-    klines_qfq = fetch_all(pool, FETCH_START, END, "qfq", CACHE_DIR, "qfq")
-    klines_unadj = fetch_all(pool, FETCH_START, END, "", CACHE_DIR, "unadj")
+    # 缓存按区间隔离(不同区间不混用)
+    klines_qfq = fetch_all(pool, fetch_start, end, "qfq", CACHE_DIR,
+                           f"qfq_{fetch_start}_{end}")
+    klines_unadj = fetch_all(pool, fetch_start, end, "", CACHE_DIR,
+                             f"unadj_{fetch_start}_{end}")
 
     print("[4] 逐日扫描信号 ...", flush=True)
     dates_q = sorted({b["date"] for kl in klines_qfq.values() for b in kl.to_dict("records")
-                      if START <= b["date"] <= END})
+                      if start <= b["date"] <= end})
     unadj_close = {c: dict(zip(kl["date"], kl["close"]))
                    for c, kl in klines_unadj.items()}
     klines_dict = {c: kl.to_dict("records") for c, kl in klines_qfq.items()}
@@ -141,9 +155,10 @@ def run(smoke: bool = False):
     overall = aggregate_overall(trades_close)
     overall_open = aggregate_overall(trades_open)
     elasticity = compute_elasticity(signals, klines_dict)
+    year_groups = aggregate_by_year(trades_close)
     cap_groups = aggregate_by_cap(trades_close)
-    idx = get_index_kline("sz399006", days=800)
-    idx_in = [k for k in idx if START <= k["date"] <= END]
+    idx = get_index_kline("sz399006", days=2500)     # 8年+buffer
+    idx_in = [k for k in idx if start <= k["date"] <= end]
     bench_ret = ((idx_in[-1]["close"] - idx_in[0]["close"]) / idx_in[0]["close"] * 100
                  if len(idx_in) >= 2 else 0)
     sl_trades = [t for t in trades_close if t["exit_reason"] == "stop_loss"]
@@ -164,13 +179,13 @@ def run(smoke: bool = False):
         {"name": "流动性", "direction": "高估成交质量",
          "note": "假设stop_loss/close价成交,实盘滑点更大"},
     ]
-    md = render_markdown(overall, overall_open, elasticity, cap_groups,
-                         fit, bench_ret, biases)
+    md = render_markdown(overall, overall_open, elasticity, year_groups,
+                         cap_groups, fit, bench_ret, biases)
 
-    os.makedirs(os.path.dirname(os.path.abspath(REPORT_PATH)), exist_ok=True)
-    with open(REPORT_PATH, "w", encoding="utf-8") as f:
+    os.makedirs(os.path.dirname(os.path.abspath(report_path)), exist_ok=True)
+    with open(report_path, "w", encoding="utf-8") as f:
         f.write(md)
-    print(f"[done] 报告: {os.path.abspath(REPORT_PATH)}", flush=True)
+    print(f"[done] 报告: {os.path.abspath(report_path)}", flush=True)
     print(f"        信号 {len(signals)} | 胜率 {overall['win_rate']:.0f}% | "
           f"平均净收益 {overall['avg_ret_net']:+.2f}% | 基准 {bench_ret:+.2f}%",
           flush=True)
@@ -179,8 +194,10 @@ def run(smoke: bool = False):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--smoke", action="store_true", help="小样本冒烟")
+    p.add_argument("--start", default=DEFAULT_START, help="回测起点 YYYY-MM-DD")
+    p.add_argument("--end", default=DEFAULT_END, help="回测终点 YYYY-MM-DD")
     args = p.parse_args()
-    run(smoke=args.smoke)
+    run(smoke=args.smoke, start=args.start, end=args.end)
 
 
 if __name__ == "__main__":
