@@ -7,6 +7,11 @@ RECENT_ZT_DAYS = 15
 SHRINK_RATIO = 0.8
 MIN_PULLBACK_DAYS = 2
 MKTCAP_THRESHOLD = 500  # 亿元
+SUPPORT_WINDOW = 10        # 承接观察窗口（近 N 交易日）
+SUPPORT_LOOKBACK = 20      # 支撑基准回看（回调前平台）
+SUPPORT_TOLERANCE = 0.98   # 不破支撑容忍度（防假跌破）
+LOWER_SHADOW_RATIO = 0.5   # 长下影阈值（下影占振幅比）
+SUPPORT_HIT_THRESHOLD = 2  # "承接有力"命中信号门槛
 
 
 def check_new_high(kline: list[dict],
@@ -117,3 +122,72 @@ def check_marketcap(total: float | None, circ: float | None = None,
     return {"pass": total < threshold,
             "label": f"{total:.0f} 亿" + (f" / 流通 {circ:.0f} 亿" if circ else ""),
             "total": total, "circ": circ}
+
+
+def check_support(kline: list[dict]) -> dict:
+    """承接 3 信号：下跌缩量 / 不破支撑 / 砸盘收回(长下影代理)。
+
+    返回 {hit_count, signals, label, detail}。pass 键按 hit_count 三态：
+    >= SUPPORT_HIT_THRESHOLD → True（✅）；==0 → False（❌）；
+    ==1 或数据不足(None) → 省略该键（reporter._lamp 走 else → ➖）。
+    """
+    need = SUPPORT_WINDOW + SUPPORT_LOOKBACK
+    if len(kline) < need:
+        return {"hit_count": None, "label": "数据不足",
+                "detail": f"K线仅 {len(kline)} 根，需 ≥{need}"}
+
+    start = len(kline) - SUPPORT_WINDOW
+    recent = kline[start:]
+    base = kline[start - SUPPORT_LOOKBACK:start]
+
+    # 信号1：下跌缩量 — 近窗口内存在 close<prev_close 且 volume<prev*SHRINK_RATIO
+    s1 = False
+    s1_ratio = None
+    for i in range(start, len(kline)):
+        prev = kline[i - 1]
+        if kline[i]["close"] < prev["close"] and prev["volume"] > 0:
+            ratio = kline[i]["volume"] / prev["volume"]
+            if ratio < SHRINK_RATIO:
+                s1, s1_ratio = True, ratio
+                break
+
+    # 信号2：不破支撑 — 近窗口最低价 ≥ 回调前平台低点 × 容忍度
+    base_low = min(d["low"] for d in base)
+    recent_low = min(d["low"] for d in recent)
+    s2 = recent_low >= base_low * SUPPORT_TOLERANCE
+
+    # 信号3：砸盘收回 — 近窗口内存在长下影K（下影占振幅 ≥ LOWER_SHADOW_RATIO）
+    s3 = False
+    s3_ratio = None
+    for d in recent:
+        hi, lo = d["high"], d["low"]
+        if hi <= lo:
+            continue
+        ratio = (min(d["open"], d["close"]) - lo) / (hi - lo)
+        if ratio >= LOWER_SHADOW_RATIO:
+            s3, s3_ratio = True, ratio
+            break
+
+    signals = [s1, s2, s3]
+    hit = sum(signals)
+    names = []
+    if s1: names.append("缩量")
+    if s2: names.append("不破支撑")
+    if s3: names.append("砸盘收回")
+
+    detail_parts = []
+    if s1_ratio is not None:
+        detail_parts.append(f"量比{s1_ratio:.2f}")
+    detail_parts.append(f"低{recent_low:.2f}/撑{base_low:.2f}")
+    if s3_ratio is not None:
+        detail_parts.append(f"下影{s3_ratio:.2f}")
+    detail = "；".join(detail_parts)
+
+    if hit >= SUPPORT_HIT_THRESHOLD:
+        return {"hit_count": hit, "signals": signals, "pass": True,
+                "label": f"有力（{hit}/3：{'、'.join(names)}）", "detail": detail}
+    if hit == 0:
+        return {"hit_count": 0, "signals": signals, "pass": False,
+                "label": "弱（0/3）", "detail": detail}
+    return {"hit_count": 1, "signals": signals,
+            "label": f"一般（1/3：{names[0]}）", "detail": detail}
