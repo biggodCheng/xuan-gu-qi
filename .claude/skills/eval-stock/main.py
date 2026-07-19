@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """eval-stock CLI：python main.py <代码或名称>[,...]
-对每只股票跑 qsht 6 维度，终端打印 markdown 汇总。
+对每只股票跑 qsht 7 维度，终端打印 markdown 汇总。
 """
 import os
 import re
