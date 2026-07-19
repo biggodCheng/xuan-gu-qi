@@ -1,4 +1,4 @@
-"""报告聚合 + markdown 渲染 — 4 目标对应章节。详见 spec §7。"""
+"""报告聚合 + markdown 渲染 — 4 目标 + 按年牛熊分段。详见 spec §7。"""
 
 FEE_NET = 0.0008       # 净费(印花0.05%卖+双边万2.5佣金+过户)
 FEE_SLIP = 0.002       # 含滑点保守
@@ -45,20 +45,27 @@ def aggregate_by_cap(trades: list[dict]) -> dict:
     out = {}
     for lo, hi in CAP_BANDS:
         sub = [t for t in trades if lo <= t.get("market_cap_T", 0) < hi]
-        if not sub:
-            out[f"{lo}-{hi}"] = {"n": 0}
-            continue
-        agg = aggregate_overall(sub)
-        out[f"{lo}-{hi}"] = agg
+        out[f"{lo}-{hi}"] = aggregate_overall(sub) if sub else {"n": 0}
     return out
 
 
+def aggregate_by_year(trades: list[dict]) -> dict:
+    """按信号年份分组聚合(牛熊对比)。返回 {year: overall_agg}。"""
+    buckets: dict[str, list[dict]] = {}
+    for t in trades:
+        year = str(t.get("signal_date", ""))[:4]
+        if not year:
+            continue
+        buckets.setdefault(year, []).append(t)
+    return {y: aggregate_overall(ts) for y, ts in sorted(buckets.items())}
+
+
 def render_markdown(overall: dict, overall_open: dict, elasticity: dict,
-                    cap_groups: dict, fit: dict, benchmark_ret: float,
-                    biases: list[dict]) -> str:
-    """渲染 4 目标 markdown 报告。"""
+                    year_groups: dict, cap_groups: dict, fit: dict,
+                    benchmark_ret: float, biases: list[dict]) -> str:
+    """渲染 markdown 报告(整体/弹性/按年/市值/契合度 + 偏差)。"""
     L = []
-    L.append("# 超跌反弹策略回测报告（2024-01 ~ 2026-07）\n")
+    L.append("# 超跌反弹策略回测报告\n")
     L.append("> 探索性小样本分析，结论非统计显著。详见偏差声明。\n")
 
     # 一、整体有效性
@@ -89,8 +96,23 @@ def render_markdown(overall: dict, overall_open: dict, elasticity: dict,
         L.append(f"- 平均实际持有: **{overall['avg_hold']:.1f}日** "
                  f"(短=印证反弹多一日游)")
 
-    # 三、市值阈值
-    L.append("\n## 三、市值阈值合理性（分市值带）\n")
+    # 三、按年分段（牛熊对比）
+    L.append("\n## 三、按年分段（牛熊市况对比）\n")
+    if year_groups:
+        L.append("| 年份 | 笔数 | 胜率 | 盈亏比 | 平均净收益 | 备注 |")
+        L.append("|---|---|---|---|---|---|")
+        bear_years = {"2018", "2022"}    # 粗略熊市/下跌市标记
+        for year, agg in year_groups.items():
+            tag = "📉熊市/下跌" if year in bear_years else "📈牛/震荡"
+            mark = "" if agg.get("n", 0) == 0 else tag
+            if agg.get("n", 0) == 0:
+                L.append(f"| {year} | 0 | — | — | — | |")
+            else:
+                L.append(f"| {year} | {agg['n']} | {agg['win_rate']:.0f}% | "
+                         f"{agg['payoff']} | {agg['avg_ret_net']:+.2f}% | {mark} |")
+
+    # 四、市值阈值
+    L.append("\n## 四、市值阈值合理性（分市值带）\n")
     L.append("| 市值带(亿) | 笔数 | 胜率 | 盈亏比 | 平均净收益 |")
     L.append("|---|---|---|---|---|")
     for band, agg in cap_groups.items():
@@ -100,10 +122,10 @@ def render_markdown(overall: dict, overall_open: dict, elasticity: dict,
             L.append(f"| {band} | {agg['n']} | {agg['win_rate']:.0f}% | "
                      f"{agg['payoff']} | {agg['avg_ret_net']:+.2f}% |")
 
-    # 四、契合度
-    L.append("\n## 四、与实盘契合度\n")
+    # 五、契合度
+    L.append("\n## 五、与实盘契合度\n")
     f = fit
-    L.append(f"- 2.5年信号总数 **{f['total_signals']}** ≈ 日均 **{f['per_day']:.2f}个** "
+    L.append(f"- 回测区间信号总数 **{f['total_signals']}** ≈ 日均 **{f['per_day']:.2f}个** "
              f"(交易日{f['trading_days']})")
     L.append(f"- 平均持有 **{f['avg_hold']:.1f}日** → 年化换手强度评估")
     L.append(f"- 硬止损①触发占比 **{f['stop_loss_share']:.0%}**，"
