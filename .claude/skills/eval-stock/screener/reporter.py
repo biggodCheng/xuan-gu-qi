@@ -40,6 +40,8 @@ def _oneliner(stock: dict) -> str:
     q2v = stock.get("q2", {}).get("verdict")
     if q2v == "偏负":
         parts.append("Q2偏负")
+    if stock.get("support", {}).get("hit_count") == 0:
+        parts.append("承接偏弱，等买点")
     tail = "；".join(parts) if parts else "各维度通过"
     prefix = "非体系标的，不建议追" if verdict == "不达标" else "符合体系，可重点跟踪"
     return f"{prefix}（{tail}）"
@@ -78,6 +80,10 @@ def format_report(stock: dict) -> str:
         lines.append(f"⑥ 赛道        ✅  {'、'.join(tr['tracks'])} {main}")
     else:
         lines.append("⑥ 赛道        ❌  不属于四大赛道")
+
+    # 承接（参考维度，不进漏斗）
+    sp = stock.get("support", {})
+    lines.append(f"⑦ 承接        {_lamp(sp)}  {sp.get('label', '')}")
 
     lines.append("─" * 45)
     verdict, where = _funnel_verdict(stock)
