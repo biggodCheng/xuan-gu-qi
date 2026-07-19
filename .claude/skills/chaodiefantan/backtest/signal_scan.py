@@ -1,6 +1,7 @@
 """信号扫描与去重 — 逐日切片复用 is_oversold_rebound 判定信号,同波去重。
 
 去重: 同股 window 个交易日内重复信号只留最早一个(同一波反弹)。
+市值用 shares_func(code, date) 时变股本(送转回推修正,见 market_cap.shares_at_date)。
 """
 from screener.analyzer import is_oversold_rebound
 from backtest.market_cap import estimate_cap_yi, in_cap_band
@@ -34,7 +35,7 @@ def dedup_signals(signals: list[dict], trading_dates: list[str],
 
 
 def scan_signals(klines_by_code: dict[str, list[dict]],
-                 float_shares_by_code: dict[str, float],
+                 shares_func,
                  names_by_code: dict[str, str],
                  trading_dates: list[str],
                  unadj_close_by_code: dict[str, dict[str, float]] | None = None,
@@ -43,11 +44,11 @@ def scan_signals(klines_by_code: dict[str, list[dict]],
 
     Args:
         klines_by_code: {code: 前复权日K列表}，每项含 date/open/high/low/close/volume。
-        float_shares_by_code: {code: 流通股本(股)}。
+        shares_func: callable(code, date) -> 流通股本(股)。支持送转回推的时变股本。
         names_by_code: {code: 股票名称}。
-        trading_dates: 要扫描的交易日序列(升序)。每个 T 日切片判定。
+        trading_dates: 要扫描的交易日序列(升序)。
         unadj_close_by_code: {code: {date: 不复权收盘价}}，用于市值估算。
-            若 None 则用前复权 close 近似(有偏差,仅冒烟用)。
+            若 None 则用前复权 close 近似。
 
     Returns:
         信号列表(未去重)，每项 {signal_date, code, name, close_T, stop_loss,
@@ -59,9 +60,6 @@ def scan_signals(klines_by_code: dict[str, list[dict]],
     for code, bars in klines_by_code.items():
         if len(bars) < 7:
             continue
-        float_shares = float_shares_by_code.get(code)
-        if not float_shares:
-            continue
         unadj = (unadj_close_by_code or {}).get(code, {})
         name = names_by_code.get(code, code)
 
@@ -69,10 +67,12 @@ def scan_signals(klines_by_code: dict[str, list[dict]],
             t_date = bars[i]["date"]
             if t_date not in date_set:
                 continue                                # 非回测交易日,跳过
+            shares_t = shares_func(code, t_date)        # 时变股本(送转回推)
+            if not shares_t:
+                continue
             window = bars[: i + 1]                      # T及之前所有K线
-            # 市值估算(优先用不复权价)
             close_unadj = unadj.get(t_date, window[-1]["close"])
-            cap_t = estimate_cap_yi(close_unadj, float_shares)
+            cap_t = estimate_cap_yi(close_unadj, shares_t)
             if not in_cap_band(cap_t):
                 continue
             detail = is_oversold_rebound(window, cap_t)

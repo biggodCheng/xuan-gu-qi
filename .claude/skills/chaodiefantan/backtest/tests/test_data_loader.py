@@ -38,3 +38,14 @@ def test_mtf_dividend_qfq_smooth():
     chg = (c19 - c18) / c18 * 100
     # 不复权约-1.3%除权跳口;前复权应消除,chg 在 [-1, 3] 区间(非-1.3以下)
     assert chg > -1.0, f"前复权除权日仍跳口 {chg:.2f}%，复权异常"
+
+
+def test_fetch_dividends_mtf():
+    """茅台应有除权记录,每项含 ex_date/song/zhuan。"""
+    from backtest.data_loader import fetch_dividends
+    recs = fetch_dividends("600519")
+    if not recs:
+        import pytest
+        pytest.skip("除权日历网络不可用")
+    assert all("ex_date" in r and "song" in r and "zhuan" in r for r in recs)
+    assert any(r["ex_date"] for r in recs)        # 茅台历年有分红,ex_date 非空

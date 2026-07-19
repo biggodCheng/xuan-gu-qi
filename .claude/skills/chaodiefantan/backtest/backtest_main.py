@@ -15,8 +15,8 @@ sys.path.insert(0, SKILL_DIR)
 
 from screener.bridges import (  # noqa: E402  复用 kangdie fetcher
     get_all_stocks_today, get_market_cap_map, get_index_kline)
-from backtest.data_loader import fetch_all, prefetch_waf_check  # noqa: E402
-from backtest.market_cap import compute_float_shares  # noqa: E402
+from backtest.data_loader import fetch_all, prefetch_waf_check, fetch_all_dividends  # noqa: E402
+from backtest.market_cap import compute_float_shares, shares_at_date  # noqa: E402
 from backtest.signal_scan import scan_signals, dedup_signals  # noqa: E402
 from backtest.simulator import simulate_exit  # noqa: E402
 from backtest.report import (  # noqa: E402
@@ -137,13 +137,23 @@ def run(smoke: bool = False, start: str = DEFAULT_START, end: str = DEFAULT_END)
     klines_unadj = fetch_all(pool, fetch_start, end, "", CACHE_DIR,
                              f"unadj_{fetch_start}_{end}")
 
+    print("[3.5] 拉取除权日历(送转回推股本) ...", flush=True)
+    dividends = fetch_all_dividends(pool, CACHE_DIR)
+
     print("[4] 逐日扫描信号 ...", flush=True)
     dates_q = sorted({b["date"] for kl in klines_qfq.values() for b in kl.to_dict("records")
                       if start <= b["date"] <= end})
     unadj_close = {c: dict(zip(kl["date"], kl["close"]))
                    for c, kl in klines_unadj.items()}
     klines_dict = {c: kl.to_dict("records") for c, kl in klines_qfq.items()}
-    raw = scan_signals(klines_dict, shares_by_code, names, dates_q, unadj_close)
+
+    def _shares_func(code, date):
+        cur = shares_by_code.get(code)
+        if not cur:
+            return None
+        return shares_at_date(cur, dividends.get(code, []), date)
+
+    raw = scan_signals(klines_dict, _shares_func, names, dates_q, unadj_close)
     signals = dedup_signals(raw, dates_q)
     print(f"    原始 {len(raw)} → 去重后 {len(signals)} 信号", flush=True)
 

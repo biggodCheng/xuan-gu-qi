@@ -126,3 +126,74 @@ def prefetch_waf_check(pool: list[dict], start: str, end: str,
     print(f"[data_loader] 源可用性预测试: {ok}/{len(sample_pool)} = {rate:.0%}",
           flush=True)
     return rate
+
+
+# ============================================================
+# 除权除息日历(送转回推股本用) — akshare 同花顺源
+# ============================================================
+
+def fetch_dividends(code: str, retries: int = 3) -> list[dict]:
+    """拉单只除权除息记录。返回 [{ex_date, song, zhuan}, ...]。
+
+    ex_date: 'YYYY-MM-DD'; song/zhuan: 每10股送/转(派息忽略,不影响股本)。
+    """
+    sym = str(code).zfill(6)
+    for attempt in range(retries):
+        try:
+            df = ak.stock_history_dividend_detail(symbol=sym, indicator="分红")
+            if df is None or len(df) == 0:
+                return []
+            records = []
+            for _, r in df.iterrows():
+                ex = r.get("除权除息日")
+                ex_date = str(ex)[:10] if ex is not None and pd.notna(ex) else None
+                song = r.get("送股", 0)
+                zhuan = r.get("转增", 0)
+                records.append({
+                    "ex_date": ex_date,
+                    "song": float(song) if pd.notna(song) else 0,
+                    "zhuan": float(zhuan) if pd.notna(zhuan) else 0,
+                })
+            return records
+        except Exception:
+            if attempt < retries - 1:
+                time.sleep(2 ** attempt)
+            else:
+                return []
+
+
+def fetch_all_dividends(pool: list[dict], cache_dir: str,
+                        max_workers: int = 4,
+                        sleep_every: int = 100) -> dict[str, list[dict]]:
+    """批量拉除权记录,缓存 dividends.json(断点续拉)。返回 {code: [records]}。"""
+    import json
+    cache_path = os.path.join(cache_dir, "dividends.json")
+    result: dict[str, list[dict]] = {}
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, encoding="utf-8") as f:
+                result = json.load(f)
+        except Exception:
+            result = {}
+    todo = [s["code"] for s in pool if s["code"] not in result]
+
+    def _task(code):
+        return code, fetch_dividends(code)
+
+    done = 0
+    new: dict[str, list[dict]] = {}
+    with ThreadPoolExecutor(max_workers=max_workers) as ex:
+        futs = {ex.submit(_task, c): c for c in todo}
+        for fut in as_completed(futs):
+            code, recs = fut.result()
+            new[code] = recs
+            done += 1
+            if done % sleep_every == 0:
+                time.sleep(0.3)
+                print(f"[data_loader] dividends: {done}/{len(todo)}", flush=True)
+    result.update(new)
+    if new:
+        os.makedirs(cache_dir, exist_ok=True)
+        with open(cache_path, "w", encoding="utf-8") as f:
+            json.dump(result, f, ensure_ascii=False)
+    return result

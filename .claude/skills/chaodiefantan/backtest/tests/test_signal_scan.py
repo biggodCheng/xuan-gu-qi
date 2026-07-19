@@ -62,7 +62,7 @@ def test_scan_signals_finds_signal():
     float_shares = compute_float_shares(cap_yi=200.0, close=10.5)  # 让市值=200亿
     sigs = scan_signals(
         klines_by_code={"000001": bars},
-        float_shares_by_code={"000001": float_shares},
+        shares_func=lambda c, d: float_shares,
         names_by_code={"000001": "测试股"},
         trading_dates=["2024-03-12"],
     )
@@ -78,7 +78,7 @@ def test_scan_signals_skips_when_cap_out_of_band():
     bars = _make_kline()
     sigs = scan_signals(
         klines_by_code={"000001": bars},
-        float_shares_by_code={"000001": 1_000_000.0},  # 极小股本->市值<50亿
+        shares_func=lambda c, d: 1_000_000.0,  # 极小股本->市值<50亿
         names_by_code={"000001": "测试股"},
         trading_dates=["2024-03-12"],
     )
@@ -91,7 +91,7 @@ def test_scan_signals_insufficient_history():
     float_shares = compute_float_shares(cap_yi=200.0, close=10.5)
     sigs = scan_signals(
         klines_by_code={"000001": bars},
-        float_shares_by_code={"000001": float_shares},
+        shares_func=lambda c, d: float_shares,
         names_by_code={"000001": "测试股"},
         trading_dates=[bars[-1]["date"]],
     )
