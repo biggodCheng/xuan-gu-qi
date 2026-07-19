@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from screener.fetcher import fetch_kline, fetch_marketcap, zt_threshold
 from screener.analyzer import (
     check_new_high, check_recent_zt, check_pullback, check_marketcap,
+    check_support,
 )
 from screener.bridges import get_q2_funcs, get_sid_funcs
 from screener.reporter import format_report
@@ -122,6 +123,7 @@ def evaluate_one(query: str) -> dict:
     zt = check_recent_zt(kline, threshold)
     pb = check_pullback(kline, zt.get("_raw", []))
     mc = check_marketcap(total, circ)
+    sp = check_support(kline)
     q2 = _eval_q2(code)
     track, industry = _eval_track(code)
     if not industry:
@@ -134,7 +136,7 @@ def evaluate_one(query: str) -> dict:
         "code": code, "name": name, "industry": industry,
         "last_date": last_date, "last_close": last_close,
         "intraday": _is_intraday(last_date),
-        "new_high": nh, "zt": zt, "pullback": pb, "marketcap": mc,
+        "new_high": nh, "zt": zt, "pullback": pb, "marketcap": mc, "support": sp,
         "q2": q2, "track": track, "error": None,
     }
 
