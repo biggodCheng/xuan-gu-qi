@@ -13,10 +13,10 @@ def test_estimate_cap_yi():
 
 
 def test_in_cap_band():
-    assert in_cap_band(50.0) is True
-    assert in_cap_band(500.0) is True
-    assert in_cap_band(49.9) is False
-    assert in_cap_band(500.1) is False
+    assert in_cap_band(30.0) is True
+    assert in_cap_band(100.0) is True
+    assert in_cap_band(29.9) is False
+    assert in_cap_band(100.1) is False
 
 
 def test_shares_at_date_before_split():

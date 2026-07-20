@@ -59,7 +59,7 @@ def _make_kline():
 
 def test_scan_signals_finds_signal():
     bars = _make_kline()
-    float_shares = compute_float_shares(cap_yi=200.0, close=10.5)  # 让市值=200亿
+    float_shares = compute_float_shares(cap_yi=80.0, close=10.5)  # 让市值=200亿
     sigs = scan_signals(
         klines_by_code={"000001": bars},
         shares_func=lambda c, d: float_shares,
@@ -88,7 +88,7 @@ def test_scan_signals_skips_when_cap_out_of_band():
 def test_scan_signals_insufficient_history():
     """T 日之前不足 7 根 -> 不出信号。"""
     bars = _make_kline()[:6]  # 只6根
-    float_shares = compute_float_shares(cap_yi=200.0, close=10.5)
+    float_shares = compute_float_shares(cap_yi=80.0, close=10.5)
     sigs = scan_signals(
         klines_by_code={"000001": bars},
         shares_func=lambda c, d: float_shares,

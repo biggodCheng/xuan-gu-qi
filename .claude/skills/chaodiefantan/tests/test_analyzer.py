@@ -21,7 +21,7 @@ def _good_bars():
 
 
 def test_all_pass():
-    r = is_oversold_rebound(_good_bars(), 200.0)
+    r = is_oversold_rebound(_good_bars(), 80.0)
     assert r is not None
     assert r["drop5"] == -16.0
     assert r["stop_loss"] == 7.0
@@ -31,46 +31,46 @@ def test_drop5_not_enough():
     bars = _good_bars()
     for b in bars[:5]:
         b["close"] = 11.5  # (10.5-11.5)/11.5 = -8.7% > -15
-    assert is_oversold_rebound(bars, 200.0) is None
+    assert is_oversold_rebound(bars, 80.0) is None
 
 
 def test_no_long_shadow():
     bars = _good_bars()
     bars[-2]["low"] = 8.9  # 下影=min(10,9)-8.9=0.1 < 2*实体(1)
-    assert is_oversold_rebound(bars, 200.0) is None
+    assert is_oversold_rebound(bars, 80.0) is None
 
 
 def test_not_shrinking():
     bars = _good_bars()
     bars[-2]["volume"] = 90  # 90 >= 80 未缩量
-    assert is_oversold_rebound(bars, 200.0) is None
+    assert is_oversold_rebound(bars, 80.0) is None
 
 
 def test_not_yang_line():
     bars = _good_bars()
     bars[-1]["open"], bars[-1]["close"] = 10.5, 9.2  # 阴线
-    assert is_oversold_rebound(bars, 200.0) is None
+    assert is_oversold_rebound(bars, 80.0) is None
 
 
 def test_not_volume_up():
     bars = _good_bars()
     bars[-1]["volume"] = 60  # 60 < 75 未放量
-    assert is_oversold_rebound(bars, 200.0) is None
+    assert is_oversold_rebound(bars, 80.0) is None
 
 
 def test_not_recover_open():
     bars = _good_bars()
     bars[-1]["close"] = 9.5  # 9.5 < T-1.open=10 未收复前日开盘
-    assert is_oversold_rebound(bars, 200.0) is None
+    assert is_oversold_rebound(bars, 80.0) is None
 
 
 def test_cap_too_small():
-    assert is_oversold_rebound(_good_bars(), 30.0) is None
+    assert is_oversold_rebound(_good_bars(), 29.0) is None
 
 
 def test_cap_too_large():
-    assert is_oversold_rebound(_good_bars(), 800.0) is None
+    assert is_oversold_rebound(_good_bars(), 150.0) is None
 
 
 def test_insufficient_bars():
-    assert is_oversold_rebound(_good_bars()[:6], 200.0) is None
+    assert is_oversold_rebound(_good_bars()[:6], 80.0) is None

@@ -35,7 +35,7 @@ cd .claude/skills/chaodiefantan && python main.py
    cd .claude/skills/chaodiefantan && python main.py
    ```
 
-3. 脚本会：拉全A行情+市值 → 市值 50-500 亿过滤 → 并发拉个股 70 日 OHLCV → 判定 5 条筛选条件 → 保存 `data/cj_YYYY-MM-DD.json`。
+3. 脚本会：拉全A行情+市值 → 市值 30-100 亿过滤 → 并发拉个股 70 日 OHLCV → 判定 5 条筛选条件 → 保存 `data/cj_YYYY-MM-DD.json`。
 
 4. 读取输出，向用户展示：候选总数、输出文件路径、逐只（代码/名称/收盘/5日跌幅/止损位/量比），并强调**左侧短线严止损、反弹多一日游**。
 
@@ -47,9 +47,11 @@ cd .claude/skills/chaodiefantan && python main.py
 | T-1 长下影 | `(min(open,close)-low) >= 2×\|open-close\| 且 >= close×3%` | 昨日盘中恐慌被承接 |
 | T-1 缩量 | `vol[-2] < mean(vol[-6:-2]) × 0.8` | 昨日缩量（前 4 日均量，卖压枯竭） |
 | T 放量阳包阴 | `close>open 且 vol[-1]>=vol[-2]×1.5 且 close[-1]>open[-2] 且 high[-1]>high[-2]` | 阳线放量、收复前日开、突破前日高 |
-| 市值 | `50 ≤ market_cap ≤ 500` | 流通市值 50-500 亿 |
+| 市值 | `30 ≤ market_cap ≤ 100` | 流通市值 30-100 亿（2026-07 回测修正，见下） |
 
 > 阈值常量在 `screener/analyzer.py` 顶部（DROP_5D/LOWER_SHADOW_MULT/VOL_CONFIRM_RATIO 等），改阈值改这里。
+
+> **市值阈值 30-100 亿的依据**：2026-07 八年回测（2018-2026）证明，超跌反弹在 **<50 亿小盘最有效**（25 信号/胜率 44%/盈亏比 3.28/+4.68%），而原 50-500 亿中盘反而亏损（9 信号/-3.91%）。故上限收 100 亿（剔除 100+ 亿的差信号），下限 30 亿兼顾流动性。⚠️ 小盘流动性差，实盘须**严止损 + 小仓位**管理。详见 `docs/chaodiefantan_backtest_2018-01-02_2026-07-17.md` 与 `backtest/` 回测系统。
 
 ## 边界条件
 
@@ -57,7 +59,7 @@ cd .claude/skills/chaodiefantan && python main.py
 |---|---|---|
 | 当日无超跌反弹信号 | `count=0` 正常保存，**禁止放宽阈值凑数** | — |
 | 全A行情为空（非交易日） | 写空结果 `trigger={"error":"no_market_data"}`，提示"未获取到行情数据" | — |
-| 市值 50-500 亿过滤后为空 | 写空结果 `trigger={"note":"cap_filtered_empty"}` | — |
+| 市值 30-100 亿过滤后为空 | 写空结果 `trigger={"note":"cap_filtered_empty"}` | — |
 | 个股 OHLCV 拉取失败 / K线<7条 / 一字板无实体 | 静默跳过该股（不汇总打印） | — |
 | 新浪接口异常 | 重试 | 提示"数据获取失败，稍后重试" |
 
@@ -85,7 +87,7 @@ cd .claude/skills/chaodiefantan && python main.py
   "trigger": {"signal": "oversold_rebound"},
   "count": 5,
   "stocks": [
-    {"code": "...", "name": "...", "close": 9.5, "drop5": -18.2, "stop_loss": 8.3, "vol_ratio": 2.1, "market_cap": 120.0}
+    {"code": "...", "name": "...", "close": 9.5, "drop5": -18.2, "stop_loss": 8.3, "vol_ratio": 2.1, "market_cap": 80.0}
   ]
 }
 ```

@@ -13,8 +13,8 @@ LOWER_SHADOW_MULT = 2.0    # T-1下影 >= 实体的 2 倍
 LOWER_SHADOW_PCT = 0.03    # T-1下影 >= 当日价格的 3%
 VOL_CONFIRM_RATIO = 1.5    # T日放量 >= T-1日的 1.5 倍
 VOL_SHRINK_RATIO = 0.8     # T-1日相对前4日均量缩到此比例以下
-MARKET_CAP_MIN = 50        # 流通市值下限（亿）
-MARKET_CAP_MAX = 500       # 流通市值上限（亿）
+MARKET_CAP_MIN = 30        # 流通市值下限（亿）— 原50,2026-07回测证明<50亿小盘超跌反弹更有效(+4.68%)
+MARKET_CAP_MAX = 100       # 流通市值上限（亿）— 原500,回测证明100亿以上中盘表现差(-7%以下)
 
 
 def _get(bar: dict, *keys):
