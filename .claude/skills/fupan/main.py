@@ -227,11 +227,16 @@ def render(date_str, color, name, total, breadth, idx_data, stage, stage_info, n
     if note:
         a(f"> **备注**: {note}\n")
 
-    # 退守市顶部 banner (⛔CHECKPOINT 代码层兑现: SKILL.md 承诺"报告顶部明示今日不开新仓")
+    # 退守/市况不明 顶部 banner (⛔CHECKPOINT 代码层兑现: 报告顶部明示纪律)
     if color == "red":
         a("\n---")
         a("## ⛔ 退守市 · 今日不开新仓")
         a("> 市况总开关 🔴, 第5步仓位栏**强制锁🔴空仓**, 只处理存量止损/止盈。**不因想买票而放宽。**")
+        a("---\n")
+    elif color is None:
+        a("\n---")
+        a("## ⛔ 市况不明 · 默认偏保守空仓")
+        a("> market_regime 不可用, 无法判定市况总开关。**默认按退守处理: 不开新仓**, 第5步仓位栏锁🔴空仓, 建议修复 market_regime 后重跑。")
         a("---\n")
 
     # 第0步 市况总开关
@@ -315,20 +320,22 @@ def render(date_str, color, name, total, breadth, idx_data, stage, stage_info, n
     # 第5步 次日剧本
     a("\n## 5. 🎬 次日三套剧本")
     a("> 不是预测涨跌, 是分情景给「触发信号 + 操作 + 仓位」。**信号触发前手放口袋。**\n")
+    # 仓位联动: green=正常 / yellow=半仓 / red或None(市况不明)=空仓(偏保守, 对齐"少交易+严纪律")
     if color == "green":
         pos_a = "🟢正常"
     elif color == "yellow":
         pos_a = "🟡半仓"
-    else:
+    else:  # red 或 None(市况不明)
         pos_a = "🔴空仓(退守)"
-    pos_b = "🔴空仓(退守)" if color == "red" else "🟡半仓以下"  # B情景联动: 退守市整体锁空仓
+    # B情景联动: 退守市或市况不明 → 整体锁空仓 (修bug: 原color=None时pos_b误给"🟡半仓以下"与pos_a矛盾)
+    pos_b = "🔴空仓(退守)" if color in ("red", None) else "🟡半仓以下"
     a("| 情景 | 触发信号 | 操作 | 仓位 |")
     a("|---|---|---|---|")
     a(f"| **A 主线继续走强** | 龙头高开秒板/继续连板, 涨停家数不减 | 锁定主线强势股, 按 qsht 选接力标的 | {pos_a} |")
     a(f"| **B 分歧震荡** | 龙头高开低走/烂板增多, 涨跌互现 | 持股设止损(破MA10或前日低), **不追加** | {pos_b} |")
     a("| **C 全面走弱** | 龙头断板/低开, 创业板跌>1%, 涨停骤减 | **空仓观望**, 止损离场 | 🔴空仓 |")
     a("\n> **铁律**: 不到确认信号不动手。" +
-      ("退守市(C情景概率高)→直接空仓。" if color == "red" else "市况转弱信号出现即收手。"))
+      ("退守/市况不明→直接空仓。" if color in ("red", None) else "市况转弱信号出现即收手。"))
 
     a("\n> ⛔ **交付前 CHECKPOINT**: 第3步(强势股拆解)与第4步(失败归类)的 checklist 必须各至少填1条研判, 否则剧本视为未完成——空着交差属反例。")
     a("\n---")
@@ -341,6 +348,7 @@ def main():
     ap = argparse.ArgumentParser(description="每日复盘 → 次日剧本")
     ap.add_argument("--note", default="", help="备注")
     ap.add_argument("--top", type=int, default=5, help="主线板块看 Top N (默认5)")
+    ap.add_argument("--strict", action="store_true", help="门禁: 第3/4步占位符未填时报告顶部加红色banner且exit=1")
     args = ap.parse_args()
     date_str = datetime.now().strftime("%Y-%m-%d")
     print(f"[{date_str}] 每日复盘 → 次日剧本\n")
@@ -374,6 +382,11 @@ def main():
 
     print("[5/5] 渲染次日剧本 ...")
     md = render(date_str, color, name, total, breadth, idx_data, stage, stage_info, args.note)
+    # --strict 门禁: 第3/4步 checklist 占位符未填时, 报告顶部加红色banner (防"空着交差")
+    incomplete = args.strict and "_______" in md
+    if incomplete:
+        md = ("> ⛠️ **剧本未完成**: 第3步(强势股拆解)/第4步(失败归类)的 checklist 占位符仍为空, "
+              "仓位建议**在填写前不生效**。请人工研判填入后再作为操作依据。\n\n---\n\n") + md
     os.makedirs(OUT_DIR, exist_ok=True)
     out_path = os.path.join(OUT_DIR, f"{date_str}.md")
     with open(out_path, "w", encoding="utf-8") as f:
@@ -386,6 +399,9 @@ def main():
         tilt = "空仓观望" if color == "red" else ("半仓" if color == "yellow" else "正常")
         print(f"  市况: {LIGHT[color]} {name}  剧本倾向: {tilt}")
     print("=" * 48)
+    if incomplete:
+        print("  ⚠️ [STRICT] 第3/4步占位符未填, 已加红色banner, exit=1")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

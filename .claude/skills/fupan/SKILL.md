@@ -29,6 +29,7 @@ description: 每日复盘→次日剧本 — 收盘后串联市况(market_regime
 python .claude/skills/fupan/main.py                  # 默认，自包含运行
 python .claude/skills/fupan/main.py --note "..."     # 加备注
 python .claude/skills/fupan/main.py --top 3          # 主线只看 Top 3
+python .claude/skills/fupan/main.py --strict         # 门禁: 第3/4步占位符未填→报告顶部红色banner+exit=1
 ```
 
 - **自包含**：`main.py` 自己拉指数 K 线（含成交额）+ 复用 `market_regime` 核心函数算市况，不依赖外部脚本先跑。
