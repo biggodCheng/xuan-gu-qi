@@ -295,7 +295,8 @@ def render(date_str, color, name, total, breadth, idx_data, stage, stage_info, n
           f"涨跌比 {breadth['up_down_ratio']:.2f}:1 / 涨幅中位数 {breadth['median']:+.2f}%")
         # 宽度与指数背离校验 (防数据源脏数据误导: 东财宽度接口偶发异常)
         med = breadth.get("median", 0)
-        diverge = (cyb_chg < -2 and med > 3) or (cyb_chg > 2 and med < -3)
+        # 宽度与指数背离校验: 相对背离(指数与中位数反向) + 绝对异常(中位±8%正常市场不可能, 东财宽度脏数据兜底)
+        diverge = (cyb_chg < -2 and med > 3) or (cyb_chg > 2 and med < -3) or abs(med) > 8
         if diverge:
             a(f"- ⚠️ **宽度数据与指数严重背离**(创业板 {cyb_chg:+.1f}% 但中位 {med:+.2f}%), "
               f"疑数据源异常, **以指数为准, 忽略本行宽度**")
