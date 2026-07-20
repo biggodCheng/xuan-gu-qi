@@ -227,6 +227,13 @@ def render(date_str, color, name, total, breadth, idx_data, stage, stage_info, n
     if note:
         a(f"> **备注**: {note}\n")
 
+    # 退守市顶部 banner (⛔CHECKPOINT 代码层兑现: SKILL.md 承诺"报告顶部明示今日不开新仓")
+    if color == "red":
+        a("\n---")
+        a("## ⛔ 退守市 · 今日不开新仓")
+        a("> 市况总开关 🔴, 第5步仓位栏**强制锁🔴空仓**, 只处理存量止损/止盈。**不因想买票而放宽。**")
+        a("---\n")
+
     # 第0步 市况总开关
     a("## 0. 市况总开关")
     if color:
@@ -274,7 +281,7 @@ def render(date_str, color, name, total, breadth, idx_data, stage, stage_info, n
         a(f"\n*近7日 Top1 趋势得分序列: {' → '.join(str(s) for _, s in stage_info['hist'])}*")
 
     # 第3步 强势股拆解 (人工研判)
-    a("\n## 3. 强势股拆解（［人工研判］）")
+    a("\n## 3. 强势股拆解（⛔ 人工研判必填）")
     a("> 从主线板块挑**涨幅前3 + 连板高度前3**, 拆解三维度:")
     a("> - **首板属性**: 情绪板(板块齐涨/换手>20%) / 资金板(独立突破/龙虎榜) / 消息板(利好驱动/秒板)")
     a("> - **连板健康度**: 换手10–25% + 量温和放大 = 健康 ✅ / 连续一字 / 爆量烂板 = 不健康 ❌")
@@ -282,7 +289,7 @@ def render(date_str, color, name, total, breadth, idx_data, stage, stage_info, n
     a(">\n> 填写: _______________________________________________")
 
     # 第4步 失败案例
-    a("\n## 4. 失败案例（市场层面）")
+    a("\n## 4. 失败案例·市场层面（⛔ 人工研判必填）")
     if breadth:
         a(f"- 涨停 **{breadth['zt']}** 只 / 跌停 **{breadth['dt']}** 只 / "
           f"涨跌比 {breadth['up_down_ratio']:.2f}:1 / 涨幅中位数 {breadth['median']:+.2f}%")
@@ -313,14 +320,16 @@ def render(date_str, color, name, total, breadth, idx_data, stage, stage_info, n
         pos_a = "🟡半仓"
     else:
         pos_a = "🔴空仓(退守)"
+    pos_b = "🔴空仓(退守)" if color == "red" else "🟡半仓以下"  # B情景联动: 退守市整体锁空仓
     a("| 情景 | 触发信号 | 操作 | 仓位 |")
     a("|---|---|---|---|")
     a(f"| **A 主线继续走强** | 龙头高开秒板/继续连板, 涨停家数不减 | 锁定主线强势股, 按 qsht 选接力标的 | {pos_a} |")
-    a("| **B 分歧震荡** | 龙头高开低走/烂板增多, 涨跌互现 | 持股设止损(破MA10或前日低), **不追加** | 🟡半仓以下 |")
+    a(f"| **B 分歧震荡** | 龙头高开低走/烂板增多, 涨跌互现 | 持股设止损(破MA10或前日低), **不追加** | {pos_b} |")
     a("| **C 全面走弱** | 龙头断板/低开, 创业板跌>1%, 涨停骤减 | **空仓观望**, 止损离场 | 🔴空仓 |")
     a("\n> **铁律**: 不到确认信号不动手。" +
       ("退守市(C情景概率高)→直接空仓。" if color == "red" else "市况转弱信号出现即收手。"))
 
+    a("\n> ⛔ **交付前 CHECKPOINT**: 第3步(强势股拆解)与第4步(失败归类)的 checklist 必须各至少填1条研判, 否则剧本视为未完成——空着交差属反例。")
     a("\n---")
     a(f"*生成于 {datetime.now():%Y-%m-%d %H:%M} | 客观数据 + 规则模板, 不构成投资建议, 主观部分需人工研判*")
     return "\n".join(L)
