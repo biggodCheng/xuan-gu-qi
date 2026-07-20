@@ -29,6 +29,7 @@ description: 每日复盘→次日剧本 — 收盘后串联市况(market_regime
 python .claude/skills/fupan/main.py                  # 默认，自包含运行
 python .claude/skills/fupan/main.py --note "..."     # 加备注
 python .claude/skills/fupan/main.py --top 3          # 主线只看 Top 3
+python .claude/skills/fupan/main.py --strict         # 门禁: 第3/4步占位符未填→报告顶部红色banner+exit=1
 ```
 
 - **自包含**：`main.py` 自己拉指数 K 线（含成交额）+ 复用 `market_regime` 核心函数算市况，不依赖外部脚本先跑。
@@ -86,6 +87,7 @@ python .claude/skills/fupan/main.py --top 3          # 主线只看 Top 3
 |------|---------|
 | `market_regime` import 失败 | 市况降级为"仅用指数结构"，其余步骤正常 |
 | 全市场宽度获取失败（东财+新浪均失败） | 宽度分置 0，市况仅用趋势分，第 4 步标"宽度不可用" |
+| 宽度接口返回**脏数据**（东财偶发只返回部分股票，中位/涨跌比与指数严重背离，如创业板 −7% 却中位 +9.98%） | main.py 第4步已加宽度-指数背离校验（`abs(med)>8` 或 指数与中位数反向），触发时标 ⚠️"以指数为准，忽略本行宽度"，且不显示会误导的涨停稀少/跌停潮结论。**接入新宽度源必须保留此校验** |
 | 未跑 `/zhuxian`（无 `zx_{date}.json`） | 第 2 步标"建议先跑 /zhuxian"，主线阶段判为"数据不足" |
 | 历史 zx 不足 3 日 | 主线阶段标"数据不足(需积累多日)"，仍展示当日 Top 板块 |
 | 非交易日 | 新浪返回最近交易日数据，正常产出（标注日期） |
@@ -105,5 +107,5 @@ python .claude/skills/fupan/main.py --top 3          # 主线只看 Top 3
 
 - 主线阶段判定为**小样本初判**（基于 Top1 趋势得分变化），非精确信号；精确阶段需多日涨停家数 + 龙头连板数据，结合人工研判。
 - 第 3 步（强势股拆解）与第 4 步（失败归类）本质是主观研判，脚本只给 checklist 占位与客观数据，结论由人填——这是设计意图，**非功能缺失**。
-- 数据源：新浪日K（`CN_MarketData.getKLineData`，含成交额）+ `market_regime` 的宽度逻辑（东财全市场/新浪沪深300 降级）。全程不走腾讯/东财 push2 的不稳定出口。
+- 数据源：main.py 直接调用层走新浪日K（`CN_MarketData.getKLineData`，含成交额）；宽度逻辑复用 `market_regime`，其内部以东财 push2 全市场为主源（已知不稳定、偶发脏数据，见上"宽度脏数据"边界行），新浪沪深300 成分为降级备源。本 skill 不自建宽度接口，跟随 `market_regime` 演进。
 - 剧本为客观数据 + 规则模板，**不构成投资建议**；主观部分需结合自身仓位与心态研判。

@@ -75,6 +75,9 @@ def match_tracks(industry: str, concepts: list[str]) -> list[dict]:
             confidence = _calc_confidence(
                 matched_keywords, matched_from, matched_sub_cats
             )
+            # 低置信度（边缘命中：主业无关且支撑不足）不计入结果
+            if confidence == "低":
+                continue
             results.append({
                 "track": track_name,
                 "matched_keywords": sorted(matched_keywords),
@@ -98,8 +101,9 @@ def _calc_confidence(
     """根据匹配情况计算置信度。
 
     核心原则：行业（主业）是否直接命中该赛道，是"高"的必要条件。
-    - 无行业命中（主业不在该赛道）→ 封顶"中"，防止非核心股票因附带概念
-      （如车厂的 IDC/半导体 概念）被误判为该赛道核心
+    - 无行业命中（主业不在该赛道）→ 封顶"低"（边缘命中，不计入结果）；
+      需 ≥2 个独立概念命中才视为有效附带给"中"，防止海正药业式误判
+      （主业化学原料药，仅靠"AI应用（医药医疗）"1 个附带概念被判 AI硬件）
     - 行业命中（主业相关）→ 可达"高"
     """
     industry_hits = len(matched_from.get("industry", []))
@@ -107,9 +111,9 @@ def _calc_confidence(
     sub_cat_hits = len(matched_sub_cats)
     total_kw = len(matched_keywords)
 
-    # 无行业命中 → 封顶"中"
+    # 无行业命中（主业不在该赛道）→ 封顶"低"
     if industry_hits == 0:
-        if total_kw >= 2 or sub_cat_hits >= 1:
+        if concept_hits >= 2:
             return "中"
         return "低"
 
