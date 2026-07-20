@@ -25,7 +25,7 @@ def _get(bar: dict, *keys):
     raise KeyError(f"none of {keys} found in bar")
 
 
-def is_oversold_rebound(bars: list[dict], market_cap: float) -> dict | None:
+def is_oversold_rebound(bars: list[dict], market_cap: float | None = None) -> dict | None:
     """判断个股是否出现超跌反弹信号（5 条全满足）。
 
     Args:
@@ -82,9 +82,8 @@ def is_oversold_rebound(bars: list[dict], market_cap: float) -> dict | None:
     if high1 <= _get(t2, "high"):
         return None  # 未突破前日高点
 
-    # 条件5：市值
-    if not (MARKET_CAP_MIN <= market_cap <= MARKET_CAP_MAX):
-        return None
+    # 市值条件已取消(2026-07-20):扫全A不卡市值,让策略自然选信号(回测证明不卡市值+2.41%正期望,
+    # 小盘<50亿最有效+4.68%)。market_cap 参数保留兼容(backtest 展示/分析用)。
 
     return {
         "drop5": round(drop5, 2),
