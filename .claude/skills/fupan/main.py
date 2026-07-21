@@ -59,6 +59,11 @@ except Exception:
 # 复用 market_regime 的核心函数 (市况判定逻辑), 失败则降级
 sys.path.insert(0, SCRIPTS_DIR)
 try:
+    import local_kline                     # 招商证券 vipdoc 本地日K (快/不被封), 指数K线优先走它
+    HAS_LOCAL = True
+except Exception:
+    HAS_LOCAL = False
+try:
     import market_regime
     HAS_REGIME = True
 except Exception as _e:
@@ -71,7 +76,14 @@ LIGHT = {"green": "🟢", "yellow": "🟡", "red": "🔴"}
 
 # ---------- 1. 指数K线(含volume) ----------
 def fetch_index_kline(sym, days=70):
-    """新浪日K, 返回 [{date,close,volume},...] 正序。volume 用于量能判定。"""
+    """指数日K, 返回 [{date,close,volume},...] 正序。volume(成交额元)用于量能判定。
+    优先本地 vipdoc(招商证券通达信 day 文件, 快/不被封); 本地无数据才 fallback 新浪。
+    指数无除权问题, 本地不复权价直接可用。"""
+    if HAS_LOCAL:
+        kl = local_kline.fetch_index_kline(sym, days=days)
+        if kl:
+            return kl
+        print(f"  [INFO] 本地无 {sym} 日K, fallback 新浪")
     try:
         r = sess.get(
             "https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData",
@@ -355,6 +367,19 @@ def main():
 
     print("[0/5] 市况总开关 (market_regime) ...")
     color, name, total, breadth = regime_switch()
+    # 宽度是市况判定的关键输入: 三源(本地→东财→新浪)都取不到当日全市场数据 → 停止执行
+    # (用户 2026-07-21 要求: 不用过期/错误宽度糊弄, 宁停勿错)
+    if breadth is None:
+        print("\n" + "=" * 52)
+        print("⛔ 停止执行: 未取到最近交易日全市场宽度数据")
+        if not HAS_REGIME:
+            print("  原因: market_regime 不可用, 请检查 scripts/market_regime.py")
+        else:
+            print("  三源(本地vipdoc → 东财 → 新浪)均失败, 各源原因见上方 [宽度·...] 行。")
+            print("  宽度是市况总开关关键输入, 缺失则无法可靠判市况 → 不生成剧本。")
+            print("  排查: ① 招商证券客户端盘后下载最近交易日日线(本地源); ② 网络可达性(东财/新浪)。")
+        print("=" * 52)
+        sys.exit(1)
     if color:
         print(f"      {LIGHT[color]} {name} (得分 {total:+d})")
     else:
