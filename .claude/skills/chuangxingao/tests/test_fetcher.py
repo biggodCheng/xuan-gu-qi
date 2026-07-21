@@ -1,6 +1,16 @@
 from unittest.mock import patch, MagicMock
 
+import pytest
 from screener.fetcher import get_all_stocks_today, get_stock_history
+
+
+@pytest.fixture(autouse=True)
+def _disable_local_kline(monkeypatch):
+    """既有网络测试默认禁用本地源(走腾讯/新浪, 测原 fallback 逻辑)。
+    本地优先逻辑由 test_fetcher_local.py 单独覆盖。"""
+    from screener import fetcher
+    if hasattr(fetcher, "local_kline"):
+        monkeypatch.setattr(fetcher.local_kline, "read_day", lambda *a, **k: [])
 
 
 def _fake_stock_list():

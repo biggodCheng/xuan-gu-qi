@@ -126,7 +126,9 @@ cd .claude/skills/kangdie && python track.py --date 2026-07-17   # 只跟踪指�
 
 ## 数据源
 
-全程使用新浪财经接口（不走腾讯/东财 push2）：
+个股 OHLCV + 指数 K 线**优先本地招商证券 vipdoc**（`scripts/local_kline.py` 读通达信 `.day`，快/不被封；本地 vol 手 与新浪 volume 逐位等价），本地无数据 fallback 新浪。前提：需在招商证券客户端「盘后下载日线」（未下载当日会自动降级走新浪）。全 A 列表 + 市值仍走新浪（本地无当日实时数据）。
+
+新浪接口（fallback / 全A列表 / 市值，不走腾讯/东财 push2）：
 - 全 A 列表 + 市值：`Market_Center.getHQNodeData`（node=hs_a 分页）
-- 个股 OHLCV + 指数 K 线：`CN_MarketData.getKLineData`（scale=240 日K）
+- 个股 OHLCV + 指数 K 线 fallback：`CN_MarketData.getKLineData`（scale=240 日K）
 - Q2 财报：东方财富 datacenter-web（经 bridges 桥接 q2zhanwang）

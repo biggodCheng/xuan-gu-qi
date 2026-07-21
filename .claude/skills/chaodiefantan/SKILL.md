@@ -93,4 +93,4 @@ cd .claude/skills/chaodiefantan && python main.py
 
 ## 数据源
 
-全程新浪（复用 kangdie fetcher：全A列表 + 个股OHLCV + 市值），不走腾讯/东财 push2。
+复用 kangdie fetcher（三 skill 共用 `kangdie/screener/fetcher.py`）：**个股 OHLCV 优先本地招商证券 vipdoc**（`scripts/local_kline.py`，快/不被封），本地无数据 fallback 新浪；全A列表+市值仍走新浪。前提：客户端「盘后下载日线」。不走腾讯/东财 push2。

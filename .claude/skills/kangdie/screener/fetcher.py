@@ -7,10 +7,24 @@
 - 市值:     getHQNodeData 的 mktcap 字段 (万元)              [抄 shizhi]
 """
 import os
+import sys
 import time
+from pathlib import Path
 
 import pandas as pd
 import requests
+
+# 接入本地日K源(招商证券 vipdoc, scripts/local_kline.py) — 三 skill 共用本 fetcher
+# 本地 vol(手) 与新浪 volume 逐位等价(实测比值 1.0); 本地为空自动 fallback 新浪
+_PROJECT_ROOT = Path(__file__).resolve().parents[4]
+_SCRIPTS = _PROJECT_ROOT / "scripts"
+if str(_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS))
+try:
+    import local_kline
+    _HAS_LOCAL = True
+except Exception:
+    _HAS_LOCAL = False
 
 # 清除代理，直连新浪财经（照抄 chuangxingao）
 for _key in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"):
@@ -121,8 +135,16 @@ def get_stock_kline(code: str, days: int = 70, retries: int = 3) -> list[dict]:
 
     Returns:
         K线列表（按日期正序），每项 {day, open, high, low, close, volume}。
-        失败返回空列表。
+        失败返回空列表。本地优先(招商证券 vipdoc); 本地为空 fallback 新浪。
     """
+    if _HAS_LOCAL:
+        rows = local_kline.read_day(_sina_symbol(code))
+        if rows:
+            if days:
+                rows = rows[-days:]
+            return [{"day": r["date"], "open": r["open"], "high": r["high"],
+                     "low": r["low"], "close": r["close"],
+                     "volume": float(r["volume"])} for r in rows]
     symbol = _sina_symbol(code)
     params = {"symbol": symbol, "scale": 240, "ma": "no", "datalen": days}
 
@@ -166,8 +188,16 @@ def get_index_kline(symbol: str, days: int = 150, retries: int = 3) -> list[dict
 
     Returns:
         K线列表（按日期正序），每项 {date, open, high, low, close, volume}。
-        失败返回空列表。
+        失败返回空列表。本地优先(招商证券 vipdoc); 本地为空 fallback 新浪。
     """
+    if _HAS_LOCAL:
+        rows = local_kline.read_day(symbol)
+        if rows:
+            if days:
+                rows = rows[-days:]
+            return [{"date": r["date"], "open": r["open"], "high": r["high"],
+                     "low": r["low"], "close": r["close"],
+                     "volume": float(r["volume"])} for r in rows]
     params = {"symbol": symbol, "scale": 240, "ma": "no", "datalen": days}
 
     for attempt in range(retries):

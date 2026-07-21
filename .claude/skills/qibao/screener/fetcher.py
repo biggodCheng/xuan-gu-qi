@@ -1,8 +1,21 @@
 import os
+import sys
 import time
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import requests
+
+# 本地日K源(招商证券 vipdoc)优先 — 不复权(原腾讯qfq前复权, 用户接受降级)
+_PROJECT_ROOT = Path(__file__).resolve().parents[4]
+_SCRIPTS = _PROJECT_ROOT / "scripts"
+if str(_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS))
+try:
+    import local_kline
+    _HAS_LOCAL = True
+except Exception:
+    _HAS_LOCAL = False
 
 # 清除代理，直连数据源
 for _key in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"):
@@ -43,6 +56,13 @@ def get_stock_kline(code: str, days: int = 120, retries: int = 3) -> list[dict]:
     Returns:
         [{date,open,high,low,close,volume}, ...] 按日期正序。失败返回空列表。
     """
+    if _HAS_LOCAL:
+        rows = local_kline.read_day(f"{_get_sina_prefix(code)}{code}")
+        if rows:
+            if len(rows) > days:
+                rows = rows[-days:]
+            return [{"date": r["date"], "open": r["open"], "high": r["high"], "low": r["low"],
+                     "close": r["close"], "volume": float(r["volume"])} for r in rows]
     for attempt in range(retries):
         result = _fetch_tencent_kline(code, days)
         if result:

@@ -58,11 +58,16 @@ def run_screener(
         output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
     start_time = time.time()
-    date_str = datetime.now().strftime("%Y-%m-%d")
+    today_str = datetime.now().strftime("%Y-%m-%d")  # 程序运行日(日历日,可能为周末/节假日)
+    date_str = today_str  # 数据交易日:Step1 拿到指数K线后改用其最后一条真实交易日
 
     # ---- Step 1: 拉创业板指，判大盘是否大跌 ----
     print(f"[{date_str}] 拉取{_INDEX_NAME}({_INDEX_SYMBOL}) 近{_INDEX_DAYS}日K线...", flush=True)
     index_bars = get_index_kline(_INDEX_SYMBOL, days=_INDEX_DAYS)
+    # 关键:date_str 取指数最新K线的真实交易日(如周五暴跌却在周六跑,文件名应为周五而非周六),
+    # 否则 track.py 按文件名严格匹配K线日期会因非交易日匹配不上,反弹指标静默归空(2026-07 修复的 bug)
+    if index_bars:
+        date_str = index_bars[-1].get("date") or today_str
     if not index_bars or len(index_bars) < 2:
         print(f"  {_INDEX_NAME}数据获取失败或不足，退出。", flush=True)
         save_results(date_str, [], output_dir, trigger={
@@ -82,7 +87,7 @@ def run_screener(
 
     if not is_drop:
         print(
-            f"  今日{_INDEX_NAME}未大跌（跌幅{idx_chg:+.2f}% > 阈值{drop_threshold}%），抗跌池不适用。",
+            f"  最新交易日({date_str}){_INDEX_NAME}未大跌（跌幅{idx_chg:+.2f}% > 阈值{drop_threshold}%），抗跌池不适用。",
             flush=True,
         )
         save_results(date_str, [], output_dir, trigger={

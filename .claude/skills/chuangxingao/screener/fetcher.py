@@ -1,10 +1,23 @@
 import json
 import os
+import sys
 import time
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import pandas as pd
 import requests
+
+# 本地日K源(招商证券 vipdoc)优先 — 不复权(原腾讯qfq前复权, 用户接受降级)
+_PROJECT_ROOT = Path(__file__).resolve().parents[4]
+_SCRIPTS = _PROJECT_ROOT / "scripts"
+if str(_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS))
+try:
+    import local_kline
+    _HAS_LOCAL = True
+except Exception:
+    _HAS_LOCAL = False
 
 # 清除代理，直连新浪财经
 for _key in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"):
@@ -98,6 +111,17 @@ def get_stock_history(
     """
     if min_bars is None:
         min_bars = max(1, days // 2)
+
+    if _HAS_LOCAL:
+        rows = local_kline.read_day(f"{_get_prefix(code)}{code}")
+        if rows:
+            closes = [r["close"] for r in rows]
+            if len(closes) > days:
+                closes = closes[-days:]
+            if exclude_last and len(closes) > 1:
+                closes = closes[:-1]
+            if closes:
+                return closes
 
     # 优先腾讯 API（返回条数过少视为残缺，回退新浪）
     for attempt in range(retries):

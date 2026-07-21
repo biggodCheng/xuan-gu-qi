@@ -11,8 +11,21 @@ K线源改用新浪 CN_MarketData.getKLineData(直连可达)。腾讯qt简版行
 IO 函数(fetch_kline/fetch_marketcap)调网络后委托给纯解析函数。
 """
 import os
+import sys
+from pathlib import Path
 
 import requests
+
+# 本地日K源(招商证券 vipdoc)优先 — 不复权, 与原新浪 getKLineData 等价
+_PROJECT_ROOT = Path(__file__).resolve().parents[4]
+_SCRIPTS = _PROJECT_ROOT / "scripts"
+if str(_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS))
+try:
+    import local_kline
+    _HAS_LOCAL = True
+except Exception:
+    _HAS_LOCAL = False
 
 for _k in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"):
     os.environ.pop(_k, None)
@@ -92,6 +105,13 @@ def _parse_qt(raw: str) -> tuple:
 # ---- IO（网络 + 解析）----
 
 def fetch_kline(code: str, days: int = 130) -> list[dict]:
+    if _HAS_LOCAL:
+        rows = local_kline.read_day(tencent_symbol(code))
+        if rows:
+            if len(rows) > days:
+                rows = rows[-days:]
+            return [{"date": r["date"], "open": r["open"], "close": r["close"],
+                     "high": r["high"], "low": r["low"], "volume": float(r["volume"])} for r in rows]
     sym = tencent_symbol(code)
     try:
         r = _session.get(_SINA_KLINE_URL,

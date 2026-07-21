@@ -1,5 +1,6 @@
 """抗跌反弹跟踪纯函数单测。"""
 import sys, os
+import warnings
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from screener.track_analyzer import align_after
@@ -38,6 +39,26 @@ def test_align_after_d_is_last():
     after, d_close = align_after(bars, "2026-07-11")
     assert d_close == 101.0
     assert after == []
+
+
+def _gap_bars():
+    """构造跳过周末的交易日序列: 07-16(周四)/07-17(周五)/07-20(周一)。"""
+    return [{"day": d, "open": c, "high": c + 1, "low": c - 1, "close": c, "volume": 100.0}
+            for d, c in zip(["2026-07-16", "2026-07-17", "2026-07-20"], [10.0, 11.0, 12.0])]
+
+
+def test_align_after_fallback_to_prior_trading_day():
+    """drop_date 是非交易日(K线不存在,如周末命名错位)时,回退到 <=drop_date 的最近交易日作 D,并告警。
+
+    复现 2026-07 修复的 bug: kd 文件名错用 07-18(周六),K线只有交易日,严格匹配会返回 None。
+    """
+    bars = _gap_bars()
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        after, d_close = align_after(bars, "2026-07-18")  # 周六,K线里不存在
+    assert d_close == 11.0                              # 回退到 07-17 周五收盘
+    assert [b["day"] for b in after] == ["2026-07-20"]   # D 之后只剩 07-20
+    assert len(w) == 1 and "2026-07-17" in str(w[0].message)  # 告警指明回退到的交易日
 
 
 from screener.track_analyzer import window_return

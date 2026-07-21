@@ -4,6 +4,7 @@
 约定: after_bars[0] = D+1（D 的下一个交易日）。
 个股 bars 用 day 键、指数 bars 用 date 键（fetcher 行为），本模块两者兼容。
 """
+import warnings
 
 # 跟踪窗口（D 之后第 N 个交易日）
 WINDOWS = (1, 3, 5, 10, 20)
@@ -14,11 +15,29 @@ def align_after(bars: list[dict], drop_date: str) -> tuple[list[dict], float] | 
     """在 bars 中定位 drop_date，返回 (bars[i+1:], 该日收盘价)；找不到返回 None。
 
     兼容 day/date 键。after_bars[0] 即 D+1。
+    精确匹配不到时(如 drop_date 是非交易日/文件名命名错位),回退到 <=drop_date 的最近
+    交易日作 D 并 warnings.warn——防止 K 线无该日导致静默返回 None、反弹指标全部归空。
     """
     for i, b in enumerate(bars):
         d = b.get("day") or b.get("date")
         if d == drop_date:
             return bars[i + 1:], b["close"]
+
+    # 精确匹配失败:回退到 <= drop_date 的最近一个交易日(bars 按日期正序,取最后一个满足的)
+    fallback_idx = None
+    for i, b in enumerate(bars):
+        d = b.get("day") or b.get("date")
+        if d is not None and d <= drop_date:
+            fallback_idx = i
+    if fallback_idx is not None:
+        fb = bars[fallback_idx]
+        fb_date = fb.get("day") or fb.get("date")
+        warnings.warn(
+            f"align_after: drop_date={drop_date} 在K线中不存在(可能为非交易日/命名错位),"
+            f"已回退到最近交易日 {fb_date} 作为 D 日",
+            stacklevel=2,
+        )
+        return bars[fallback_idx + 1:], fb["close"]
     return None
 
 
