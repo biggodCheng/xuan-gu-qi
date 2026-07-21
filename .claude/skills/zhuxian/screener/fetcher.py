@@ -1,42 +1,64 @@
-"""新浪财经数据源 fetcher。
+"""zhuxian 数据源 v3: 东财板块成分股 + 本地 vipdoc 全成分聚合。
 
-东方财富 push2 接口在当前网络环境被 IP 层封锁（直连 / 代理均失败），
-改用新浪财经接口。新浪不提供「板块指数 K 线」，故采用**成分股聚合**：
-取板块成分股的个股日 K，等权平均合成板块走势，供趋势分析。
+演进:
+- v1 新浪前 20 龙头聚合 → 龙头拉偏(创新药报 +2.37%, 真实板块 -0.93%)
+- v2 东财 push2his 真实板块指数 → push2his 被 IP 限频, 不稳定
+- v3(本版) 东财成分股(push2delay 稳定) + 本地 vipdoc 全成分聚合(零网络真实)
 
-接口（均直连可达，无需代理）：
-- 板块列表：Market_Center.getHQNodes（节点树，提取概念板块 gn_xxx）
-- 成分股：Market_Center.getHQNodeData?node=gn_xxx
-- 个股K线：CN_MarketData.getKLineData?symbol=<code>&scale=240&datalen=N（scale=240 即日K）
+数据流:
+- 板块列表 + 当日涨跌: 东财 clist push2delay(fs=m:90+t:3+f:!50) → 真实板块涨跌
+- 板块成分股: 东财 clist push2delay(fs=b:BKxxxx) → 全成分代码
+- 个股日K: 本地招商证券 vipdoc(scripts/local_kline.py, 不复权, 零网络)
+- 板块趋势K线: 全成分等权聚合(非真实板块指数, 但全成分聚合≈真实板块感受)
 
-注：新浪 getKLineData 返回不复权数据；成分股聚合（20 只大市值）会稀释
-单只除权跳空的影响，对趋势判断（均线 / 高低点）可接受。
+局限: lday 不复权, 全成分聚合会稀释单只除权跳空(同 v1 新浪聚合);
+      板块K线为聚合非东财真实板块指数(东财概念板块指数不在本地 vipdoc)。
 """
-
+import sys
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 
 import requests
 
+# 接入本地 vipdoc 读取模块: fetcher.py→screener→zhuxian→skills→.claude→项目根
+_ROOT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(_ROOT / "scripts"))
+import local_kline  # noqa: E402
+
 _session = requests.Session()
-_session.trust_env = False  # 新浪直连可达；系统代理(Clash)对东方财富已失效，这里也避开
+_session.trust_env = False  # 东财直连; Clash 系统代理对 push2 会 reset
 _session.headers.update({
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
     ),
-    "Referer": "https://finance.sina.com.cn",
+    "Referer": "https://quote.eastmoney.com/center/boardlist.html",
 })
 
-_HQNODES_URL = "http://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodes"
-_HQNODE_DATA_URL = "http://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeData"
-_KLINE_URL = "https://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData"
+_CLIST_URL = "http://push2delay.eastmoney.com/api/qt/clist/get"
+_UT = "bd1d9ddb04089700cf9c27f6f7426281"
+_MIN_COMPONENTS = 5  # 成分股(或有本地数据)少于此数跳过该板块
 
-# 每个板块取前 N 只大市值成分股做聚合（兼顾代表性与请求量）
-_MAX_COMPONENTS = 20
-# 成分股少于该数则跳过该板块（数据不具代表性）
-_MIN_COMPONENTS = 5
+# 东财"风格/元板块"黑名单(条件选股集合,趋势分自我实现虚高,非行业概念主线)。
+# 2026-07-21 经识别从 495 个概念板块筛出; "参股XX"(参股券商/银行/期货/保险/新三板)
+# 是真题材概念,已排除在外(保留)。东财若增删风格板块,重跑识别脚本更新此表。
+_STYLE_BK_BLACKLIST = {
+    "BK0498","BK0499","BK0501","BK0511","BK0552","BK0567","BK0636","BK0707",
+    "BK0718","BK0803","BK0804","BK0815","BK0816","BK0817","BK1050","BK1051",
+    "BK1053","BK1059","BK1108","BK1112","BK1158","BK1198","BK1199","BK1630",
+    "BK1631","BK1632","BK1633","BK1635","BK1636","BK1637","BK1639","BK1640",
+    "BK1641","BK1642","BK1643","BK1645","BK1661","BK1662","BK1663","BK1664",
+    "BK1665","BK1666","BK1667","BK1668","BK1669","BK1670","BK1671","BK1672",
+    "BK1673","BK1674","BK1675","BK1676","BK1680","BK1681","BK1710","BK1711",
+    "BK1712","BK1713","BK1714","BK1715","BK1716","BK1717","BK1749","BK1752",
+}
+
+
+def _is_style_board(code: str) -> bool:
+    """板块是否为风格/元板块(条件选股集合)。"""
+    return code in _STYLE_BK_BLACKLIST
 
 
 def _get_json(url, params=None, retries=3, timeout=10):
@@ -51,106 +73,91 @@ def _get_json(url, params=None, retries=3, timeout=10):
     return None
 
 
-def _collect_concept_nodes(node, out):
-    """递归遍历 getHQNodes 节点树，收集概念板块（node 以 gn_ 开头）。
-
-    节点树叶子形如 [板块名, "", node代码]；分支形如 [分类名, [子节点...]]。
-    """
-    if isinstance(node, list):
-        if (len(node) >= 3 and isinstance(node[2], str)
-                and node[2].startswith("gn_") and node[0]):
-            out.append((node[0], node[2]))
-        for child in node:
-            _collect_concept_nodes(child, out)
-
-
 def get_concept_sectors(retries: int = 3) -> list[dict]:
-    """获取新浪概念板块列表（数据源：getHQNodes）。
+    """东财概念板块列表(含真实板块代码、名称、当日涨跌)。push2delay 稳定源。
 
-    新浪不提供板块当日行情，故仅返回 code/name；
-    close/change_pct 由 main.py 从合成 K 线回填。
-
-    Returns:
-        板块列表，每项 {code, name}。code 即新浪板块 node（如 gn_hwqc）。
+    Returns: 每项 {code(BKxxxx), name, close(板块点数), change_pct(当日%)}。
     """
-    data = _get_json(_HQNODES_URL, retries=retries)
-    if not isinstance(data, list):
-        return []
-
-    nodes = []
-    _collect_concept_nodes(data, nodes)
-    seen = set()
     sectors = []
-    for name, node in nodes:
-        if node in seen:
-            continue
-        seen.add(node)
-        sectors.append({"code": node, "name": name})
+    pn = 1
+    while pn <= 10:
+        params = {
+            "pn": pn, "pz": 100, "po": 1, "np": 1, "ut": _UT,
+            "fltt": 2, "invt": 2, "fid": "f3", "fs": "m:90+t:3+f:!50",
+            "fields": "f12,f14,f2,f3",
+        }
+        data = _get_json(_CLIST_URL, params=params, retries=retries)
+        if not isinstance(data, dict) or not data.get("data"):
+            break
+        diff = data["data"].get("diff") or []
+        if not diff:
+            break
+        for it in diff:
+            code = it.get("f12"); name = it.get("f14")
+            if not code or not name:
+                continue
+            if _is_style_board(code):
+                continue
+            sectors.append({
+                "code": code, "name": name,
+                "close": it.get("f2"), "change_pct": it.get("f3"),
+            })
+        if len(diff) < 100:
+            break
+        pn += 1
+        time.sleep(0.2)
     return sectors
 
 
-def _get_components(node, retries=3):
-    """获取板块成分股（按市值降序），返回原始 dict 列表。"""
-    components = []
-    page = 1
-    while page <= 2:  # 至多 2 页（每页 100 只，足够选头部）
+def _prefix(code: str) -> str:
+    """6 位个股代码 → 本地 vipdoc 市场前缀(sh/sz/bj)。"""
+    if code.startswith("6"):
+        return "sh"
+    if code.startswith(("4", "8", "920")):
+        return "bj"
+    return "sz"
+
+
+def _get_board_members(bk_code: str, retries: int = 3) -> list[str]:
+    """东财 clist 拉板块成分股(fs=b:BKxxxx)，返回 6 位代码列表(剔除 ST)。"""
+    codes = []
+    for pn in range(1, 11):
         params = {
-            "page": page, "num": 100, "sort": "mktcap", "asc": 0,
-            "node": node, "symbol": "", "_s_r_a": "init",
+            "pn": pn, "pz": 100, "po": 1, "np": 1, "ut": _UT,
+            "fltt": 2, "invt": 2, "fid": "f20", "fs": f"b:{bk_code}",
+            "fields": "f12,f14",
         }
-        data = _get_json(_HQNODE_DATA_URL, params=params, retries=retries)
-        if not isinstance(data, list) or not data:
+        data = _get_json(_CLIST_URL, params=params, retries=retries)
+        if not isinstance(data, dict) or not data.get("data"):
             break
-        components.extend(item for item in data if item.get("symbol"))
-        if len(data) < 100:
+        diff = data["data"].get("diff") or []
+        if not diff:
             break
-        page += 1
-    return components
+        for it in diff:
+            code = it.get("f12"); name = it.get("f14") or ""
+            if code and not name.startswith(("ST", "*ST")):
+                codes.append(code)
+        if len(diff) < 100:
+            break
+        time.sleep(0.1)
+    return codes
 
 
-def _get_stock_kline(symbol, datalen=120, retries=3):
-    """获取个股日 K（scale=240 即日K），返回 [{day,open,close,high,low,volume}]。"""
-    params = {"symbol": symbol, "scale": 240, "ma": "no", "datalen": datalen}
-    data = _get_json(_KLINE_URL, params=params, retries=retries)
-    if not isinstance(data, list):
-        return []
-    result = []
-    for k in data:
-        try:
-            result.append({
-                "day": k["day"],
-                "open": float(k["open"]),
-                "close": float(k["close"]),
-                "high": float(k["high"]),
-                "low": float(k["low"]),
-                "volume": float(k.get("volume", 0) or 0),
-            })
-        except (KeyError, ValueError, TypeError):
-            continue
-    return result
-
-
-def _aggregate_klines(klines_by_stock, min_coverage=0.5):
-    """将多只个股 K 线等权聚合为板块合成 K 线。
-
-    按日期对齐，每日取各成分股当日数据的均值（volume 取和）；
-    仅保留至少 min_coverage 比例成分股有数据的日期。
-    """
+def _aggregate(klines_by_stock: dict, min_coverage: float = 0.5) -> list[dict]:
+    """全成分等权聚合: 按日期对齐，每日 OHLC 取均值、volume 求和。
+    仅保留至少 min_coverage 比例成分股有数据的日期。"""
     if not klines_by_stock:
         return []
-    n_stocks = len(klines_by_stock)
-    threshold = max(2, int(n_stocks * min_coverage))
-
+    threshold = max(2, int(len(klines_by_stock) * min_coverage))
     day_data = defaultdict(lambda: {"open": [], "close": [], "high": [], "low": [], "volume": []})
-    for klines in klines_by_stock.values():
-        for k in klines:
-            d = k["day"]
+    for kl in klines_by_stock.values():
+        for k in kl:
+            d = k["date"]
             day_data[d]["open"].append(k["open"])
             day_data[d]["close"].append(k["close"])
             day_data[d]["high"].append(k["high"])
             day_data[d]["low"].append(k["low"])
             day_data[d]["volume"].append(k["volume"])
-
     result = []
     for d in sorted(day_data.keys()):
         dd = day_data[d]
@@ -167,43 +174,34 @@ def _aggregate_klines(klines_by_stock, min_coverage=0.5):
     return result
 
 
-def get_sector_kline(node: str, days: int = 120, retries: int = 3) -> list[dict]:
-    """获取概念板块的合成日 K 线（成分股等权聚合）。
+def get_sector_kline(bk_code: str, days: int = 120, retries: int = 3) -> list[dict]:
+    """板块合成日K = 本地全成分个股等权聚合。
 
     Args:
-        node: 板块 node 代码（如 gn_hwqc）。
-        days: 获取最近多少个交易日。
-        retries: 单次请求失败重试次数。
+        bk_code: 东财板块代码(BKxxxx)。
+        days: 取最近多少个交易日。
 
     Returns:
-        K 线列表，每项 {date, open, close, high, low, volume}。
-        成分股不足或聚合失败返回空列表。
+        K线列表(日期升序)，每项 {date,open,close,high,low,volume}。失败返回空。
     """
     try:
-        components = _get_components(node, retries=retries)
-        if len(components) < _MIN_COMPONENTS:
-            return []
-        components = components[:_MAX_COMPONENTS]
-
-        klines_by_stock = {}
-        with ThreadPoolExecutor(max_workers=6) as executor:
-            futures = {
-                executor.submit(_get_stock_kline, c["symbol"], days, retries): c["symbol"]
-                for c in components
-            }
-            for f in as_completed(futures):
-                sym = futures[f]
-                try:
-                    kl = f.result()
-                    if kl:
-                        klines_by_stock[sym] = kl
-                except Exception:
-                    continue
-
-        if len(klines_by_stock) < _MIN_COMPONENTS:
-            return []
-
-        result = _aggregate_klines(klines_by_stock)
-        return result[-days:] if result else []
+        codes = _get_board_members(bk_code, retries)
     except Exception:
         return []
+    if len(codes) < _MIN_COMPONENTS:
+        return []
+    klines_by_stock = {}
+    with ThreadPoolExecutor(max_workers=20) as ex:
+        futures = {ex.submit(local_kline.read_day, f"{_prefix(c)}{c}"): c for c in codes}
+        for f in as_completed(futures):
+            c = futures[f]
+            try:
+                kl = f.result()
+                if kl:
+                    klines_by_stock[c] = kl
+            except Exception:
+                continue
+    if len(klines_by_stock) < _MIN_COMPONENTS:
+        return []
+    result = _aggregate(klines_by_stock)
+    return result[-days:] if result else []
