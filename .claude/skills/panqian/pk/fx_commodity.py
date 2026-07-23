@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """维度3:离岸人民币 + 大宗(金/油/铜)。非关键维,失败不阻断。板块映射由 render 解读。
 
-校准依据(probe 2026-07-23 21:27:20 真实返回):
+校准依据(probe 2026-07-23 真实返回):
 - fx_susdcnh 实测可达,18 字段。字段顺序与校准:
     [0]time  [1]现价  [2]bid  [3]ask  [4]vol  [5]今开  [6]high  [7]low
     [8]?(实测=现价,跨 2 次 probe 与 [1] 同步移动 → 非稳定昨收)
@@ -11,10 +11,10 @@
   - [11] 取作 pct(decimal):典型 sina fx 格式为 [10]change/[11]pct/[12]振幅,
     实测 0.0021 → ×100 → 0.21%。数学无法完全验证([1]=[8] 意味 net=0,与 [10]/[11] 矛盾,
     sina fx 字段含混),但不编造,直接采用 [11]×100。
-- hf_gc/hf_cl/hf_cu 新浪实测全返回空 payload(同族 hf_CN=A50 期货亦空)。
-  据同族 hf_GC 历史布局:[0]最新价 [1]空 [2..]价格区间 [6]时间 [13]名称,无 pct 槽位。
-  → _parse_comm 用 price+prev_close 自算,但 IDX_PREV_HF 为占位(hf_ 全空无法校准);
-    若 hf_ 恢复,须重 probe 校准 IDX_PREV_HF 后再启用。
+- 大宗 hf_GC/hf_CL/hf_HG 实测可达(15 字段,同 A50 hf_CHA50CFD 布局):
+    [0]最新价  [1]空  [2]开盘  [3]昨收  [4]高  [5]低  [6]时间 ... [13]中文名
+  hf_ 无 pct 槽位 → 从 price[0]+prev[3] 自算 pct。原 config 小写 hf_gc/cl/cu 是错代码
+  (新浪海外期货代码大小写敏感,铜应为 hf_HG 非 hf_cu),已修正。
 """
 import math
 import re
@@ -24,10 +24,9 @@ from pk.config import FX, COMMODITY
 # fx_susdcnh 字段索引(probe 2026-07-23 实测)
 IDX_PCT_FX = 11      # pct as decimal (e.g. 0.0021 → ×100 → 0.21%)
 
-# hf_ 期货字段索引(probe 全空,占位待校准)
-# 据同族 hf_GC 历史布局:[0]最新价 [1]空 [2..]区间;prev_close 具体位置未校准。
-IDX_PRICE_HF = 0     # hf_ 最新价(同族 hf_GC 实测 [0])
-IDX_PREV_HF = 8      # 占位:hf_ prev_close 字段(hf_ 全空,无法校准;恢复后须重 probe)
+# hf_ 期货字段索引(probe 2026-07-23 实测 hf_GC/CL/HG 15 字段)
+IDX_PRICE_HF = 0     # 最新价
+IDX_PREV_HF = 3      # 昨收(pct 自算基准)
 
 
 def _norm(raw_code):
@@ -64,25 +63,24 @@ def _parse_fx(fmap, pairs):
 
 
 def _parse_comm(fmap, pairs):
-    """hf_ 组:从 price + prev_close 自算 pct(hf_ 无 pct 字段)。
+    """hf_ 组:从 price[0] + prev[3] 自算 pct(hf_ 无 pct 字段)。
 
-    probe 实测 hf_gc/hf_cl/hf_cu 全空 → 当前始终返回 []。
-    IDX_PREV_HF 为占位;若 hf_ 恢复,须重 probe 校准。
-    NaN/inf 同样跳过。
+    空 payload / 字段不足 / 非数字 / prev<=0 / NaN/inf 均跳过(不抛)。
     """
     out = []
     for code, name in pairs:
         f = fmap.get(code, [])
-        if len(f) > max(IDX_PRICE_HF, IDX_PREV_HF):
-            try:
-                price = float(f[IDX_PRICE_HF])
-                prev = float(f[IDX_PREV_HF])
-            except (ValueError, IndexError):
-                continue
-            if prev > 0 and math.isfinite(price) and math.isfinite(prev):
-                pct = (price - prev) / prev * 100
-                if math.isfinite(pct):
-                    out.append({"name": name, "pct": pct})
+        if len(f) <= max(IDX_PRICE_HF, IDX_PREV_HF):
+            continue
+        try:
+            price = float(f[IDX_PRICE_HF])
+            prev = float(f[IDX_PREV_HF])
+        except (ValueError, IndexError):
+            continue
+        if prev > 0 and math.isfinite(price) and math.isfinite(prev):
+            pct = (price - prev) / prev * 100
+            if math.isfinite(pct):
+                out.append({"name": name, "pct": pct})
     return out
 
 

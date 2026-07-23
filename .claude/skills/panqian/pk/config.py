@@ -15,7 +15,10 @@ US_INDICES = [("gb_ixic", "纳指"), ("gb_inx", "标普500"), ("gb_dji", "道指
 US_VIX = ("gb_vix", "VIX")
 
 # 维度2:A50 期货 + 中概
-A50_CODE = ("hf_CN", "富时A50")
+# A50 新浪代码 hf_CHA50CFD(probe 2026-07-23 实测 15 字段可达);原 hf_CN 是错代码(新浪无此标的)。
+A50_CODE = ("hf_CHA50CFD", "富时中国A50期货")
+# 备份:主代码失效时降级用(恒指期货,同 hf_ 字段布局);可选,fetch 内尝试。
+A50_BACKUP = ("hf_HSI", "恒生指数期货")
 CNR_DRAGON = ("gb_hxc", "金龙中国")
 CNR_STOCKS = [
     ("gb_baba", "阿里"), ("gb_jd", "京东"), ("gb_pdd", "拼多多"),
@@ -24,8 +27,9 @@ CNR_STOCKS = [
 
 # 维度3:汇率 + 大宗
 FX = [("fx_susdcnh", "离岸人民币")]
+# 大宗新浪代码必须大写 hf_GC/CL/HG(probe 实测可达);原小写 hf_gc/cl/cu 是错代码,且铜 cu 错(应为 HG)。
 COMMODITY = [
-    ("hf_gc", "COMEX金"), ("hf_cl", "WTI原油"), ("hf_cu", "伦铜"),
+    ("hf_GC", "COMEX金"), ("hf_CL", "WTI原油"), ("hf_HG", "伦铜"),
 ]
 
 # 维度4 新闻关键词

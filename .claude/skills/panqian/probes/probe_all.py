@@ -11,7 +11,7 @@ except Exception:
     pass
 from pk import base
 from pk.config import (
-    US_INDICES, US_VIX, A50_CODE, CNR_DRAGON, CNR_STOCKS,
+    US_INDICES, US_VIX, A50_CODE, A50_BACKUP, CNR_DRAGON, CNR_STOCKS,
     FX, COMMODITY,
 )
 
@@ -33,16 +33,28 @@ def probe_us():
 
 
 def probe_a50():
-    codes = [A50_CODE[0], CNR_DRAGON[0]] + [c for c, _ in CNR_STOCKS]
+    codes = [A50_CODE[0], A50_BACKUP[0], CNR_DRAGON[0]] + [c for c, _ in CNR_STOCKS]
     print("\n=== A50+中概 probe ===")
     print("请求:", ",".join(codes))
     out = base.sina_quote(codes)
     for code, fields in out.items():
         print(f"\n[{code}] 字段数={len(fields)}")
-        for i, f in enumerate(fields[:12]):
+        for i, f in enumerate(fields[:15]):   # hf_ name 在 [13],打印到 15
             print(f"  [{i}] {f!r}")
+    # A50 pct 自算验证(hf_ 无 pct 字段:[0]价 [3]昨收)
+    af = out.get(A50_CODE[0], [])
+    if len(af) > 3:
+        try:
+            price, prev = float(af[0]), float(af[3])
+            if prev > 0:
+                print(f"   A50 pct 自算: ({price}-{prev})/{prev}*100 = {(price-prev)/prev*100:+.4f}%")
+        except ValueError:
+            pass
     if A50_CODE[0] not in out or not out[A50_CODE[0]]:
-        print(f"⚠️ A50({A50_CODE[0]}) 取数失败 — A50 是关键维,失败需报告顶部明示盲区")
+        print(f"⚠️ A50 主代码({A50_CODE[0]}) 取数失败 — 尝试备份 {A50_BACKUP[0]}")
+        bf = out.get(A50_BACKUP[0], [])
+        if not bf:
+            print(f"⚠️ A50 备份({A50_BACKUP[0]}) 亦失败 — A50 是关键维,失败需报告顶部明示盲区")
 
 
 def probe_fx():
@@ -54,6 +66,16 @@ def probe_fx():
         print(f"\n[{code}] 字段数={len(fields)}")
         for i, f in enumerate(fields[:15]):
             print(f"  [{i}] {f!r}")
+    # 大宗 pct 自算验证(hf_ 无 pct:[0]价 [3]昨收)
+    for code, name in COMMODITY:
+        f = out.get(code, [])
+        if len(f) > 3:
+            try:
+                price, prev = float(f[0]), float(f[3])
+                if prev > 0:
+                    print(f"   {name}({code}) pct 自算: ({price}-{prev})/{prev}*100 = {(price-prev)/prev*100:+.4f}%")
+            except ValueError:
+                pass
     if not out:
         print("⚠️ 新浪汇率+大宗全失败 — 非关键维,失败时该项空不阻断")
 

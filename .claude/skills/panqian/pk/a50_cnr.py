@@ -2,23 +2,25 @@
 """维度2:A50 期货(关键维)+ 中概股。仅新浪(无可靠替代),A50 失败需明示。
 
 校准依据(probe 2026-07-23 真实返回):
+- A50 期货 hf_CHA50CFD 实测可达(15 字段,夜盘实时)。字段布局:
+    [0]最新价  [1]空  [2]开盘  [3]昨收  [4]高  [5]低  [6]时间 ... [13]中文名
+  hf_ 接口无 pct 字段 → pct 自算 (price-prev)/prev*100。
+  原 config hf_CN 是错代码(新浪无此标的),已改 hf_CHA50CFD。
+  备份 hf_HSI(恒指期货,同字段布局),主代码失效时 fetch 内降级尝试。
 - 中概 gb_hxc / gb_baba 等字段同美股格式:[0]名称 [1]当前价 [2]涨跌幅% [3]时间戳
-  → IDX_PRICE_GB=1 / IDX_PCT_GB=2(数学验证:gb_hxc 6180.98/-1.80,gb_baba 116.56/-1.20)。
-- A50 期货 hf_CN 新浪实测返回空 payload(同 VIX),且无可靠替代(Yahoo 代理 7897 已失效)。
-  A50 属 CRITICAL_DIMS → fetch_a50_cnr 返回 ok=False,detail 顶部明示盲区。
-- hf_ 期货字段布局与美股不同(同族 hf_GC 实测 [0]最新价 [1]空 [2..]价格区间 [6]时间 [13]名称,
-  无固定 pct 槽位)。hf_CN 既空,IDX_PRICE_HF/IDX_PCT_HF 暂留骨架占位(0/1),A50 恢复后须重新
-  probe 校准;当前 a50 取空 → None 路径,_pick 不会被触发,占位索引无副作用。
+  → IDX_PRICE_GB=1 / IDX_PCT_GB=2(数学验证:gb_hxc/gb_baba pct 字段直接可用)。
 """
 import re
 from pk import base
-from pk.config import A50_CODE, CNR_DRAGON, CNR_STOCKS
+from pk.config import A50_CODE, A50_BACKUP, CNR_DRAGON, CNR_STOCKS
 
-# 字段索引 — 以 probe 真实输出为准
-IDX_PRICE_HF = 0     # hf_ 期货最新价(hf_GC 实测 [0]);A50(hf_CN)实测空,占位待校准
-IDX_PCT_HF = 1        # 同上占位(hf_GC [1]实测为空,A50 恢复后须重探)
-IDX_PRICE_GB = 1      # 中概 gb_ 当前价(probe 实测 [1])
-IDX_PCT_GB = 2        # 中概涨跌幅(probe 实测 [2],美股式)
+# hf_ 期货字段索引(probe 2026-07-23 实测 hf_CHA50CFD 15 字段)
+IDX_PRICE_HF = 0     # 最新价
+IDX_PREV_HF = 3      # 昨收(pct 自算基准)
+IDX_NAME_HF = 13     # 中文名(仅展示参考,parser 当前未读)
+# 中概 gb_ 字段索引(美股式,[2]直接是 pct%)
+IDX_PRICE_GB = 1
+IDX_PCT_GB = 2
 
 
 def _norm(raw_code):
@@ -26,9 +28,25 @@ def _norm(raw_code):
     return raw_code[7:] if raw_code.startswith("hq_str_") else raw_code
 
 
-def _pick(fields, idx_price, idx_pct):
+def _pick_hf(fields):
+    """hf_ 期货:price([0]) + prev([3]) 自算 pct(hf_ 无 pct 字段)。
+
+    prev<=0 / 字段不足 / 非数字 均返回 None(不抛)。
+    """
     try:
-        return {"price": float(fields[idx_price]), "pct": float(fields[idx_pct])}
+        price = float(fields[IDX_PRICE_HF])
+        prev = float(fields[IDX_PREV_HF])
+    except (IndexError, ValueError):
+        return None
+    if prev <= 0:
+        return None
+    return {"price": price, "pct": (price - prev) / prev * 100}
+
+
+def _pick_gb(fields):
+    """中概 gb_:直接取 [1]价 / [2]pct%(美股式,sina 已算好)。"""
+    try:
+        return {"price": float(fields[IDX_PRICE_GB]), "pct": float(fields[IDX_PCT_GB])}
     except (IndexError, ValueError):
         return None
 
@@ -49,14 +67,14 @@ def parse_a50_cnr(raw_text):
     a50 = None
     af = fields_map.get(A50_CODE[0], [])
     if af:
-        a50 = _pick(af, IDX_PRICE_HF, IDX_PCT_HF)
+        a50 = _pick_hf(af)
 
     cnr = []
     for code, name in [CNR_DRAGON] + CNR_STOCKS:
         f = fields_map.get(code, [])
         if not f:
             continue
-        p = _pick(f, IDX_PRICE_GB, IDX_PCT_GB)
+        p = _pick_gb(f)
         if p:
             cnr.append({"name": name, "pct": p["pct"]})
     return {"a50": a50, "cnr": cnr}
@@ -66,18 +84,32 @@ def fetch_a50_cnr():
     """返回 FetchResult(dim='a50')。
 
     data = {'a50': {price,pct}|None, 'cnr': [{name,pct}, ...]}
-    A50 是关键维:新浪 hf_CN 不可用时 ok=False,detail 明示盲区(不编造数据)。
-    中概在 A50 失败时仍尽量解析(不阻断),只要 A50 在即算本维 ok。
+    A50 是关键维:主代码 hf_CHA50CFD 失败时尝试备份 hf_HSI,仍失败则 ok=False
+    并在 detail 顶部明示盲区(不编造数据)。中概在 A50 失败时仍尽量解析(不阻断)。
     """
-    codes = [A50_CODE[0], CNR_DRAGON[0]] + [c for c, _ in CNR_STOCKS]
-    raw = base.sina_quote(codes)  # base 已剥 hq_str_ 前缀,key 是 bare code
-    # 重建文本喂给 parse_a50_cnr(带 hq_str_,parse 内 _norm 兼容剥前缀)
-    text = "".join(f'var hq_str_{c}="{",".join(raw.get(c, []))}";' for c in codes)
+    cnr_codes = [CNR_DRAGON[0]] + [c for c, _ in CNR_STOCKS]
+    a50_main, a50_backup = A50_CODE[0], A50_BACKUP[0]
+
+    raw = base.sina_quote([a50_main] + cnr_codes)
+
+    # A50:主代码 hf_CHA50CFD 优先,失败降级备份 hf_HSI(同 hf_ 字段布局,_pick_hf 通用)
+    a50 = _pick_hf(raw.get(a50_main, []))
+    used_code = a50_main
+    if a50 is None:
+        raw_b = base.sina_quote([a50_backup])
+        a50 = _pick_hf(raw_b.get(a50_backup, []))
+        used_code = a50_backup
+
+    # 中概走 parse_a50_cnr 单解析路径;A50 以 _pick_hf 结果为准(可能来自备份)
+    text = "".join(f'var hq_str_{c}="{",".join(raw.get(c, []))}";' for c in [a50_main] + cnr_codes)
     d = parse_a50_cnr(text)
+    d["a50"] = a50
 
     ok = d["a50"] is not None
     if ok:
         bits = [f"A50={d['a50']['price']:.0f}({d['a50']['pct']:+.2f}%)"]
+        if used_code == a50_backup:
+            bits.append("备份hf_HSI")
         if d["cnr"]:
             bits.append(f"{len(d['cnr'])}中概")
         detail = "✓ " + " | ".join(bits)
