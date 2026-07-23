@@ -198,3 +198,26 @@ def test_fetch_news_ok_when_cls_returns(monkeypatch):
     assert result.data["sources_ok"] == ["财联社"]
     assert len(result.data["items"]) == 1
     assert result.data["items"][0]["title"] == "美联储加息"
+
+
+def test_sources_ok_only_when_items_parsed(monkeypatch):
+    """回归测试: sources_ok 仅计入真正解析出条目的源。
+
+    即使 _safe_fetch 返回非空 dict(data 为真),若 parser 返回 [],
+    该源也不应计入 sources_ok。此 bug 原先的条件为 if data and items:
+    导致 data 非空但 parsed 为空时仍将源加入 sources_ok。
+    """
+    # 模拟 _safe_fetch 返回非空 dict,但 parser 返回 [] (无有效条目)
+    monkeypatch.setattr(news, "_safe_fetch", lambda name: {"items": []})
+
+    # 模拟 CLS_URL 也失败
+    def fake_get(*a, **kw):
+        raise RuntimeError("simulated cls unreachable")
+    monkeypatch.setattr(news.base.sess, "get", fake_get)
+
+    result = news.fetch_news()
+
+    # 金十/新华 虽 _safe_fetch 返回非空,但 parser 返回 [] → 不应在 sources_ok
+    assert "金十" not in result.data["sources_ok"]
+    assert "新华" not in result.data["sources_ok"]
+    assert result.data["sources_ok"] == []

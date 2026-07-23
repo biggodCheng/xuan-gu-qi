@@ -186,9 +186,9 @@ def fetch_news():
     for parser, name in [(parse_jin10, "金十"), (parse_xinhua, "新华")]:
         try:
             data = _safe_fetch(name)
-            items = parser(data, now)
-            all_items.append(items)
-            if data and items:
+            parsed = parser(data, now)
+            all_items.append(parsed)
+            if parsed:                    # 只在真正解析出条目时才算该源可用
                 sources_ok.append(name)
         except Exception:
             all_items.append([])

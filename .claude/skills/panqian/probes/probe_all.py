@@ -78,7 +78,13 @@ def probe_news():
             if "json" in ct and r.status_code == 200:
                 j = r.json()
                 print(f"   顶层keys={list(j.keys())} 样例={_json.dumps(j, ensure_ascii=False)[:200]}")
-                items = (j.get("data", {}) or {}).get("roll_data", []) or j.get("data", []) or []
+                _data = j.get("data")
+                if isinstance(_data, dict):
+                    items = _data.get("roll_data", [])
+                elif isinstance(_data, list):
+                    items = _data
+                else:
+                    items = []
                 if items:
                     print(f"   ✓ 拿到 {len(items)} 条,首条字段: {list(items[0].keys())}")
                     cls_ok = True
