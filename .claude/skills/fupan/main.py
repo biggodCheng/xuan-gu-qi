@@ -69,6 +69,13 @@ try:
 except Exception as _e:
     HAS_REGIME = False
     print(f"  [WARN] 无法 import market_regime({_e}), 市况将降级(仅用指数结构)")
+try:
+    import fupan_strong_scan               # 第3步: 涨停+连板梯队扫描 (本地vipdoc)
+    import fupan_failure_scan              # 第4步: 炸板/断板/大跌扫描 (本地vipdoc)
+    HAS_SCAN = True
+except Exception as _e:
+    HAS_SCAN = False
+    print(f"  [WARN] 无法 import 扫描模块({_e}), 第3/4步降级为纯checklist")
 
 INDICES = [("sh000001", "上证指数"), ("sh000300", "沪深300"), ("sz399006", "创业板指")]
 LIGHT = {"green": "🟢", "yellow": "🟡", "red": "🔴"}
@@ -214,7 +221,8 @@ def mainline_stage(today_zx, top_n=5):
 
 
 # ---------- 7. 渲染次日剧本 ----------
-def render(date_str, color, name, total, breadth, idx_data, stage, stage_info, note):
+def render(date_str, color, name, total, breadth, idx_data, stage, stage_info, note,
+           strong=None, failure=None):
     L = []
     a = L.append
     # 预算指数当日涨跌 + 最新交易日日期 (供第1步表格 + 第4步背离校验共用)
@@ -297,9 +305,37 @@ def render(date_str, color, name, total, breadth, idx_data, stage, stage_info, n
     if stage_info.get("hist"):
         a(f"\n*近7日 Top1 趋势得分序列: {' → '.join(str(s) for _, s in stage_info['hist'])}*")
 
-    # 第3步 强势股拆解 (人工研判)
+    # 第3步 强势股拆解 (客观扫描 + 人工研判)
     a("\n## 3. 强势股拆解（⛔ 人工研判必填）")
-    a("> 从主线板块挑**涨幅前3 + 连板高度前3**, 拆解三维度:")
+    if strong and strong[1]:
+        _, stocks = strong
+        ladder = {}
+        for s in stocks:
+            ladder[s["height"]] = ladder.get(s["height"], 0) + 1
+        first_board = ladder.get(1, 0)
+        lian = sorted([s for s in stocks if s["height"] >= 2],
+                      key=lambda x: (-x["height"], -x["chg"]))
+        ladder_s = " / ".join(f"{h}板×{ladder[h]}" for h in sorted(ladder, reverse=True))
+        a(f"**[客观扫描 · 本地vipdoc · fupan_strong_scan]** 今日涨停 **{len(stocks)}** 只: "
+          f"首板 **{first_board}** + 连板 **{len(stocks)-first_board}**。梯队: {ladder_s}")
+        if lian:
+            a("\n| 代码 | 高度 | 收盘 | 封板 | 量比 | 振幅 | 客观标签 |")
+            a("|---|---|---|---|---|---|---|")
+            for s in lian[:8]:
+                sig = []
+                if s["yizi"]:
+                    sig.append("一字")
+                if s["seal"] < 0.99:
+                    sig.append("烂板")
+                if s["vr"] >= 3:
+                    sig.append("爆量")
+                elif 0 < s["vr"] < 0.8:
+                    sig.append("缩量")
+                a(f"| {s['code']} | {s['height']}板 | {s['chg']:+.1f}% | {s['seal']:.2f} | "
+                  f"{s['vr']:.1f} | {s['amp']:.1f}% | {' '.join(sig) or '温和'} |")
+            if len(lian) > 8:
+                a(f"\n*…另有 {len(lian)-8} 只连板 (2板为主, 拆解优先看高度前8)*")
+    a("\n> **三维度拆解** (从连板高度前N挑, 人工研判):")
     a("> - **首板属性**: 情绪板(板块齐涨/换手>20%) / 资金板(独立突破/龙虎榜) / 消息板(利好驱动/秒板)")
     a("> - **连板健康度**: 换手10–25% + 量温和放大 = 健康 ✅ / 连续一字 / 爆量烂板 = 不健康 ❌")
     a("> - **分歧节点**: 被砸崩(放量长阴)→不接力 / 承接走强(缩量企稳再涨停)→可接力")
@@ -324,7 +360,20 @@ def render(date_str, color, name, total, breadth, idx_data, stage, stage_info, n
                 a("- ⚠️ 跌停潮, 市场风险高")
     else:
         a("- *(宽度数据不可用)*")
-    a("\n扫描当日**炸板/断板/高位放量长上影**股, 归类根源:")
+    if failure and (failure["zhaban"] or failure["duanban"] or failure["bigdown"]):
+        a(f"\n**[客观扫描 · 本地vipdoc · fupan_failure_scan]** "
+          f"炸板 **{len(failure['zhaban'])}** / 断板 **{len(failure['duanban'])}** / "
+          f"高位长上影 **{len(failure['shangying'])}** / 大跌≤-7% **{len(failure['bigdown'])}**"
+          f"(其中跌停≈{failure['dietting_n']})")
+        if failure["duanban"]:
+            du = sorted(failure["duanban"], key=lambda x: x[2])[:8]
+            a(f"- **断板{len(failure['duanban'])}只(昨涨停今跌·追高重灾区)**: " +
+              " / ".join(f"{d[0]} {d[2]:+.1f}%" for d in du))
+        if failure["bigdown"]:
+            bds = sorted(failure["bigdown"], key=lambda x: x[2])[:8]
+            a(f"- **大跌{len(failure['bigdown'])}只**: " +
+              " / ".join(f"{b[0]} {b[2]:+.1f}%" for b in bds))
+    a("\n**归类根源** (人工研判):")
     a("> - **追高**(距5日高点>15% 或 ≥3板后追) / **模式外冲动**(非主线/qsht外) / **环境恶劣**(🔴退守市强操作)")
     a("> - 填写: _______________________________________________")
     a("> - 自己账户的失败交易由 `trade_review.py` 周复盘覆盖, 本步只看市场层面")
@@ -400,13 +449,34 @@ def main():
     stage, stage_info = mainline_stage(today_zx, top_n=args.top)
     print(f"      {stage}")
 
-    print("[3/5] 强势股拆解 → [人工研判, 见剧本第3步]")
-    print("[4/5] 失败案例 → 市场宽度信号 + [人工研判, 见剧本第4步]")
+    print("[3/5] 强势股拆解 + 失败模式扫描 (本地vipdoc) ...")
+    strong = failure = None
+    if HAS_SCAN:
+        try:
+            strong = fupan_strong_scan.scan(top=8)
+            failure = fupan_failure_scan.scan(top=8)
+            if strong and strong[1]:
+                _ladder = {}
+                for s in strong[1]:
+                    _ladder[s["height"]] = _ladder.get(s["height"], 0) + 1
+                print("      涨停" + str(len(strong[1])) + "只 梯队: " +
+                      " ".join(f"{h}板×{_ladder[h]}" for h in sorted(_ladder, reverse=True)))
+            if failure:
+                print(f"      炸板{len(failure['zhaban'])}/断板{len(failure['duanban'])}/"
+                      f"大跌{len(failure['bigdown'])}(跌停≈{failure['dietting_n']})")
+        except Exception as _e:
+            print(f"      [WARN] 扫描失败({_e}), 第3/4步降级为纯checklist")
+            strong = failure = None
+    else:
+        print("      [降级] 扫描模块不可用, 第3/4步为纯checklist")
+
+    print("[4/5] 市场宽度信号 ...")
     if breadth:
         print(f"      涨停{breadth['zt']}/跌停{breadth['dt']} 中位{breadth['median']:+.2f}%")
 
     print("[5/5] 渲染次日剧本 ...")
-    md = render(date_str, color, name, total, breadth, idx_data, stage, stage_info, args.note)
+    md = render(date_str, color, name, total, breadth, idx_data, stage, stage_info, args.note,
+                strong=strong, failure=failure)
     # --strict 门禁: 第3/4步 checklist 占位符未填时, 报告顶部加红色banner (防"空着交差")
     incomplete = args.strict and "_______" in md
     if incomplete:
