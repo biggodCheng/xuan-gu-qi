@@ -63,19 +63,19 @@ def run_screener(output_dir: str | None = None, top_n: int = 10, force: bool = F
         if analysis is None:
             continue
 
-        # close/change_pct：板块行情接口有值时优先用（东财），否则从合成K线回填（新浪聚合）
-        close = sector.get("close")
-        change_pct = sector.get("change_pct")
-        if close is None and kline:
-            close = round(kline[-1]["close"], 2)
-            if len(kline) >= 2 and kline[-2]["close"]:
-                change_pct = round((kline[-1]["close"] / kline[-2]["close"] - 1) * 100, 2)
+        # 口径统一: close/change_pct 必须与均线/涨幅同源(本地全成分聚合均价),
+        # 否则 close(东财板块指数点位,几千) 与 ma/recent_high(聚合均价,几十) 脱节,无法对照读数。
+        # 东财真实板块指数点位/涨跌另存为 index_close/index_change_pct 备查(不同口径,勿与 close 混用)。
+        close = round(kline[-1]["close"], 2)
+        change_pct = round((kline[-1]["close"] / kline[-2]["close"] - 1) * 100, 2) if len(kline) >= 2 else None
 
         analyzed.append({
             "code": code,
             "name": sector["name"],
             "close": close,
             "change_pct": change_pct,
+            "index_close": sector.get("close"),            # 东财板块指数点位(备查)
+            "index_change_pct": sector.get("change_pct"),  # 东财板块指数当日涨跌(备查)
             **analysis,
         })
 
