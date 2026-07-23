@@ -39,6 +39,7 @@ CLAUDE_DIR = os.path.dirname(SKILLS_DIR)                        # .../.claude
 ROOT = os.path.dirname(CLAUDE_DIR)                              # 项目根
 OUT_DIR = os.path.join(SKILL_DIR, "output")
 ZHUXIAN_DATA = os.path.join(ROOT, ".claude", "skills", "zhuxian", "data")
+PANQIAN_DIR = os.path.join(ROOT, ".claude", "skills", "panqian", "output")
 SCRIPTS_DIR = os.path.join(ROOT, "scripts")
 
 # 屏蔽代理 (与 market_regime/kangdie 一致, 避免拉数据被本地代理干扰)
@@ -220,9 +221,56 @@ def mainline_stage(today_zx, top_n=5):
     return "数据不足(需积累多日zx)", info
 
 
+# ---------- 6.5 隔夜信号对照 (读 panqian 盘前温度计) ----------
+def _panqian_tone(pq_path):
+    """从 panqian 报告抓'隔夜定调'一行,返回 (tone_str, a50_pct) 或 (None, None)。"""
+    try:
+        with open(pq_path, encoding="utf-8") as f:
+            txt = f.read()
+    except Exception:
+        return None, None
+    import re
+    m = re.search(r"外部环境:\*\*(.+?)\*\*", txt)
+    tone = m.group(1) if m else None
+    a50m = re.search(r"A50期货:[\d.]+\(([+-]?[\d.]+)%\)", txt)
+    a50_pct = float(a50m.group(1)) if a50m else None
+    return tone, a50_pct
+
+
+def realize_degree(predicted_low, chg):
+    """兑现度:预示低开 vs 当日实际涨跌(close-based)。返回 兑现/背离/部分兑现。
+    注: fupan K线无 open 字段, 用当日涨跌(close vs prev close)对照。"""
+    if predicted_low:
+        if chg < -0.15:
+            return "兑现"
+        if chg > 0.15:
+            return "背离"
+        return "部分兑现"
+    return "兑现" if chg > -0.15 else "背离"
+
+
+def render_panqian_link(date_str, sh_chg):
+    """渲染第-1步对照小节。读 panqian 当日报告,对照今日实际涨跌。
+    无 panqian 报告 → 降级提示。"""
+    pq_path = os.path.join(PANQIAN_DIR, f"{date_str}.md")
+    tone, a50_pct = _panqian_tone(pq_path)
+    L = ["## -1. 隔夜信号 vs 今日实际(读自 panqian 盘前温度计)"]
+    if tone is None:
+        L.append("> ⚠️ 未找到今日 panqian 盘前温度计,建议盘前先跑 `/panqian`,以形成隔夜信号对照闭环。")
+        return "\n".join(L) + "\n"
+    predicted_low = (a50_pct is not None and a50_pct < -0.3) or tone in ("偏冷", "恐慌")
+    deg = realize_degree(predicted_low, sh_chg)
+    L.append(f"- 隔夜预示:外部**{tone}**" +
+             (f"(A50 {a50_pct:+.2f}% → 预示{'低开' if predicted_low else '平/高开'})" if a50_pct is not None else ""))
+    L.append(f"- 今日实际:上证当日 {sh_chg:+.2f}%(close-based; fupan K线无 open, 开盘级对照待补)")
+    L.append(f"- 兑现度:【{deg}】")
+    L.append("- 教训沉淀:____(人工填, 本次隔夜信号灵不灵)")
+    return "\n".join(L) + "\n"
+
+
 # ---------- 7. 渲染次日剧本 ----------
 def render(date_str, color, name, total, breadth, idx_data, stage, stage_info, note,
-           strong=None, failure=None):
+           strong=None, failure=None, panqian_block=""):
     L = []
     a = L.append
     # 预算指数当日涨跌 + 最新交易日日期 (供第1步表格 + 第4步背离校验共用)
@@ -242,6 +290,8 @@ def render(date_str, color, name, total, breadth, idx_data, stage, stage_info, n
         if "创业板" in _lbl:
             cyb_chg = _chg
     a(f"# 次日剧本 · {date_str}\n")
+    if panqian_block:
+        a(panqian_block)
     if latest_date and latest_date != date_str:
         a(f"> **数据截至最新交易日 {latest_date}**（{date_str} 盘中或尚未收盘, 采用最近完整交易日数据）\n")
     if note:
@@ -475,8 +525,15 @@ def main():
         print(f"      涨停{breadth['zt']}/跌停{breadth['dt']} 中位{breadth['median']:+.2f}%")
 
     print("[5/5] 渲染次日剧本 ...")
+    # 第-1步: 隔夜信号对照(读 panqian). 算上证当日涨跌(close-based, fupan K线无 open).
+    sh_kl = next((kl for lbl, kl in idx_data if "上证" in lbl), [])
+    sh_chg_pq = 0.0
+    if len(sh_kl) >= 2:
+        _prev = sh_kl[-2]["close"]
+        sh_chg_pq = (sh_kl[-1]["close"] - _prev) / _prev * 100
+    panqian_block = render_panqian_link(date_str, sh_chg_pq)
     md = render(date_str, color, name, total, breadth, idx_data, stage, stage_info, args.note,
-                strong=strong, failure=failure)
+                strong=strong, failure=failure, panqian_block=panqian_block)
     # --strict 门禁: 第3/4步 checklist 占位符未填时, 报告顶部加红色banner (防"空着交差")
     incomplete = args.strict and "_______" in md
     if incomplete:

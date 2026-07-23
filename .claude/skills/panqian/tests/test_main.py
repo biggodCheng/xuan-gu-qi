@@ -1,6 +1,12 @@
 from unittest.mock import patch
-import main as mainmod      # main.py 在 skill 根(conftest 已把 skill 根加入 sys.path),非 pk 包内
 from pk.base import FetchResult
+import importlib.util, os
+
+# 显式加载 panqian/main.py(独立模块名, 避免与 fupan/main.py 跨 skill 的 `import main` 冲突)
+_MAIN_PATH = os.path.join(os.path.dirname(__file__), "..", "main.py")
+_spec = importlib.util.spec_from_file_location("panqian_main_for_test", _MAIN_PATH)
+mainmod = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(mainmod)
 
 
 def _ok_results():
