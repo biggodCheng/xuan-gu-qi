@@ -1,0 +1,4 @@
+{
+  "_comment": "金十财经日历 probe(2026-07-23):反爬强,直连 https://www.jin10.com/ 返回 HTML(数据由前端 JS 动态拉取 + sign 签名),数据 API cdn.jin10.com/data_center/* 需 sign 不可达。fixture 存空 items,parser parse_jin10 返回 []。",
+  "items": []
+}

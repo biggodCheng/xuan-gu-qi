@@ -1,0 +1,4 @@
+{
+  "_comment": "新华财经 probe(2026-07-23):xinhuanet.com/politics/news_politics.xml 与 /finance/news_finance.xml RSS 直连可达(200,各 300 条 item),但 item 标签仅 {title,description,link,author},无 pubDate → 时间窗(昨夜 18:00~今晨)无法过滤。视同不可用,fixture 存空 items,parser parse_xinhua 返回 []。",
+  "items": []
+}

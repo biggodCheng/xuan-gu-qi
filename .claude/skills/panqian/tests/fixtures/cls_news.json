@@ -1,0 +1,6 @@
+{
+  "_comment": "财联社 probe(2026-07-23):nodeapi/updateTelegraphList 已下线(404);替代 endpoint v1/roll/get_roll_list 与 v3/depth/home/assembled 均返回 errno=10012(签名错误);v5/telegraph/lastest 返回 50101(小财正在加载中)。三源全失败 → fetch_news ok=False,detail '请手动补充'。本 fixture 保留真实返回结构(data.roll_data),parser parse_cls 对空列表返回 []。",
+  "data": {
+    "roll_data": []
+  }
+}
