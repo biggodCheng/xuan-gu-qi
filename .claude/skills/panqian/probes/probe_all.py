@@ -81,7 +81,27 @@ def probe_fx():
 
 
 def probe_news():
-    print("\n=== 新闻 probe(财联社/金十/新华) ===")
+    print("\n=== 新闻 probe(主源东财7x24 / 备份财联社·金十·新华) ===")
+    # 主源:东方财富 7x24 快讯 getFastNewsList(JSON 直连,无签名)
+    try:
+        r = base.sess.get("https://np-listapi.eastmoney.com/comm/web/getFastNewsList",
+                          params={"client": "web", "biz": "web_724_content",
+                                  "fastColumn": "102", "sortEnd": "",
+                                  "pageSize": "10", "req_trace": "panqian"},
+                          timeout=15)
+        j = r.json()
+        data = j.get("data") or {}
+        items = data.get("fastNewsList") or []
+        print(f"[东财7x24] status={r.status_code} code={j.get('code')} msg={j.get('message')}")
+        print(f"   拿到 {len(items)} 条,首条字段: {list(items[0].keys()) if items else 'N/A'}")
+        for it in items[:5]:
+            print(f"   {it.get('showTime')} | color={it.get('titleColor')} "
+                  f"pl={it.get('pinglun_Num')} | {(it.get('title') or '')[:50]}")
+        if items:
+            print(f"   ✓ 主源可用(注意:sortEnd 必填,空串取首页;realSort 作下一页游标)")
+    except Exception as e:
+        print(f"[东财7x24] ✗ 异常: {e}")
+
     # 财联社:task 给的 nodeapi/updateTelegraphList 已下线;测替代 endpoint
     cls_candidates = [
         CLS_URL,
@@ -114,15 +134,15 @@ def probe_news():
         except Exception as e:
             print(f"[财联社试] 异常: {e}")
     if not cls_ok:
-        print("[财联社] ✗ 所有 endpoint 失败(404/签名错误 10012)→ fixture 存空 roll_data,parser 降级返回 []")
+        print("[财联社] ✗ 所有 endpoint 失败(404/签名错误 10012)→ parser 保留作备份,fixture 存空 roll_data")
 
     # 金十:财经日历 API 需 sign,直连不可达
     print("\n[金十] 反爬强,直连 https://www.jin10.com/ 返回 HTML(数据由 JS 动态拉取 + sign),")
-    print("       数据 API cdn.jin10.com/data_center/* 需 sign → fixture 存 {\"items\": []}")
+    print("       数据 API cdn.jin10.com/data_center/* 需 sign → parser 保留作备份")
 
     # 新华:RSS 通但无 pubDate → 时间窗无法过滤
     print("\n[新华] xinhuanet.com/*/news_*.xml RSS 可达(200,300 条),但 item 无 pubDate 字段,")
-    print("       时间窗(昨夜 18:00~今晨)无法过滤 → 视同不可用,fixture 存 {\"items\": []}")
+    print("       时间窗(昨夜 18:00~今晨)无法过滤 → 视同不可用,parser 保留作备份")
 
 
 if __name__ == "__main__":

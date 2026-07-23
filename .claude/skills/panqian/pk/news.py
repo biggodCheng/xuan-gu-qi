@@ -1,22 +1,27 @@
 # -*- coding: utf-8 -*-
-"""维度4:国际重大事件。财联社+金十+新华财经,时间窗(昨夜18:00~今晨)+关键词过滤+去重。
+"""维度4:国际重大事件。主源东财 7x24 快讯;财联社/金十/新华 parser 作备份。
 
-probe 实测(2026-07-23):三源运行时均不可直连取数 → fetch_news 自动降级空,
-detail 提示"请手动补充",由 render 层在报告底部留兜口。parser 字段映射仍按
-各源公开 schema 实现,fixture + 合成 payload test 保证逻辑正确,日后某源恢复
-或换可靠镜像时只需改 URL/headers 即可复用。
+主源(2026-07-23 probe 实测确认):东方财富 getFastNewsList JSON 直连稳定,
+无签名、无需代理。showTime 字符串定时间窗,titleColor 映射重要性,sortEnd
+游标翻页覆盖昨夜 18:00~今晨。parse_cls/jin10/xinhua 仍按各源公开 schema
+实现字段映射(不被 fetch_news 调用),留作未来某源恢复时的备份 parser,
+其逻辑由 fixture + 合成 payload test 覆盖。
 """
 from datetime import datetime, timedelta
 from difflib import SequenceMatcher
 from pk import base
 from pk.config import NEWS_KEYWORDS, POLICY_KEYWORDS
 
-# 财联社:task 给的 nodeapi URL 已下线,保留作为 documented attempt;
-# 替代 endpoint(v1/v3/v5)实测均需 sign 返回 errno=10012/50101。
-CLS_URL = ("https://www.cls.cn/nodeapi/updateTelegraphList?"
-           "app=CailianpressWeb&category=&lastTime=&os=web&sv=7.7.5&rn=80")
-CLS_HEADERS = {"Referer": "https://www.cls.cn/telegraph",
-               "User-Agent": "Mozilla/5.0"}
+# 东财 7x24 快讯:np-listapi 直连,JSON,无签名。sortEnd 为空串取首页(最新),
+# 之后取上一页最早一条的 realSort 作下一页 sortEnd,倒序翻页。
+EM_URL = "https://np-listapi.eastmoney.com/comm/web/getFastNewsList"
+EM_PARAMS = {
+    "client": "web",
+    "biz": "web_724_content",
+    "fastColumn": "102",
+    "pageSize": "50",
+    "req_trace": "panqian",
+}
 
 
 def _window_start_ts(now=None):
@@ -137,6 +142,84 @@ def parse_xinhua(data, now=None):
     return out
 
 
+def parse_eastmoney_724(data, now=None):
+    """东财 7x24 快讯:取 data.fastNewsList,时间窗(昨夜18:00~今晨)+关键词过滤。
+
+    probe(2026-07-23)实测字段:
+      showTime     — "YYYY-MM-DD HH:MM:SS" 字符串,strptime 解析为时间戳
+      titleColor   — 0=普通,3=红字重要(美股三大指数/布油/菲尔兹奖等均为3),
+                     2 未见但保留映射
+      pinglun_Num  — 评论数(高互动也算重要)
+      title/summary
+    重要性映射: titleColor==3 → star=3; titleColor==2 或 pinglun_Num>50 → star=2;
+              其余 star=1。
+    """
+    cutoff = _window_start_ts(now)
+    items = (data.get("data") or {}).get("fastNewsList", []) or []
+    out = []
+    for it in items:
+        show = it.get("showTime") or ""
+        try:
+            ts = datetime.strptime(show, "%Y-%m-%d %H:%M:%S").timestamp()
+        except ValueError:
+            continue
+        if ts < cutoff:
+            continue
+        title = (it.get("title") or "").strip()[:80]
+        summary = it.get("summary") or ""
+        if not _hit_keyword(title + " " + summary):
+            continue
+        color = it.get("titleColor")
+        pl = it.get("pinglun_Num") or 0
+        try:
+            pl = int(pl)
+        except (TypeError, ValueError):
+            pl = 0
+        if color == 3:
+            star = 3
+        elif color == 2 or pl > 50:
+            star = 2
+        else:
+            star = 1
+        out.append({"title": title or "(无标题)", "ts": ts,
+                    "source": "东财", "star": star})
+    return out
+
+
+def _fetch_eastmoney_pages(now, max_pages=5):
+    """东财 7x24:sortEnd 游标倒序翻页,直到最早一条 showTime < 昨夜18:00 或 max_pages。
+
+    返回原始 fastNewsList 列表(未过滤),交 parse_eastmoney_724 二次过滤。
+    首页 sortEnd="" 取最新;之后用上一页最早一条的 realSort 作游标。
+    """
+    cutoff = _window_start_ts(now)
+    all_items = []
+    sort_end = ""
+    for _ in range(max_pages):
+        try:
+            params = dict(EM_PARAMS)
+            params["sortEnd"] = sort_end
+            r = base.sess.get(EM_URL, params=params, timeout=15)
+            data = r.json()
+        except Exception:
+            break
+        page = (data.get("data") or {}).get("fastNewsList", []) or []
+        if not page:
+            break
+        all_items.extend(page)
+        # 最早一条 showTime < cutoff → 已覆盖到窗口起点,停
+        earliest = page[-1].get("showTime") or ""
+        try:
+            if datetime.strptime(earliest, "%Y-%m-%d %H:%M:%S").timestamp() < cutoff:
+                break
+        except ValueError:
+            break
+        sort_end = page[-1].get("realSort") or ""
+        if not sort_end:
+            break
+    return all_items
+
+
 def _similar(a, b):
     """标题相似度去重:SequenceMatcher > 0.6 视为同一事件。"""
     return SequenceMatcher(None, a, b).ratio() > 0.6
@@ -156,45 +239,27 @@ def merge_top(sources, topn=6):
     return merged
 
 
-def _safe_fetch(name):
-    """金十/新华运行时抓取:据 probe 结果填具体请求;无可靠 API 则返回 {}。
-
-    probe(2026-07-23):两源均不可达(金十 sign / 新华 RSS 无 pubDate),返回 {}
-    触发 parser 空列表降级。若日后发现可靠镜像,在此填 name → (url, headers, parser)。
-    """
-    return {}
-
-
 def fetch_news():
     """返回 FetchResult(dim='news')。data={'items':[...], 'sources_ok':[...]}。
 
-    三源全失败 → ok=False,detail "⚠️ 新闻自动抓取失败(三源均无),请手动补充"。
-    部分源成功 → 合并可用项,ok=bool(items)。
+    主源东财 7x24 快讯:sortEnd 翻页拉昨夜18:00~今晨窗口内条目,关键词过滤,
+    titleColor 映射重要性,merge_top 排序去重截 topn。
+    东财不可达 → ok=False,detail 提示"请手动补充",由 render 层报告底部留兜口。
     """
     now = datetime.now()
     sources_ok, all_items = [], []
-    # 财联社:直连尝试
+    # 主源:东财 7x24 快讯
     try:
-        r = base.sess.get(CLS_URL, timeout=15, headers=CLS_HEADERS)
-        cls_items = parse_cls(r.json(), now)
-        all_items.append(cls_items)
-        if cls_items:
-            sources_ok.append("财联社")
+        pages = _fetch_eastmoney_pages(now)
+        em_items = parse_eastmoney_724({"data": {"fastNewsList": pages}}, now)
+        all_items.append(em_items)
+        if em_items:
+            sources_ok.append("东财")
     except Exception:
         all_items.append([])
-    # 金十/新华:经 _safe_fetch(目前返回 {})
-    for parser, name in [(parse_jin10, "金十"), (parse_xinhua, "新华")]:
-        try:
-            data = _safe_fetch(name)
-            parsed = parser(data, now)
-            all_items.append(parsed)
-            if parsed:                    # 只在真正解析出条目时才算该源可用
-                sources_ok.append(name)
-        except Exception:
-            all_items.append([])
     items = merge_top(all_items)
     ok = bool(items)
-    detail = "✓" if ok else "⚠️ 新闻自动抓取失败(三源均无),请手动补充"
+    detail = "✓" if ok else "⚠️ 新闻自动抓取失败(东财不可达),请手动补充"
     return base.FetchResult("news", ok=ok,
                             data={"items": items, "sources_ok": sources_ok},
                             detail=detail)

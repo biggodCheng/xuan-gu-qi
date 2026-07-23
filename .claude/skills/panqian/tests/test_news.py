@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 """维度4(国际重大事件)parser/merge/fetch 测试。
 
-probe 实测(2026-07-23):
-- 财联社:nodeapi/updateTelegraphList 已下线(404);替代 endpoint v1/v3/v5 全部
-  返回 errno=10012(签名错误)或 50101。反爬升级后需 sign,不可硬冲。
-- 金十:反爬强,数据 API 需 sign,直连不可达。
-- 新华:RSS 可达但 item 无 pubDate,时间窗无法过滤,视同不可用。
-三源运行时均降级空,fetch_news ok=False。fixture 存空结构 + _comment 说明,
-parser 必须正确处理空 fixture 返回 []。字段映射逻辑由 inline 合成 payload 覆盖。
+主源东财 7x24 快讯(2026-07-23 probe 实测确认直连稳定):
+- getFastNewsList 返回 data.fastNewsList,字段 showTime/titleColor/pinglun_Num。
+- parse_eastmoney_724:showTime strptime 定时间窗,titleColor 映射 star。
+
+财联社/金十/新华 parser 保留作备份(不被 fetch_news 调用),其字段映射逻辑仍由
+合成 payload test 覆盖,fixture 存空/真实结构 + _comment 说明。
 """
 import os, json, time
 from datetime import datetime, timedelta
@@ -168,11 +167,184 @@ def test_parse_xinhua_filters_by_policy_keyword():
     assert titles == ["国务院发布新一轮政策", "央行开展逆回购操作"]
 
 
-# --- fetch_news 端到端:三源全降级时返回 ok=False + 兜口文案 ---
-def test_fetch_news_degrades_when_all_sources_empty(monkeypatch):
-    # 强制 _safe_fetch 返回空(已经是默认),且 CLS_URL 也失败
+# --- 东财 7x24 parse_eastmoney_724 ---
+def test_parse_eastmoney_on_real_fixture_with_fresh_window():
+    """真实 fixture:用最早 showTime 推导 now 使窗口覆盖全部条目,
+    验证 showTime strptime 解析、titleColor→star 映射、字段 shape 永久成立。"""
+    fx = _load("eastmoney_724.json")
+    items_raw = fx["data"]["fastNewsList"]
+    # now 取最早 showTime + 1h,使昨夜18:00 窗口起点早于全部条目
+    earliest = min(it["showTime"] for it in items_raw)
+    now = datetime.strptime(earliest, "%Y-%m-%d %H:%M:%S") + timedelta(hours=1)
+    parsed = news.parse_eastmoney_724(fx, now=now)
+    # fixture 含 5 条 color=3 + 10 条 color=0;关键词过滤后保留命中 NEWS/POLICY 的
+    assert isinstance(parsed, list)
+    assert len(parsed) >= 3
+    # 美股/布油/黄金等隔夜市场信号(关键词已补齐)应保留且 color=3 → star=3
+    by_title = {it["title"]: it for it in parsed}
+    assert "美股三大指数集体低开 特斯拉跌超8%、谷歌跌超6%" in by_title
+    assert by_title["美股三大指数集体低开 特斯拉跌超8%、谷歌跌超6%"]["star"] == 3
+    # 每条 shape + source + showTime 已解析为 float 时间戳
+    for it in parsed:
+        assert set(it.keys()) >= {"title", "ts", "source", "star"}
+        assert it["source"] == "东财"
+        assert isinstance(it["ts"], float)
+
+
+def test_parse_eastmoney_filters_by_time_window():
+    """showTime < 昨夜18:00 的条目丢弃。"""
+    now = datetime.now()
+    recent = now.strftime("%Y-%m-%d %H:%M:%S")
+    old = (now - timedelta(days=2)).strftime("%Y-%m-%d %H:%M:%S")
+    data = {"data": {"fastNewsList": [
+        {"title": "美联储加息", "summary": "", "showTime": recent, "titleColor": 3, "pinglun_Num": 0},
+        {"title": "美联储旧闻", "summary": "", "showTime": old, "titleColor": 3, "pinglun_Num": 0},
+    ]}}
+    items = news.parse_eastmoney_724(data, now=now)
+    titles = [it["title"] for it in items]
+    assert "美联储加息" in titles
+    assert "美联储旧闻" not in titles
+
+
+def test_parse_eastmoney_filters_by_keyword():
+    """未命中 NEWS_KEYWORDS/POLICY_KEYWORDS 的条目丢弃。"""
+    now = datetime.now()
+    show = now.strftime("%Y-%m-%d %H:%M:%S")
+    data = {"data": {"fastNewsList": [
+        {"title": "美联储宣布加息", "summary": "", "showTime": show, "titleColor": 0, "pinglun_Num": 0},
+        {"title": "今日天气晴朗", "summary": "", "showTime": show, "titleColor": 0, "pinglun_Num": 0},
+        {"title": "某地举办运动会", "summary": "", "showTime": show, "titleColor": 0, "pinglun_Num": 0},
+    ]}}
+    items = news.parse_eastmoney_724(data, now=now)
+    titles = [it["title"] for it in items]
+    assert titles == ["美联储宣布加息"]
+
+
+def test_parse_eastmoney_keyword_hits_summary():
+    """标题无关键词但 summary 命中(如"央行")也保留。"""
+    now = datetime.now()
+    show = now.strftime("%Y-%m-%d %H:%M:%S")
+    data = {"data": {"fastNewsList": [
+        {"title": "某地公布经济数据", "summary": "央行开展逆回购操作", "showTime": show, "titleColor": 0, "pinglun_Num": 0},
+    ]}}
+    items = news.parse_eastmoney_724(data, now=now)
+    assert len(items) == 1
+    assert items[0]["title"] == "某地公布经济数据"
+
+
+def test_parse_eastmoney_star_mapping():
+    """titleColor=3→star3;color=2→star2;pinglun_Num>50→star2;其余→star1。"""
+    now = datetime.now()
+    show = now.strftime("%Y-%m-%d %H:%M:%S")
+    data = {"data": {"fastNewsList": [
+        {"title": "美联储加息A", "summary": "", "showTime": show, "titleColor": 3, "pinglun_Num": 0},
+        {"title": "美联储加息B", "summary": "", "showTime": show, "titleColor": 2, "pinglun_Num": 0},
+        {"title": "美联储加息C", "summary": "", "showTime": show, "titleColor": 0, "pinglun_Num": 80},
+        {"title": "美联储加息D", "summary": "", "showTime": show, "titleColor": 0, "pinglun_Num": 5},
+    ]}}
+    by_title = {it["title"]: it["star"] for it in news.parse_eastmoney_724(data, now=now)}
+    assert by_title["美联储加息A"] == 3
+    assert by_title["美联储加息B"] == 2
+    assert by_title["美联储加息C"] == 2
+    assert by_title["美联储加息D"] == 1
+
+
+def test_parse_eastmoney_skips_bad_showtime():
+    """showTime 格式异常 → 跳过该条不抛。"""
+    now = datetime.now()
+    show = now.strftime("%Y-%m-%d %H:%M:%S")
+    data = {"data": {"fastNewsList": [
+        {"title": "美联储加息", "summary": "", "showTime": show, "titleColor": 3, "pinglun_Num": 0},
+        {"title": "坏时间", "summary": "", "showTime": "not-a-date", "titleColor": 3, "pinglun_Num": 0},
+        {"title": "空时间", "summary": "", "showTime": "", "titleColor": 3, "pinglun_Num": 0},
+    ]}}
+    items = news.parse_eastmoney_724(data, now=now)
+    titles = [it["title"] for it in items]
+    assert titles == ["美联储加息"]
+
+
+def test_parse_eastmoney_handles_empty_and_malformed():
+    """空/缺字段结构不抛,返回 []。"""
+    assert news.parse_eastmoney_724({}) == []
+    assert news.parse_eastmoney_724({"data": None}) == []
+    assert news.parse_eastmoney_724({"data": {}}) == []
+    assert news.parse_eastmoney_724({"data": {"fastNewsList": None}}) == []
+
+
+# --- _fetch_eastmoney_pages 翻页控制 ---
+def _em_resp(items):
+    class FakeResp:
+        def json(self):
+            return {"data": {"fastNewsList": items}}
+    return FakeResp()
+
+
+def test_fetch_pages_stops_when_window_covered(monkeypatch):
+    """最早一条 showTime < 昨夜18:00 → 已覆盖窗口,停(只拉 1 页)。"""
+    now = datetime.now()
+    recent = now.strftime("%Y-%m-%d %H:%M:%S")
+    old = (now - timedelta(days=2)).strftime("%Y-%m-%d %H:%M:%S")
+    page = [
+        {"title": "新", "showTime": recent, "realSort": "9"},
+        {"title": "旧", "showTime": old, "realSort": "1"},   # < cutoff → 停
+    ]
+    calls = []
     def fake_get(*a, **kw):
-        raise RuntimeError("simulated cls unreachable")
+        calls.append(kw.get("params", {}).get("sortEnd"))
+        return _em_resp(page)
+    monkeypatch.setattr(news.base.sess, "get", fake_get)
+    out = news._fetch_eastmoney_pages(now)
+    assert len(calls) == 1                    # 第 1 页就因 old < cutoff 停
+    assert len(out) == 2
+
+
+def test_fetch_pages_respects_max_pages(monkeypatch):
+    """全部在窗口内且 realSort 持续返回 → 受 max_pages 截断,不无限翻。"""
+    now = datetime.now()
+    show = now.strftime("%Y-%m-%d %H:%M:%S")
+    page = [{"title": "x", "showTime": show, "realSort": "1"}]
+    monkeypatch.setattr(news.base.sess, "get", lambda *a, **kw: _em_resp(page))
+    out = news._fetch_eastmoney_pages(now, max_pages=3)
+    assert len(out) == 3                      # 3 页 × 1 条
+
+
+def test_fetch_pages_stops_on_empty_page(monkeypatch):
+    """空页(无 fastNewsList)→ 停。"""
+    monkeypatch.setattr(news.base.sess, "get", lambda *a, **kw: _em_resp([]))
+    assert news._fetch_eastmoney_pages(datetime.now()) == []
+
+
+def test_fetch_pages_stops_when_realsort_missing(monkeypatch):
+    """窗口未覆盖但 realSort 缺失 → 无法翻页,停。"""
+    now = datetime.now()
+    show = now.strftime("%Y-%m-%d %H:%M:%S")
+    page = [{"title": "x", "showTime": show, "realSort": ""}]   # realSort 空
+    monkeypatch.setattr(news.base.sess, "get", lambda *a, **kw: _em_resp(page))
+    out = news._fetch_eastmoney_pages(now)
+    assert len(out) == 1
+
+
+def test_fetch_pages_breaks_on_request_error(monkeypatch):
+    """请求异常 → break,返回已拉到的条目。"""
+    now = datetime.now()
+    show = now.strftime("%Y-%m-%d %H:%M:%S")
+    page = [{"title": "x", "showTime": show, "realSort": "1"}]
+    calls = {"n": 0}
+    def fake_get(*a, **kw):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return _em_resp(page)
+        raise RuntimeError("net err")
+    monkeypatch.setattr(news.base.sess, "get", fake_get)
+    out = news._fetch_eastmoney_pages(now, max_pages=5)
+    assert len(out) == 1                      # 第 1 页成功,第 2 页异常 → 停
+
+
+# --- fetch_news 端到端:东财为主源 ---
+def test_fetch_news_degrades_when_eastmoney_unreachable(monkeypatch):
+    """东财不可达 → ok=False + "请手动补充" 兜口。"""
+    def fake_get(*a, **kw):
+        raise RuntimeError("simulated eastmoney unreachable")
     monkeypatch.setattr(news.base.sess, "get", fake_get)
     result = news.fetch_news()
     assert result.dim == "news"
@@ -182,42 +354,43 @@ def test_fetch_news_degrades_when_all_sources_empty(monkeypatch):
     assert result.data["sources_ok"] == []
 
 
-def test_fetch_news_ok_when_cls_returns(monkeypatch):
+def test_fetch_news_ok_when_eastmoney_returns(monkeypatch):
+    """东财返回窗口内、命中关键词的条目 → ok=True,sources_ok=['东财']。"""
     now = datetime.now()
-    ts = int(now.timestamp())
+    show = now.strftime("%Y-%m-%d %H:%M:%S")   # 当下,必在窗口内
 
     class FakeResp:
         def json(self):
-            return {"data": {"roll_data": [
-                {"title": "美联储加息", "ctime": ts, "content": "", "level": "B"},
+            return {"data": {"fastNewsList": [
+                {"title": "美联储加息75基点", "summary": "", "showTime": show,
+                 "titleColor": 3, "pinglun_Num": 10, "realSort": "1"},
+                {"title": "今日天气晴朗", "summary": "", "showTime": show,   # 无关键词
+                 "titleColor": 0, "pinglun_Num": 0, "realSort": "2"},
             ]}}
 
     monkeypatch.setattr(news.base.sess, "get", lambda *a, **kw: FakeResp())
     result = news.fetch_news()
     assert result.ok is True
-    assert result.data["sources_ok"] == ["财联社"]
+    assert result.data["sources_ok"] == ["东财"]
     assert len(result.data["items"]) == 1
-    assert result.data["items"][0]["title"] == "美联储加息"
+    assert result.data["items"][0]["title"] == "美联储加息75基点"
+    assert result.data["items"][0]["star"] == 3
 
 
-def test_sources_ok_only_when_items_parsed(monkeypatch):
-    """回归测试: sources_ok 仅计入真正解析出条目的源。
+def test_fetch_news_sources_ok_empty_when_eastmoney_parses_none(monkeypatch):
+    """东财返回数据但 parser 过滤后为空(无关键词命中) → sources_ok 不含东财。"""
+    now = datetime.now()
+    show = now.strftime("%Y-%m-%d %H:%M:%S")
 
-    即使 _safe_fetch 返回非空 dict(data 为真),若 parser 返回 [],
-    该源也不应计入 sources_ok。此 bug 原先的条件为 if data and items:
-    导致 data 非空但 parsed 为空时仍将源加入 sources_ok。
-    """
-    # 模拟 _safe_fetch 返回非空 dict,但 parser 返回 [] (无有效条目)
-    monkeypatch.setattr(news, "_safe_fetch", lambda name: {"items": []})
+    class FakeResp:
+        def json(self):
+            return {"data": {"fastNewsList": [
+                {"title": "今日天气晴朗", "summary": "", "showTime": show,
+                 "titleColor": 0, "pinglun_Num": 0, "realSort": "1"},
+            ]}}
 
-    # 模拟 CLS_URL 也失败
-    def fake_get(*a, **kw):
-        raise RuntimeError("simulated cls unreachable")
-    monkeypatch.setattr(news.base.sess, "get", fake_get)
-
+    monkeypatch.setattr(news.base.sess, "get", lambda *a, **kw: FakeResp())
     result = news.fetch_news()
-
-    # 金十/新华 虽 _safe_fetch 返回非空,但 parser 返回 [] → 不应在 sources_ok
-    assert "金十" not in result.data["sources_ok"]
-    assert "新华" not in result.data["sources_ok"]
+    # 解析出空 → 不计 sources_ok,ok=False
     assert result.data["sources_ok"] == []
+    assert result.ok is False
