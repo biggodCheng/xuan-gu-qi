@@ -10,7 +10,10 @@ try:
 except Exception:
     pass
 from pk import base
-from pk.config import US_INDICES, US_VIX, A50_CODE, CNR_DRAGON, CNR_STOCKS
+from pk.config import (
+    US_INDICES, US_VIX, A50_CODE, CNR_DRAGON, CNR_STOCKS,
+    FX, COMMODITY,
+)
 
 
 def probe_us():
@@ -39,9 +42,24 @@ def probe_a50():
         print(f"⚠️ A50({A50_CODE[0]}) 取数失败 — A50 是关键维,失败需报告顶部明示盲区")
 
 
+def probe_fx():
+    codes = [c for c, _ in FX] + [c for c, _ in COMMODITY]
+    print("\n=== 汇率+大宗 probe ===")
+    print("请求:", ",".join(codes))
+    out = base.sina_quote(codes)
+    for code, fields in out.items():
+        print(f"\n[{code}] 字段数={len(fields)}")
+        for i, f in enumerate(fields[:15]):
+            print(f"  [{i}] {f!r}")
+    if not out:
+        print("⚠️ 新浪汇率+大宗全失败 — 非关键维,失败时该项空不阻断")
+
+
 if __name__ == "__main__":
     which = sys.argv[1] if len(sys.argv) > 1 else "all"
     if which in ("us", "all"):
         probe_us()
     if which in ("a50", "all"):
         probe_a50()
+    if which in ("fx", "all"):
+        probe_fx()
