@@ -74,10 +74,10 @@ def fetch_us():
     新浪为主;缺失指数/VIX 走 Yahoo(代理 7897)。detail 诚实标注各源可达性。
     """
     codes = [c for c, _ in US_INDICES]
-    raw = base.sina_quote(codes)  # key 形如 hq_str_gb_ixic
-    # 用真实返回重建文本,parse_us 统一剥前缀;新浪无此 code 即空 payload
+    raw = base.sina_quote(codes)  # base 已剥 hq_str_ 前缀,key 是 bare code
+    # 重建文本喂给 parse_us(仍带 hq_str_,parse_us 内 _norm_code 兼容剥前缀)
     text = "".join(
-        f'var hq_str_{c}="{",".join(raw.get("hq_str_" + c, []))}";'
+        f'var hq_str_{c}="{",".join(raw.get(c, []))}";'
         for c in codes
     )
     items = parse_us(text)
@@ -95,17 +95,19 @@ def fetch_us():
         price = meta.get("regularMarketPrice", 0.0)
         if pct is None:
             continue
+        # M-1: Yahoo 返回 null 时 meta.get 命中 None(非缺失),float(None) 会 crash;
+        # 与 pct 的 None 守卫一致,用 `price or 0.0` 兜底。
         items.append({
             "code": c, "name": NAME_MAP[c],
-            "price": float(price), "pct": float(pct),
+            "price": float(price or 0.0), "pct": float(pct),
         })
         yahoo_used.append(c)
 
     # VIX:新浪 gb_vix 实测返回空 → Yahoo ^VIX 取 absolute level(非 pct)
     vix = None
     vix_src = ""
-    vraw = base.sina_quote([US_VIX[0]])
-    vp = vraw.get("hq_str_" + US_VIX[0], vraw.get(US_VIX[0]))
+    vraw = base.sina_quote([US_VIX[0]])   # base 返回 bare code key
+    vp = vraw.get(US_VIX[0])
     if vp and len(vp) > IDX_PRICE:
         try:
             vix = float(vp[IDX_PRICE])

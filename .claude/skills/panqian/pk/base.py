@@ -25,7 +25,12 @@ class FetchResult:
 
 
 def sina_quote(codes):
-    """拉新浪 hq.sinajs.cn 行情。返回 dict: code -> 原始字段 list。失败返回 {}。"""
+    """拉新浪 hq.sinajs.cn 行情。返回 dict: code -> 原始字段 list。失败返回 {}。
+
+    返回 dict 的 key 是 **bare code**(已剥新浪 var 名的 hq_str_ 前缀),
+    与 config 代码常量一致,调用方可直接 raw.get(code)。例:请求 gb_ixic 时
+    新浪返回 'var hq_str_gb_ixic="..."',本函数剥前缀后 key 存为 'gb_ixic'。
+    """
     try:
         r = sess.get(SINA_HQ + ",".join(codes), timeout=15)
         r.encoding = "gbk"
@@ -35,6 +40,8 @@ def sina_quote(codes):
             if not m:
                 continue
             code, payload = m.group(1), m.group(2)
+            if code.startswith("hq_str_"):   # 新浪 var 名带 hq_str_ 前缀,统一剥掉返回 bare code
+                code = code[7:]
             out[code] = payload.split(",") if payload else []
         return out
     except Exception:
