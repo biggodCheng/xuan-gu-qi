@@ -19,7 +19,7 @@ EM_PARAMS = {
     "client": "web",
     "biz": "web_724_content",
     "fastColumn": "102",
-    "pageSize": "50",
+    "pageSize": "100",
     "req_trace": "panqian",
 }
 
@@ -186,11 +186,13 @@ def parse_eastmoney_724(data, now=None):
     return out
 
 
-def _fetch_eastmoney_pages(now, max_pages=5):
+def _fetch_eastmoney_pages(now, max_pages=12):
     """东财 7x24:sortEnd 游标倒序翻页,直到最早一条 showTime < 昨夜18:00 或 max_pages。
 
     返回原始 fastNewsList 列表(未过滤),交 parse_eastmoney_724 二次过滤。
     首页 sortEnd="" 取最新;之后用上一页最早一条的 realSort 作游标。
+    max_pages=12 × pageSize=100 = 1200 条,活跃夜间(约45条/h × 28h ≈ 1260)能
+    覆盖到昨夜18:00 窗口起点;实际更早 break(earliest showTime < cutoff 即停)。
     """
     cutoff = _window_start_ts(now)
     all_items = []

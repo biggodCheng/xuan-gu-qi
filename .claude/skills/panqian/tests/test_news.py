@@ -145,13 +145,13 @@ def test_parse_jin10_filters_by_star_and_keyword():
     data = {"items": [
         {"title": "美联储利率决议", "star": 3, "time": ts},
         {"title": "美联储小事件", "star": 1, "time": ts},          # star<2 过滤
-        {"title": "美国初请失业金", "star": 3, "time": ts},        # 无关键词
+        {"title": "某地今日天气晴朗", "star": 3, "time": ts},      # 无关键词
     ]}
     items = news.parse_jin10(data, now=now)
     titles = [it["title"] for it in items]
     assert "美联储利率决议" in titles
     assert "美联储小事件" not in titles
-    assert "美国初请失业金" not in titles
+    assert "某地今日天气晴朗" not in titles
 
 
 def test_parse_xinhua_filters_by_policy_keyword():
