@@ -80,7 +80,7 @@ def _classify_a_share(sym):
         return None
     num = s[2:]
     if s.startswith("sh"):
-        if num.startswith(("000", "9", "5", "10", "11", "13")):   # 指数/沪B/基金/转债
+        if num.startswith(("000", "880", "9", "5", "10", "11", "13")):  # 指数(上证000/通达信板块880)/沪B/基金/转债
             return None
         if num.startswith(("688", "689")):
             return "kcb"
