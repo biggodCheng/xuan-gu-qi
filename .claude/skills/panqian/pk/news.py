@@ -15,6 +15,12 @@ from pk.config import NEWS_KEYWORDS, POLICY_KEYWORDS
 # 东财 7x24 快讯:np-listapi 直连,JSON,无签名。sortEnd 为空串取首页(最新),
 # 之后取上一页最早一条的 realSort 作下一页 sortEnd,倒序翻页。
 EM_URL = "https://np-listapi.eastmoney.com/comm/web/getFastNewsList"
+# 东财反爬:必须带浏览器 User-Agent + 东财 Referer,否则返回 HTML 错误页(HTTP 567, 非 JSON)
+EM_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+    "Referer": "https://kuaixun.eastmoney.com/",
+}
 EM_PARAMS = {
     "client": "web",
     "biz": "web_724_content",
@@ -201,7 +207,7 @@ def _fetch_eastmoney_pages(now, max_pages=12):
         try:
             params = dict(EM_PARAMS)
             params["sortEnd"] = sort_end
-            r = base.sess.get(EM_URL, params=params, timeout=15)
+            r = base.sess.get(EM_URL, params=params, timeout=15, headers=EM_HEADERS)
             data = r.json()
         except Exception:
             break
