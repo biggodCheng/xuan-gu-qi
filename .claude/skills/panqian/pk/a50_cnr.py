@@ -12,7 +12,7 @@
 """
 import re
 from pk import base
-from pk.config import A50_CODE, A50_BACKUP, CNR_DRAGON, CNR_STOCKS
+from pk.config import A50_CODE, CNR_DRAGON, CNR_STOCKS
 
 # hf_ 期货字段索引(probe 2026-07-23 实测 hf_CHA50CFD 15 字段)
 IDX_PRICE_HF = 0     # 最新价
@@ -84,23 +84,19 @@ def fetch_a50_cnr():
     """返回 FetchResult(dim='a50')。
 
     data = {'a50': {price,pct}|None, 'cnr': [{name,pct}, ...]}
-    A50 是关键维:主代码 hf_CHA50CFD 失败时尝试备份 hf_HSI,仍失败则 ok=False
-    并在 detail 顶部明示盲区(不编造数据)。中概在 A50 失败时仍尽量解析(不阻断)。
+    A50 是关键维:主代码 hf_CHA50CFD 失败即 ok=False 并在 detail 明示盲区(不编造,不静默降级)。
+    注:恒指 hf_HSI 是港股弱代理,不作 A50 静默替代(违背"客观陈列"卖点);A50_BACKUP 常量
+    留在 config 备将来"明确标注的参考行"用,本 fetcher 不自动替换。中概在 A50 失败时仍解析。
     """
     cnr_codes = [CNR_DRAGON[0]] + [c for c, _ in CNR_STOCKS]
-    a50_main, a50_backup = A50_CODE[0], A50_BACKUP[0]
+    a50_main = A50_CODE[0]
 
     raw = base.sina_quote([a50_main] + cnr_codes)
 
-    # A50:主代码 hf_CHA50CFD 优先,失败降级备份 hf_HSI(同 hf_ 字段布局,_pick_hf 通用)
+    # A50:主代码 hf_CHA50CFD;失败即关键维缺失(不用恒指 HSI 静默替代)
     a50 = _pick_hf(raw.get(a50_main, []))
-    used_code = a50_main
-    if a50 is None:
-        raw_b = base.sina_quote([a50_backup])
-        a50 = _pick_hf(raw_b.get(a50_backup, []))
-        used_code = a50_backup
 
-    # 中概走 parse_a50_cnr 单解析路径;A50 以 _pick_hf 结果为准(可能来自备份)
+    # 中概走 parse_a50_cnr;A50 以 _pick_hf 结果为准
     text = "".join(f'var hq_str_{c}="{",".join(raw.get(c, []))}";' for c in [a50_main] + cnr_codes)
     d = parse_a50_cnr(text)
     d["a50"] = a50
@@ -108,8 +104,6 @@ def fetch_a50_cnr():
     ok = d["a50"] is not None
     if ok:
         bits = [f"A50={d['a50']['price']:.0f}({d['a50']['pct']:+.2f}%)"]
-        if used_code == a50_backup:
-            bits.append("备份hf_HSI")
         if d["cnr"]:
             bits.append(f"{len(d['cnr'])}中概")
         detail = "✓ " + " | ".join(bits)
