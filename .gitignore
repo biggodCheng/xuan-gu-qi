@@ -10,3 +10,6 @@ __pycache__/
 # trade-review 运行缓存与输出（kline_cache 8.3MB 不入库；history.json 基线小，保留）
 docs/trade-review/kline_cache.json
 docs/trade-review/output/
+
+# 敏感账户数据（含账户号字段，禁止入库）
+docs/A股交易数据导出.xls
