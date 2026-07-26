@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="440" viewBox="0 0 1200 440" role="img" aria-labelledby="wf-title wf-desc">
+  <title id="wf-title">选股漏斗与验证闭环</title>
+  <desc id="wf-desc">选股漏斗四步层层过滤：创新高、涨停、缩量回踩、小市值，得到聚焦池；再经 Q2 业绩展望与四大赛道的维度补充，以及反事实画像回测、策略回测、每日累积复盘的验证闭环。</desc>
+
+  <defs>
+    <style>
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .sans { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+    </style>
+    <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 z" fill="#5A6373"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="440" rx="24" fill="#0E1116"/>
+
+  <!-- title -->
+  <text x="64" y="64" class="sans" font-size="30" font-weight="600" fill="#E6E8EB">选股漏斗</text>
+  <text x="232" y="64" class="mono" font-size="18" letter-spacing="2" fill="#6B7280">SCREENING PIPELINE</text>
+  <text x="64" y="98" class="sans" font-size="18" fill="#9AA3B0">全市场 → 创新高 → 涨停 → 缩量回踩 → 小市值 · 每层只留符合纪律画像的标的</text>
+
+  <!-- ===== funnel nodes ===== -->
+  <g id="funnel">
+    <!-- N1 -->
+    <rect x="100" y="132" width="220" height="128" rx="12" fill="#161B22" stroke="#2A313C" stroke-width="1.5"/>
+    <text x="210" y="166" class="mono" font-size="15" letter-spacing="0.5" fill="#6B7280" text-anchor="middle">chuangxingao</text>
+    <text x="210" y="202" class="sans" font-size="22" font-weight="600" fill="#E6E8EB" text-anchor="middle">创新高</text>
+    <text x="210" y="232" class="sans" font-size="18" fill="#9AA3B0" text-anchor="middle">100 日新高</text>
+
+    <!-- N2 -->
+    <rect x="360" y="132" width="220" height="128" rx="12" fill="#161B22" stroke="#2A313C" stroke-width="1.5"/>
+    <text x="470" y="166" class="mono" font-size="15" letter-spacing="0.5" fill="#6B7280" text-anchor="middle">zhangting</text>
+    <text x="470" y="202" class="sans" font-size="22" font-weight="600" fill="#E6E8EB" text-anchor="middle">涨停</text>
+    <text x="470" y="232" class="sans" font-size="18" fill="#9AA3B0" text-anchor="middle">近 15 日触板</text>
+
+    <!-- N3 -->
+    <rect x="620" y="132" width="220" height="128" rx="12" fill="#161B22" stroke="#2A313C" stroke-width="1.5"/>
+    <text x="730" y="166" class="mono" font-size="15" letter-spacing="0.5" fill="#6B7280" text-anchor="middle">suolianghuicai</text>
+    <text x="730" y="202" class="sans" font-size="22" font-weight="600" fill="#E6E8EB" text-anchor="middle">缩量回踩</text>
+    <text x="730" y="232" class="sans" font-size="18" fill="#9AA3B0" text-anchor="middle">涨停后缩量</text>
+
+    <!-- N4 focus pool (accent) -->
+    <rect x="880" y="132" width="220" height="128" rx="12" fill="#0F1A14" stroke="#22C55E" stroke-width="2"/>
+    <text x="990" y="166" class="mono" font-size="15" letter-spacing="0.5" fill="#6B7280" text-anchor="middle">shizhi</text>
+    <text x="990" y="202" class="sans" font-size="22" font-weight="600" fill="#E6E8EB" text-anchor="middle">小市值</text>
+    <text x="990" y="232" class="sans" font-size="18" fill="#22C55E" text-anchor="middle">聚焦池 ✓</text>
+
+    <!-- arrows -->
+    <line x1="324" y1="196" x2="352" y2="196" stroke="#5A6373" stroke-width="2" marker-end="url(#arr)"/>
+    <line x1="584" y1="196" x2="612" y2="196" stroke="#5A6373" stroke-width="2" marker-end="url(#arr)"/>
+    <line x1="844" y1="196" x2="872" y2="196" stroke="#5A6373" stroke-width="2" marker-end="url(#arr)"/>
+  </g>
+
+  <!-- connector spine: focus pool -> bottom cards -->
+  <g id="spine" stroke="#2A313C" stroke-width="1.5" stroke-dasharray="3 5" fill="none">
+    <line x1="990" y1="260" x2="990" y2="290"/>
+    <line x1="320" y1="290" x2="990" y2="290"/>
+    <line x1="320" y1="290" x2="320" y2="304"/>
+    <line x1="880" y1="290" x2="880" y2="304"/>
+  </g>
+
+  <!-- ===== bottom: dimensions + validation ===== -->
+  <!-- dimensions card -->
+  <rect x="100" y="304" width="440" height="84" rx="12" fill="#161B22" stroke="#2A313C" stroke-width="1.5"/>
+  <text x="120" y="334" class="mono" font-size="16" letter-spacing="1.5" fill="#8B95A0">维度补充 · DIMENSIONS</text>
+  <text x="120" y="368" class="sans" font-size="20" fill="#E6E8EB">Q2 业绩展望 · 四大赛道产业链</text>
+
+  <!-- validation card -->
+  <rect x="660" y="304" width="440" height="84" rx="12" fill="#161B22" stroke="#2A313C" stroke-width="1.5"/>
+  <text x="680" y="334" class="mono" font-size="16" letter-spacing="1.5" fill="#8B95A0">验证闭环 · VALIDATION</text>
+  <text x="680" y="368" class="sans" font-size="20" fill="#E6E8EB">反事实回测 · 策略回测 · 每日累积</text>
+</svg>

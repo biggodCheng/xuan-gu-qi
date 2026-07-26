@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="hero-title hero-desc">
+  <title id="hero-title">xuan-gu-qi · A股纪律化交易工具集</title>
+  <desc id="hero-desc">项目名 xuan-gu-qi，一句话价值"把今天该不该交易交给客观数据而非情绪"，右侧展示市况总开关的三态状态机：进攻、防守、退守。</desc>
+
+  <defs>
+    <style>
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .sans { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+    </style>
+  </defs>
+
+  <!-- canvas -->
+  <rect width="1200" height="360" rx="24" fill="#0E1116"/>
+
+  <!-- ===== left: title block ===== -->
+  <g id="title-block">
+    <!-- eyebrow -->
+    <rect x="64" y="62" width="3" height="16" fill="#22C55E"/>
+    <text x="78" y="76" class="mono" font-size="16" letter-spacing="1.5" fill="#8B95A3">A股 · 纪律化交易工具集 · DISCIPLINED TOOLKIT</text>
+
+    <!-- project name -->
+    <text x="64" y="150" class="mono" font-size="60" font-weight="700" letter-spacing="-1.5" fill="#E6E8EB">xuan-gu-qi</text>
+
+    <!-- one-line value -->
+    <text x="64" y="194" class="sans" font-size="24" fill="#C8CDD4">把“今天该不该交易”交给客观数据，而非情绪</text>
+
+    <!-- motif + metadata -->
+    <circle cx="70" cy="250" r="5" fill="#22C55E"/>
+    <circle cx="92" cy="250" r="5" fill="#F59E0B"/>
+    <circle cx="114" cy="250" r="5" fill="#EF4444"/>
+    <text x="134" y="255" class="mono" font-size="16" fill="#9AA3B0">17 skills · 盘前→盘后闭环 · 本地 vipdoc 日K · 零网络永不被封</text>
+  </g>
+
+  <!-- divider -->
+  <line x1="740" y1="72" x2="740" y2="288" stroke="#1E232B" stroke-width="1"/>
+
+  <!-- ===== right: market regime state machine ===== -->
+  <g id="regime-block">
+    <text x="772" y="80" class="mono" font-size="15" letter-spacing="2" fill="#6B7280">MARKET REGIME · 市况总开关</text>
+    <line x1="772" y1="92" x2="1136" y2="92" stroke="#2A313C" stroke-width="1"/>
+
+    <!-- state flow spine -->
+    <line x1="786" y1="151" x2="786" y2="259" stroke="#2A313C" stroke-width="1.5" stroke-dasharray="2 5"/>
+
+    <!-- 进攻 -->
+    <circle cx="786" cy="140" r="11" fill="#22C55E"/>
+    <text x="812" y="148" class="sans" font-size="26" font-weight="600" fill="#E6E8EB">进攻</text>
+    <text x="812" y="172" class="sans" font-size="18" fill="#9AA3B0">趋势向上 · 正常作业</text>
+
+    <!-- 防守 -->
+    <circle cx="786" cy="205" r="11" fill="#F59E0B"/>
+    <text x="812" y="213" class="sans" font-size="26" font-weight="600" fill="#E6E8EB">防守</text>
+    <text x="812" y="237" class="sans" font-size="18" fill="#9AA3B0">震荡转弱 · 轻仓观望</text>
+
+    <!-- 退守 -->
+    <circle cx="786" cy="270" r="11" fill="#EF4444"/>
+    <text x="812" y="278" class="sans" font-size="26" font-weight="600" fill="#E6E8EB">退守</text>
+    <text x="812" y="302" class="sans" font-size="18" fill="#9AA3B0">系统下跌 · 强制空仓</text>
+  </g>
+</svg>
