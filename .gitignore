@@ -11,5 +11,8 @@ __pycache__/
 docs/trade-review/kline_cache.json
 docs/trade-review/output/
 
-# 敏感账户数据（含账户号字段，禁止入库）
-docs/A股交易数据导出.xls
+# 敏感账户数据（含账户号字段，禁止入库；通配防文件名带日期/序号变体漏网）
+docs/*.xls
+docs/*.xlsx
+*.xls
+*.xlsx
