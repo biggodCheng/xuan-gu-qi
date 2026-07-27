@@ -136,20 +136,24 @@ def structure_state(kl):
 
 # ---------- 3. 量能 ----------
 def volume_state(kl):
-    """返回 (状态, ratio)。当日成交额 vs 前5日均量。"""
+    """返回 (状态, ratio5, ratio1)。
+    ratio5=今/前5日均(看趋势), ratio1=今/昨(看短期, 贴合行情软件"较昨"口径)。
+    双口径防误判: 地量反弹日 ratio5 仍<1(前5日含高位拉高均值), 但 ratio1>1 已示放量。"""
     vols = [k["volume"] for k in kl if k.get("volume", 0) > 0]
     if len(vols) < 6:
-        return "数据不足", 0.0
+        return "数据不足", 0.0, 0.0
     today = vols[-1]
     avg5 = float(np.mean(vols[-6:-1]))
     if avg5 <= 0:
-        return "数据不足", 0.0
-    ratio = today / avg5
-    if ratio > 1.2:
-        return "放量(资金进攻)", ratio
-    if ratio < 0.8:
-        return "缩量(观望浓)", ratio
-    return "平量(观望)", ratio
+        return "数据不足", 0.0, 0.0
+    ratio5 = today / avg5
+    ratio1 = today / vols[-2] if vols[-2] > 0 else 0.0
+    # 放量: 5日均或昨量任一显著放大; 缩量: 两者都缩; 否则平量
+    if ratio5 > 1.2 or ratio1 > 1.2:
+        return "放量(资金进攻)", ratio5, ratio1
+    if ratio5 < 0.8 and ratio1 < 0.9:
+        return "缩量(观望浓)", ratio5, ratio1
+    return "平量(观望)", ratio5, ratio1
 
 
 # ---------- 4. 权重 vs 题材 ----------
@@ -333,10 +337,10 @@ def render(date_str, color, name, total, breadth, idx_data, stage, stage_info, n
             else:
                 chg = 0.0
             st, sinfo = structure_state(kl)
-            vs, ratio = volume_state(kl)
+            vs, ratio5, ratio1 = volume_state(kl)
             arrange = sinfo.get("arrange", "-")
-            ratio_s = f"{ratio:.2f}×" if ratio > 0 else "-"
-            a(f"| {label} | {kl[-1]['close']:.1f} | {chg:+.2f}% | {st}({arrange}) | {vs}({ratio_s}) |")
+            ratio_s = (f"今/昨{ratio1:.2f} 今/5日{ratio5:.2f}") if ratio5 > 0 else "-"
+            a(f"| {label} | {kl[-1]['close']:.1f} | {chg:+.2f}% | {st}({arrange}) | {vs} {ratio_s} |")
         else:
             a(f"| {label} | 取数失败 | - | - | - |")
     a(f"\n**权重 vs 题材**: {weight_vs_theme(sh_chg, cyb_chg)}")
@@ -490,8 +494,8 @@ def main():
         kl = fetch_index_kline(sym)
         idx_data.append((label, kl))
         st, _ = structure_state(kl)
-        vs, ratio = volume_state(kl)
-        ratio_s = f"{ratio:.2f}×" if ratio > 0 else "-"
+        vs, ratio5, ratio1 = volume_state(kl)
+        ratio_s = (f"今/昨{ratio1:.2f} 今/5日{ratio5:.2f}") if ratio5 > 0 else "-"
         print(f"      {label}: {len(kl)}根 结构={st} 量能={vs}({ratio_s})")
 
     print("[2/5] 主线与阶段 (zhuxian) ...")
