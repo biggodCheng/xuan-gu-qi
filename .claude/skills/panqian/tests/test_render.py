@@ -52,3 +52,10 @@ def test_render_news_items_with_star():
     md = render.render(_sample_data())
     assert "★★★" in md            # star=3 → 三星
     assert "美联储FOMC偏鹰" in md
+
+
+def test_render_vix_level_in_price_column():
+    # VIX 是绝对水平(非涨跌幅);第5步历史映射用 VIX>20/>30 阈值 → level 才是关键值。
+    # 故 level 应落在"收盘"列,涨跌列留 -(修前 render 误把 level 塞进涨跌列)。
+    md = render.render(_sample_data())   # sample vix=22.0
+    assert "| VIX | 22.0 | - |" in md

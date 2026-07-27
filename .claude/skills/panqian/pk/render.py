@@ -28,7 +28,8 @@ def render(d):
     for it in (us.get("indices") or []):
         a(f"| {it['name']} | {it['price']} | {it['pct']:+.2f}% |")
     if us.get("vix") is not None:
-        a(f"| VIX | - | {us['vix']:.1f} |")
+        # VIX 是绝对水平(非涨跌幅);第5步映射用 VIX>20/>30 阈值 → level 落"收盘"列,涨跌列留 -
+        a(f"| VIX | {us['vix']:.1f} | - |")
     if us.get("indices"):
         nas = next((i for i in us["indices"] if i["name"] == "纳指"), None)
         dow = next((i for i in us["indices"] if i["name"] == "道指"), None)

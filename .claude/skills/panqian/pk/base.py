@@ -48,10 +48,20 @@ def sina_quote(codes):
         return {}
 
 
-def proxy_get(url, proxy, **kw):
-    """Yahoo 等 fallback 用:显式走代理。失败返回 None。"""
+def proxy_get(url, proxy, headers=None, **kw):
+    """Yahoo 等 fallback 用:显式走代理。失败返回 None。
+
+    默认带浏览器 UA:Yahoo v8 chart API 拒绝 requests 默认 python-requests UA
+    (2026-07-27 实测:不加 UA → ^VIX meta=None → VIX 永久缺;加 Mozilla UA 后
+    regularMarketPrice 正常返回)。调用方传 headers 则合并覆盖。
+    """
+    h = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                       "AppleWebKit/537.36 (KHTML, like Gecko) "
+                       "Chrome/120.0.0.0 Safari/537.36"}
+    if headers:
+        h.update(headers)
     try:
-        r = requests.get(url, proxies=proxy, timeout=20, **kw)
+        r = requests.get(url, proxies=proxy, timeout=20, headers=h, **kw)
         r.raise_for_status()
         return r
     except Exception:

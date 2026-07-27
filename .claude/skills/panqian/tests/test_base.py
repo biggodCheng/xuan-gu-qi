@@ -39,3 +39,31 @@ def test_sina_quote_network_error_returns_empty():
 def test_fetch_result_defaults():
     r = base.FetchResult("us")
     assert r.ok is False and r.data is None and r.detail == ""
+
+
+def test_proxy_get_sends_browser_user_agent():
+    # Yahoo v8 chart API 拒绝 requests 默认 python-requests UA(返回 401/meta=None)。
+    # 根因(2026-07-27 实测:加浏览器 UA 后 ^VIX 立即返回 regularMarketPrice):
+    # proxy_get 必须默认带浏览器 UA,否则 VIX 永久缺。
+    fake = MagicMock()
+    fake.status_code = 200
+    fake.raise_for_status = lambda: None
+    with patch("pk.base.requests.get", return_value=fake) as g:
+        base.proxy_get("https://x", proxy={"http": "p"})
+    ua = g.call_args.kwargs["headers"]["User-Agent"]
+    assert "python-requests" not in ua
+    assert "Mozilla" in ua
+
+
+def test_proxy_get_caller_headers_override_default():
+    fake = MagicMock()
+    fake.status_code = 200
+    fake.raise_for_status = lambda: None
+    with patch("pk.base.requests.get", return_value=fake) as g:
+        base.proxy_get("https://x", proxy={"http": "p"}, headers={"User-Agent": "custom"})
+    assert g.call_args.kwargs["headers"]["User-Agent"] == "custom"
+
+
+def test_proxy_get_failure_returns_none():
+    with patch("pk.base.requests.get", side_effect=Exception("boom")):
+        assert base.proxy_get("https://x", proxy={"http": "p"}) is None
