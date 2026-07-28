@@ -63,6 +63,7 @@ description: 行业资金流排行榜 — 抓取东方财富行业板块当日�
 | 今日快照已存在 | CHECKPOINT 询问，`--force` 覆盖 |
 | 盘中运行 | 资金流为盘中实时值（会随盘变化），复盘建议收盘后跑 |
 | 盘前/非交易时段 | 接口返回上一交易日收盘数据，main 会打印数据日警告（非今日），建议收盘后重跑 |
+| Windows 中文控制台(GBK) emoji 崩溃 | main.py 顶部已强制 stdout/stderr=utf-8（修复 `⚠️` 等 emoji 在 cp936 下 UnicodeEncodeError 崩在 save 前数据白抓）；极少数仍报编码错用 `PYTHONUTF8=1 python main.py` |
 
 ## ❌ 不要做
 

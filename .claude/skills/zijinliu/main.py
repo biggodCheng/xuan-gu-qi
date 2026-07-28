@@ -10,6 +10,15 @@ import datetime
 import os
 import sys
 
+# Windows 中文控制台默认 GBK(cp936) 编不出 emoji(⚠️)：盘前/非交易日警告 print 会
+# UnicodeEncodeError，且崩在 save_results 之前 → 数据白抓、JSON 不落盘。
+# 强制 stdout/stderr 用 utf-8（stdlib，不引入依赖）。
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except (AttributeError, OSError):
+    pass  # stdout 非可重定向 TextIOWrapper（如重定向到文件）时忽略
+
 sys.path.insert(0, os.path.dirname(__file__))
 
 from screener import fetcher as _default_fetcher
