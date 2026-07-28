@@ -28,6 +28,20 @@ def _dash(val):
     return "-" if val is None else val
 
 
+def _market_session_warning(now=None) -> str:
+    """盘前(<9:30)/周末 → 数据日警告; 盘中/盘后 → 空串。
+
+    资金流接口在非交易时段返回上一交易日收盘数据(非今日)。交易日历简化为
+    工作日(节假日未计)。盘中数据为今日实时、盘后为今日收盘, 均不警告。
+    """
+    now = now or datetime.datetime.now()
+    if now.weekday() >= 5:
+        return "⚠️ 当前为非交易日(周末)，数据为上一交易日收盘值，非今日。建议收盘后重跑。"
+    if now.hour * 60 + now.minute < 9 * 60 + 30:
+        return "⚠️ 当前为盘前(未开盘)，数据为上一交易日收盘值，非今日实时。建议收盘后重跑。"
+    return ""
+
+
 def _print_summary(data: dict, top: int, outflow_top: int) -> None:
     date_str = data["date"]
     print(f"\n# 行业资金流 · {date_str}（东方财富·今日）")
@@ -74,6 +88,11 @@ def run(today_str: str | None = None, output_dir: str | None = None,
     if not flows["inflow"] and not flows["outflow"]:
         print("⚠️ 抓取失败：两端均无数据（接口异常或被封）。未保存快照，可重试。", flush=True)
         return False
+
+    # 2.5 盘前/非交易日 → 数据可能是上一交易日, 警告
+    warning = _market_session_warning()
+    if warning:
+        print(warning, flush=True)
 
     # 3. 保存
     saved = storage.save_results(today_str, flows["inflow"], flows["outflow"], output_dir)

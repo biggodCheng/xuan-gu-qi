@@ -1,4 +1,4 @@
-import sys, os
+import sys, os, datetime
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from screener import storage
@@ -61,3 +61,38 @@ def test_run_network_failure_returns_false_no_save(tmp_path, capsys):
     assert ok is False
     assert not os.path.exists(os.path.join(str(tmp_path), "zijin_2026-07-28.json"))
     assert "失败" in capsys.readouterr().out
+
+
+# ---- 盘前/非交易日 数据日警告 ----
+def test_session_warning_before_open_weekday():
+    """周一盘前(<9:30) → 警告数据为上一交易日。"""
+    now = datetime.datetime(2026, 7, 27, 8, 0)  # 周一 08:00
+    w = main._market_session_warning(now)
+    assert "盘前" in w
+
+
+def test_session_warning_weekend():
+    """周末 → 警告非交易日。"""
+    now = datetime.datetime(2026, 8, 1, 10, 0)  # 周六
+    w = main._market_session_warning(now)
+    assert "非交易日" in w
+
+
+def test_session_no_warning_during_session():
+    """周一盘中(10:30) → 无警告(数据为今日实时)。"""
+    now = datetime.datetime(2026, 7, 27, 10, 30)
+    assert main._market_session_warning(now) == ""
+
+
+def test_session_no_warning_after_close():
+    """周一盘后(16:00) → 无警告(数据为今日收盘)。"""
+    now = datetime.datetime(2026, 7, 27, 16, 0)
+    assert main._market_session_warning(now) == ""
+
+
+def test_run_prints_session_warning(tmp_path, capsys, monkeypatch):
+    """盘前跑 → 摘要前打印数据日警告。"""
+    monkeypatch.setattr(main, "_market_session_warning", lambda now=None: "⚠️ 数据日警告TEST")
+    ok = main.run(today_str="2026-07-29", output_dir=str(tmp_path), fetcher=_FakeFetcher)
+    assert ok is True
+    assert "数据日警告TEST" in capsys.readouterr().out
