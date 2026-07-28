@@ -54,3 +54,38 @@ def dedup(industries: list) -> list:
         if cur is None or (_SUF.search(cur.get("name", "")) and not _SUF.search(it.get("name", ""))):
             best[key] = it
     return list(best.values())
+
+
+def _request(po: int, pz: int) -> dict:
+    """请求 clist, 返回原始 json(失败/重试耗尽返回 {})。可被测试 mock。"""
+    params = {"pn": "1", "pz": str(pz), "po": str(po),
+              "fid": "f62", "fs": FS, "fields": FIELDS, "fltt": "2"}
+    for attempt in range(RETRIES):
+        try:
+            r = _session.get(CLIST_URL, params=params, timeout=15)
+            return r.json() or {}
+        except Exception as e:
+            if attempt < RETRIES - 1:
+                time.sleep(0.5 * (attempt + 1))
+                continue
+            print(f"push2delay 请求失败(po={po}): {e}", flush=True)
+            return {}
+
+
+def _diff_list(payload: dict) -> list:
+    """从 clist 响应取 diff 列表(接口返回 dict, 按 .values() 取)。"""
+    data = payload.get("data") or {}
+    diff = data.get("diff") or []
+    if isinstance(diff, dict):
+        return list(diff.values())
+    return list(diff)
+
+
+def fetch_top_flows(per_end: int = 100) -> dict:
+    """两端各取 Top per_end: po=1 降序(流入端) + po=0 升序(流出端)。
+
+    各端 parse + dedup 后返回 {"inflow": [...], "outflow": [...]}。
+    """
+    inflow = dedup([parse(r) for r in _diff_list(_request(po=1, pz=per_end))])
+    outflow = dedup([parse(r) for r in _diff_list(_request(po=0, pz=per_end))])
+    return {"inflow": inflow, "outflow": outflow}

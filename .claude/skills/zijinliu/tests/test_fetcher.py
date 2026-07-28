@@ -56,3 +56,38 @@ def test_dedup_skips_none_main_net():
     out = fetcher.dedup(items)
     assert len(out) == 1
     assert out[0]["name"] == "银行"
+
+
+def test_fetch_top_flows_calls_both_orders(monkeypatch):
+    """应发 po=1(降序/流入) + po=0(升序/流出) 两次请求, 返回 inflow/outflow。"""
+    calls = []
+
+    def fake_request(po, pz):
+        calls.append((po, pz))
+        if po == 1:
+            return {"data": {"diff": {"1": {"f12": "BK1", "f14": "银行",
+                    "f3": 1.0, "f62": 1000, "f184": 5, "f66": 500, "f72": 300}}}}
+        return {"data": {"diff": {"1": {"f12": "BK2", "f14": "电子",
+                "f3": -2.0, "f62": -2000, "f184": -8, "f66": -1000, "f72": -500}}}}
+
+    monkeypatch.setattr(fetcher, "_request", fake_request)
+    r = fetcher.fetch_top_flows(per_end=50)
+    assert calls == [(1, 50), (0, 50)]
+    assert len(r["inflow"]) == 1 and r["inflow"][0]["name"] == "银行"
+    assert len(r["outflow"]) == 1 and r["outflow"][0]["name"] == "电子"
+    assert r["inflow"][0]["main_net_yi"] == 0.0   # 1000/1e8
+
+
+def test_fetch_top_flows_dedup_applied(monkeypatch):
+    """两端各自做端内去重。"""
+    def fake_request(po, pz):
+        if po == 1:
+            return {"data": {"diff": [
+                {"f12": "BK1", "f14": "银行", "f62": 1000, "f184": 5},
+                {"f12": "BK2", "f14": "银行Ⅱ", "f62": 1000, "f184": 5},
+            ]}}
+        return {"data": {"diff": []}}
+    monkeypatch.setattr(fetcher, "_request", fake_request)
+    r = fetcher.fetch_top_flows(per_end=100)
+    assert len(r["inflow"]) == 1          # 银行/银行Ⅱ 合并
+    assert len(r["outflow"]) == 0
