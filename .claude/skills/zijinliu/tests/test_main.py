@@ -96,3 +96,12 @@ def test_run_prints_session_warning(tmp_path, capsys, monkeypatch):
     ok = main.run(today_str="2026-07-29", output_dir=str(tmp_path), fetcher=_FakeFetcher)
     assert ok is True
     assert "数据日警告TEST" in capsys.readouterr().out
+
+
+def test_run_stale_session_persists_to_json(tmp_path, monkeypatch):
+    """盘前跑 → 警告持久化进 JSON(is_stale=true)，下游可识别非今日数据。"""
+    monkeypatch.setattr(main, "_market_session_warning", lambda now=None: "⚠️ 盘前数据为上一交易日")
+    main.run(today_str="2026-07-29", output_dir=str(tmp_path), fetcher=_FakeFetcher)
+    data = storage.load_results("2026-07-29", str(tmp_path))
+    assert data["is_stale"] is True
+    assert "上一交易日" in data["note"]

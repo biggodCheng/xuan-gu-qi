@@ -13,7 +13,7 @@ def _now_iso() -> str:
 
 
 def save_results(date_str: str, inflow: list, outflow: list,
-                 output_dir: str) -> str:
+                 output_dir: str, note: str | None = None) -> str:
     os.makedirs(output_dir, exist_ok=True)
     result = {
         "date": date_str,
@@ -26,6 +26,11 @@ def save_results(date_str: str, inflow: list, outflow: list,
         "inflow": inflow,
         "outflow": outflow,
     }
+    # 盘前/非交易时段抓取时接口返回上一交易日数据；持久化警告，避免下游
+    # （date/文件名标的是抓取日=今日）把上一交易日数据误读为今日。
+    if note:
+        result["note"] = note
+        result["is_stale"] = True
     path = os.path.join(output_dir, f"zijin_{date_str}.json")
     with open(path, "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)

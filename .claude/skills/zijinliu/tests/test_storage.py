@@ -30,3 +30,19 @@ def test_save_overwrites(tmp_path):
     storage.save_results("2026-07-28", [{"name": "新"}], [], str(tmp_path))
     data = storage.load_results("2026-07-28", str(tmp_path))
     assert data["inflow"][0]["name"] == "新"
+
+
+def test_save_with_note_marks_stale(tmp_path):
+    """盘前/非交易日 note → JSON 持久化 note + is_stale=true。"""
+    storage.save_results("2026-07-29", [{"name": "银行"}], [], str(tmp_path),
+                         note="⚠️ 盘前数据为上一交易日")
+    data = storage.load_results("2026-07-29", str(tmp_path))
+    assert data["is_stale"] is True
+    assert "上一交易日" in data["note"]
+
+
+def test_save_without_note_no_stale(tmp_path):
+    """正常抓取(无 note) → JSON 不含 is_stale（数据为今日）。"""
+    storage.save_results("2026-07-29", [{"name": "银行"}], [], str(tmp_path))
+    data = storage.load_results("2026-07-29", str(tmp_path))
+    assert "is_stale" not in data

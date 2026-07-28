@@ -98,13 +98,14 @@ def run(today_str: str | None = None, output_dir: str | None = None,
         print("⚠️ 抓取失败：两端均无数据（接口异常或被封）。未保存快照，可重试。", flush=True)
         return False
 
-    # 2.5 盘前/非交易日 → 数据可能是上一交易日, 警告
+    # 2.5 盘前/非交易日 → 数据可能是上一交易日, 警告并持久化(防下游误读为今日)
     warning = _market_session_warning()
     if warning:
         print(warning, flush=True)
 
-    # 3. 保存
-    saved = storage.save_results(today_str, flows["inflow"], flows["outflow"], output_dir)
+    # 3. 保存(盘前/非交易日时 note 持久化进 JSON, 下游读 is_stale 即知数据为上一交易日)
+    saved = storage.save_results(today_str, flows["inflow"], flows["outflow"],
+                                 output_dir, note=warning or None)
     print(f"已保存：{saved}", flush=True)
 
     # 4. 摘要
