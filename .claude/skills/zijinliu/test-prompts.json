@@ -1,0 +1,11 @@
+[
+  {"prompt": "资金流", "should_trigger": true},
+  {"prompt": "资金流入排行榜", "should_trigger": true},
+  {"prompt": "主力资金流向", "should_trigger": true},
+  {"prompt": "行业资金流", "should_trigger": true},
+  {"prompt": "zijinliu", "should_trigger": true},
+  {"prompt": "今天主力净流入哪些行业", "should_trigger": true},
+  {"prompt": "帮我选只能涨的股", "should_trigger": false},
+  {"prompt": "人气榜", "should_trigger": false},
+  {"prompt": "缩量回踩", "should_trigger": false}
+]
