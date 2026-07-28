@@ -1,0 +1,39 @@
+"""数据获取层 — 东财行业板块资金流(push2delay clist)。
+
+网络要点(同 renqibang/screener/fetcher.py):
+  push2delay 直连(trust_env=False)会被服务端关连接; 必须跟随系统代理
+  (trust_env=True), 用 http 非 https, 带浏览器 UA + Referer。
+  偶发空响应, 带 RETRIES 退避重试。
+"""
+import re
+import time
+
+import requests
+
+_session = requests.Session()
+_session.trust_env = True
+_session.headers.update({
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Referer": "https://data.eastmoney.com/",
+})
+
+CLIST_URL = "http://push2delay.eastmoney.com/api/qt/clist/get"
+FS = "m:90+t:2+f:!50"
+FIELDS = "f12,f14,f3,f62,f184,f66,f72"
+RETRIES = 3
+_SUF = re.compile(r"[ⅡⅢⅣⅤⅥ]")
+
+
+def parse(row: dict) -> dict:
+    """单条原始 dict → 统一结构(含 main_net_yi 亿元换算)。"""
+    return {
+        "code": row.get("f12", ""),
+        "name": row.get("f14", ""),
+        "change_pct": row.get("f3"),
+        "main_net": row.get("f62"),
+        "main_net_yi": round((row.get("f62") or 0) / 1e8, 2),
+        "main_pct": row.get("f184"),
+        "super_large_net": row.get("f66"),
+        "large_net": row.get("f72"),
+    }
