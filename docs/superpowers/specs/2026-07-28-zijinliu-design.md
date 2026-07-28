@@ -41,7 +41,7 @@
 | f66 | 超大单净流入额 | 元 |
 | f72 | 大单净流入额 | 元 |
 
-- 单页 pz 上限 100，`total≈496`。复盘只需两端（流入 Top + 流出 Top），故 **降序 `po=1` 取一页（流入端）+ 升序 `po=0` 取一页（流出端）**，各 100 条即覆盖；同行业多层级 BK 在同端内相邻，端内去重即可，无需翻全。`--full` 可选翻全 5 页用于排查。
+- 单页 pz 上限 100，`total≈496`。复盘只需两端（流入 Top + 流出 Top），故 **降序 `po=1` 取一页（流入端）+ 升序 `po=0` 取一页（流出端）**，各 100 条即覆盖；同行业多层级 BK 在同端内相邻，端内去重即可，无需翻全。
 - 实测样本合理：流入 Top 为银行/食品饮料/电力（防御+消费），流出 Top 为电子(-559 亿)/半导体(-317 亿)/通信(-212 亿)（科技），符合正常交易日特征。
 
 ## 去重（关键实现点）
@@ -88,7 +88,6 @@
 - `fetch_top_flows(per_end=100) -> dict`：发两次请求——`po=1` 降序 pz=per_end 拿流入端、`po=0` 升序 pz=per_end 拿流出端；`diff` 接口返回 dict，按 `.values()` 取；返回 `{"inflow": [...], "outflow": [...]}`（原始 dict 列表）。
 - `parse(raw_row) -> dict`：单条原始 dict → 统一结构（含 `main_net_yi` 换算）。
 - `dedup(industries) -> list[dict]`：实现上述"降级去重"算法（端内按 `(f62,f184)` 去重，保留无罗马后缀名；主策略探到一级 fs 时此函数退化为近似 no-op，仍保留以兜底）。
-- 可选 `fetch_full() -> list[dict]`：pn=1..5 翻全 5 页（`--full` 排查用）。
 - 解析后每条结构：
   ```python
   {"code": "BK1283", "name": "银行", "change_pct": 1.04,
@@ -121,7 +120,7 @@
 ## main.py
 
 - 编排：CHECKPOINT（今日快照存在则提示，`--force` 覆盖）→ `fetcher.fetch_top_flows()`（返回 inflow/outflow 两端原始数据）→ 各端 `parse` + `dedup` → `storage.save_results(inflow, outflow)` → `_print_summary`。
-- CLI：`python main.py [--top 20] [--outflow-top 10] [--per-end 100] [--date YYYY-MM-DD] [--force] [--full]`。
+- CLI：`python main.py [--top 20] [--outflow-top 10] [--per-end 100] [--date YYYY-MM-DD] [--force]`。
 - 终端 markdown 摘要：
   ```
   # 行业资金流 · 2026-07-28（东方财富·今日）
