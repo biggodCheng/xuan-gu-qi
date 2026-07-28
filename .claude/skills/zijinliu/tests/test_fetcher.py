@@ -25,3 +25,34 @@ def test_parse_negative_flow():
     r = fetcher.parse(raw)
     assert r["main_net_yi"] == -5.59
     assert r["change_pct"] == -4.23
+
+
+def test_dedup_merges_same_flow_keeps_no_suffix():
+    """银行(一级) 与 银行Ⅱ(二级) f62/f184 相同 → 合并为一个, 保留无后缀的'银行'。"""
+    items = [
+        {"name": "银行Ⅱ", "main_net": 1527127040, "main_pct": 4.3},
+        {"name": "银行",   "main_net": 1527127040, "main_pct": 4.3},
+    ]
+    out = fetcher.dedup(items)
+    assert len(out) == 1
+    assert out[0]["name"] == "银行"
+
+
+def test_dedup_keeps_different_flows():
+    """通信(-212) 与 通信设备(-209) f62 不同 → 都保留。"""
+    items = [
+        {"name": "通信",     "main_net": -21205000000, "main_pct": -11.24},
+        {"name": "通信设备", "main_net": -20909000000, "main_pct": -11.89},
+    ]
+    out = fetcher.dedup(items)
+    assert len(out) == 2
+
+
+def test_dedup_skips_none_main_net():
+    items = [
+        {"name": "停牌行业", "main_net": None, "main_pct": None},
+        {"name": "银行", "main_net": 1000, "main_pct": 5},
+    ]
+    out = fetcher.dedup(items)
+    assert len(out) == 1
+    assert out[0]["name"] == "银行"

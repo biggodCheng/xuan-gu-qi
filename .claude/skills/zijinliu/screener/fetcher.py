@@ -37,3 +37,20 @@ def parse(row: dict) -> dict:
         "super_large_net": row.get("f66"),
         "large_net": row.get("f72"),
     }
+
+
+def dedup(industries: list) -> list:
+    """端内去重: 同行业多层级 BK 的 (main_net, main_pct) 相同, 合并为一个。
+
+    同值多条中优先保留行业名不含罗马后缀(ⅡⅢⅣⅤⅥ)者(即一级名)。
+    main_net 为 None(停牌/缺字段)的条目跳过。
+    """
+    best = {}
+    for it in industries:
+        if it.get("main_net") is None:
+            continue
+        key = (it["main_net"], it.get("main_pct"))
+        cur = best.get(key)
+        if cur is None or (_SUF.search(cur.get("name", "")) and not _SUF.search(it.get("name", ""))):
+            best[key] = it
+    return list(best.values())
