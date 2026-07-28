@@ -91,3 +91,12 @@ def test_fetch_top_flows_dedup_applied(monkeypatch):
     r = fetcher.fetch_top_flows(per_end=100)
     assert len(r["inflow"]) == 1          # 银行/银行Ⅱ 合并
     assert len(r["outflow"]) == 0
+
+
+def test_dedup_order_independent():
+    """无论 银行/银行Ⅱ 谁先, 都保留无后缀的'银行'。"""
+    a = [{"name": "银行", "main_net": 1000, "main_pct": 5},
+         {"name": "银行Ⅱ", "main_net": 1000, "main_pct": 5}]
+    b = list(reversed(a))
+    assert fetcher.dedup(a)[0]["name"] == "银行"
+    assert fetcher.dedup(b)[0]["name"] == "银行"

@@ -23,6 +23,11 @@ def _yi(val) -> str:
     return f"{round(val / 1e8, 2)}"
 
 
+def _dash(val):
+    """None → '-', 其他(含 0)原样返回。"""
+    return "-" if val is None else val
+
+
 def _print_summary(data: dict, top: int, outflow_top: int) -> None:
     date_str = data["date"]
     print(f"\n# 行业资金流 · {date_str}（东方财富·今日）")
@@ -33,16 +38,16 @@ def _print_summary(data: dict, top: int, outflow_top: int) -> None:
     print("| # | 行业 | 涨跌% | 主力净流入(亿) | 占比% | 超大单(亿) |")
     print("|---|---|---|---|---|---|")
     for i, it in enumerate(data["inflow"][:top], 1):
-        print(f"| {i} | {it.get('name', '')} | {it.get('change_pct', '-')} | "
-              f"{it.get('main_net_yi', '-')} | {it.get('main_pct', '-')} | "
+        print(f"| {i} | {it.get('name', '')} | {_dash(it.get('change_pct'))} | "
+              f"{_dash(it.get('main_net_yi'))} | {_dash(it.get('main_pct'))} | "
               f"{_yi(it.get('super_large_net'))} |")
 
     print(f"\n## 主力净流出 Top {outflow_top}")
     print("| # | 行业 | 涨跌% | 主力净流出(亿) | 占比% | 超大单(亿) |")
     print("|---|---|---|---|---|---|")
     for i, it in enumerate(data["outflow"][:outflow_top], 1):
-        print(f"| {i} | {it.get('name', '')} | {it.get('change_pct', '-')} | "
-              f"{it.get('main_net_yi', '-')} | {it.get('main_pct', '-')} | "
+        print(f"| {i} | {it.get('name', '')} | {_dash(it.get('change_pct'))} | "
+              f"{_dash(it.get('main_net_yi'))} | {_dash(it.get('main_pct'))} | "
               f"{_yi(it.get('super_large_net'))} |")
 
 
@@ -65,6 +70,10 @@ def run(today_str: str | None = None, output_dir: str | None = None,
     flows = fetcher.fetch_top_flows(per_end=per_end)
     print(f"流入端 {len(flows['inflow'])} 条 / 流出端 {len(flows['outflow'])} 条（去重后）",
           flush=True)
+
+    if not flows["inflow"] and not flows["outflow"]:
+        print("⚠️ 抓取失败：两端均无数据（接口异常或被封）。未保存快照，可重试。", flush=True)
+        return False
 
     # 3. 保存
     saved = storage.save_results(today_str, flows["inflow"], flows["outflow"], output_dir)

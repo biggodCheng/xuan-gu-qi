@@ -47,3 +47,17 @@ def test_run_force_overwrites(tmp_path):
     assert ok is True
     data = storage.load_results("2026-07-28", str(tmp_path))
     assert data["inflow"][0]["name"] == "银行"
+
+
+class _EmptyFetcher:
+    @staticmethod
+    def fetch_top_flows(per_end=100):
+        return {"inflow": [], "outflow": []}
+
+
+def test_run_network_failure_returns_false_no_save(tmp_path, capsys):
+    """接口失败(两端空) → 不保存、返回 False、打印失败提示。"""
+    ok = main.run(today_str="2026-07-28", output_dir=str(tmp_path), fetcher=_EmptyFetcher)
+    assert ok is False
+    assert not os.path.exists(os.path.join(str(tmp_path), "zijin_2026-07-28.json"))
+    assert "失败" in capsys.readouterr().out
