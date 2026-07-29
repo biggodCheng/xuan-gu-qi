@@ -51,8 +51,9 @@ def analyze_qibao(kline_data: list[dict]) -> dict | None:
     prev_highs = highs[last - BOLL_N:last]
     prev_lows = lows[last - BOLL_N:last]
     a1 = (max(prev_highs) / min(prev_lows) - 1) < XUSHI_AMP
-    # A2 放量阳线：末根 vol > MA(vol,5)*1.5 且收阳
-    a2 = volumes[last] > ma_vol[last] * VOL_MA_RATIO and closes[last] > opens[last]
+    # A2 放量阳线: vol > MA(vol,5)*1.5 或 较昨放量*1.5(地量反弹日今/昨先于均量反映), 且收阳
+    a2 = (volumes[last] > ma_vol[last] * VOL_MA_RATIO
+          or volumes[last] > volumes[prev] * VOL_MA_RATIO) and closes[last] > opens[last]
     xushi = bool(a1 and a2)
 
     pct_chg = (closes[last] - closes[prev]) / closes[prev]

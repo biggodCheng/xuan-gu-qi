@@ -110,8 +110,9 @@ def _analyze(code: str, stock: dict, today_str: str) -> dict | None:
     # 量能/收阳用本地最后一根(最近交易日)
     last = rows[-1]
     prev5_vols = [r["volume"] for r in rows[-6:-1]]
-    ma5_vol = mean(prev5_vols) if prev5_vols else 0
-    vol_ratio = round(last["volume"] / ma5_vol, 2) if ma5_vol > 0 else 0.0
+    # 起爆倍量口径对齐 qibao skill 的 b2: 今量 / 近5日"峰值"(非均量), >=2 为倍量
+    max5_vol = max(prev5_vols) if prev5_vols else 0
+    vol_ratio = round(last["volume"] / max5_vol, 2) if max5_vol > 0 else 0.0
     up = last["close"] > last["open"]
     qibao = is_new_high and vol_ratio >= 2.0 and up
 
