@@ -65,7 +65,7 @@ def test_not_recover_open():
 
 
 def test_cap_not_filtered():
-    """市值条件已取消(2026-07-20):任意市值(含极小/极大/None)都通过(其他条件满足时)。"""
+    """市值条件已取消:任意市值(含极小/极大/None)都通过(其他条件满足时)。"""
     assert is_oversold_rebound(_good_bars(), 5.0) is not None      # 极小盘
     assert is_oversold_rebound(_good_bars(), 5000.0) is not None   # 极大盘
     assert is_oversold_rebound(_good_bars(), None) is not None     # 无市值

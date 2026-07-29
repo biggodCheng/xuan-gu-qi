@@ -48,10 +48,14 @@ def test_dedup_unsorted_input():
 
 
 def _make_kline():
-    """构造一只股 7 日前复权K线,末日(T=2024-03-12)满足超跌反弹。"""
+    """构造一只股 21 日前复权K线,末日(T=2024-03-12)满足超跌反弹。
+
+    前19日横盘 close=12.5;T-1 长下影缩量;T 放量阳包阴。21 根以满足 BIAS(20)。
+    """
     bars = []
-    for d in ["2024-03-04", "2024-03-05", "2024-03-06", "2024-03-07", "2024-03-08"]:
-        bars.append({"date": d, "open": 12.5, "close": 12.5, "high": 13.0, "low": 12.0, "volume": 100})
+    for i in range(19):  # 前19日横盘(补足 BIAS(20) 所需历史)
+        bars.append({"date": f"2024-02-{i + 1:02d}", "open": 12.5, "close": 12.5,
+                     "high": 13.0, "low": 12.0, "volume": 100})
     bars.append({"date": "2024-03-11", "open": 10.0, "close": 9.0, "high": 10.5, "low": 7.0, "volume": 50})   # T-1
     bars.append({"date": "2024-03-12", "open": 9.2, "close": 10.5, "high": 11.0, "low": 9.0, "volume": 100})  # T 阳包阴
     return bars
@@ -74,7 +78,22 @@ def test_scan_signals_finds_signal():
     assert 50 <= s["market_cap_T"] <= 500
 
 
-def test_scan_signals_skips_when_cap_out_of_band():
+def test_scan_signals_no_cap_filter_by_default():
+    """默认不卡市值:极小市值(<50亿)也出信号。"""
+    bars = _make_kline()
+    sigs = scan_signals(
+        klines_by_code={"000001": bars},
+        shares_func=lambda c, d: 1_000_000.0,  # 极小股本->市值<50亿
+        names_by_code={"000001": "测试股"},
+        trading_dates=["2024-03-12"],
+    )
+    assert len(sigs) == 1
+
+
+def test_scan_signals_skips_when_cap_filter_enabled(monkeypatch):
+    """CAP_FILTER_ENABLED=1 时市值 out of band 跳过。"""
+    from backtest import market_cap
+    monkeypatch.setattr(market_cap, "CAP_FILTER_ENABLED", True)
     bars = _make_kline()
     sigs = scan_signals(
         klines_by_code={"000001": bars},

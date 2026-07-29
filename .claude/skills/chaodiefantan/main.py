@@ -11,8 +11,10 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from screener.bridges import get_all_stocks_today, get_stock_kline, get_market_cap_map
+from screener.bridges import (
+    get_all_stocks_today, get_stock_kline, get_market_cap_map, get_index_kline)
 from screener.analyzer import is_oversold_rebound
+from screener.market_filter import is_market_crash, INDICES
 from screener.storage import save_results
 
 _STOCK_KLINE_DAYS = 70  # 满足 5 日跌幅 + 长下影 + 均量判定
@@ -26,6 +28,21 @@ def run_screener(output_dir: str | None = None) -> bool:
     start = time.time()
     date_str = datetime.now().strftime("%Y-%m-%d")
     print(f"[{date_str}] 超跌反弹扫描启动...", flush=True)
+
+    # ---- 大盘环境开关(宽松:仅排除三指数同步加速阴跌段) ----
+    print("检查大盘环境...", flush=True)
+    index_klines = {}
+    for sym, _name in INDICES:
+        try:
+            index_klines[sym] = get_index_kline(sym, 30)
+        except Exception:
+            pass
+    if is_market_crash(index_klines):
+        print("  ⚠️ 三大指数同步加速阴跌(空头排列+缩量),跳过扫描(下跌市禁做)。", flush=True)
+        save_results(date_str, [], output_dir,
+                     trigger={"signal": "oversold_rebound", "market_crash": True})
+        return False
+    print("  大盘非加速阴跌,继续扫描。", flush=True)
 
     # ---- 全A行情 ----
     print("获取全A股行情...", flush=True)

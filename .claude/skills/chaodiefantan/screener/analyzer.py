@@ -5,7 +5,16 @@
 
 bar 格式：{day/date, open, high, low, close, volume/vol}，按日期正序，
 最后一个元素为当日T，倒数第二个为昨日T-1。
+
+回测性能：仅取末 7 根做判定(所有条件只用到末尾:drop5[-6]/T-1[-2]/T[-1]/缩量[-6:-2]),
+等价于完整序列,避免逐日回测 O(n²)。
 """
+import os
+
+# ---- 市值过滤口径(仅回测用) ----
+# 默认关闭(不卡市值):对齐实盘 main.py 与 SKILL.md "扫全A不卡市值" 策略意图。
+# 设环境变量 CHAODIE_CAP_FILTER=1 可在回测中开启 30-100 亿市值带过滤(对比口径用)。
+CAP_FILTER_ENABLED = os.getenv("CHAODIE_CAP_FILTER", "0") == "1"
 
 # ---- 阈值 ----
 DROP_5D = -15.0            # 近5日跌幅阈值(%)，跌幅 <= 此值才算急跌
@@ -13,8 +22,8 @@ LOWER_SHADOW_MULT = 2.0    # T-1下影 >= 实体的 2 倍
 LOWER_SHADOW_PCT = 0.03    # T-1下影 >= 当日价格的 3%
 VOL_CONFIRM_RATIO = 1.5    # T日放量 >= T-1日的 1.5 倍
 VOL_SHRINK_RATIO = 0.8     # T-1日相对前4日均量缩到此比例以下
-MARKET_CAP_MIN = 30        # 流通市值下限（亿）— 原50,2026-07回测证明<50亿小盘超跌反弹更有效(+4.68%)
-MARKET_CAP_MAX = 100       # 流通市值上限（亿）— 原500,回测证明100亿以上中盘表现差(-7%以下)
+MARKET_CAP_MIN = 30        # 回测卡市值下限(亿),仅 CAP_FILTER_ENABLED=1 时生效;实盘不卡市值
+MARKET_CAP_MAX = 100       # 回测卡市值上限(亿),仅 CAP_FILTER_ENABLED=1 时生效;实盘不卡市值
 
 
 def _get(bar: dict, *keys):
@@ -26,11 +35,11 @@ def _get(bar: dict, *keys):
 
 
 def is_oversold_rebound(bars: list[dict], market_cap: float | None = None) -> dict | None:
-    """判断个股是否出现超跌反弹信号（5 条全满足）。
+    """判断个股是否出现超跌反弹信号（4 条全满足，不卡市值）。
 
     Args:
         bars: 个股日K列表（按日期正序），需 >= 7 条。
-        market_cap: 流通市值（亿元）。
+        market_cap: 流通市值（亿元，仅展示用，不参与过滤）。
 
     Returns:
         通过时返回 {drop5, stop_loss, vol_ratio}；不通过返回 None。
@@ -38,9 +47,10 @@ def is_oversold_rebound(bars: list[dict], market_cap: float | None = None) -> di
     """
     if len(bars) < 7:
         return None
-
-    closes = [b["close"] for b in bars]
-    vols = [_get(b, "volume", "vol") for b in bars]
+    # 仅取末尾所需窗口(回测性能):所有判定只用到末 7 根,与完整序列等价。
+    tail = bars[-7:]
+    closes = [b["close"] for b in tail]
+    vols = [_get(b, "volume", "vol") for b in tail]
 
     # 条件1：近5日急跌（跌幅 <= -15%）
     if closes[-6] <= 0:
@@ -82,9 +92,7 @@ def is_oversold_rebound(bars: list[dict], market_cap: float | None = None) -> di
     if high1 <= _get(t2, "high"):
         return None  # 未突破前日高点
 
-    # 市值条件已取消(2026-07-20):扫全A不卡市值,让策略自然选信号(回测证明不卡市值+2.41%正期望,
-    # 小盘<50亿最有效+4.68%)。market_cap 参数保留兼容(backtest 展示/分析用)。
-
+    # 市值条件已取消(实盘不卡市值);market_cap 仅展示用。
     return {
         "drop5": round(drop5, 2),
         "stop_loss": round(low2, 2),  # 止损位 = T-1日最低

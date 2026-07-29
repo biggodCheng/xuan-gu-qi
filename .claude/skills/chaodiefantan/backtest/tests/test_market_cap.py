@@ -12,7 +12,19 @@ def test_estimate_cap_yi():
     assert estimate_cap_yi(close_unadj=12.0, float_shares=1_000_000_000.0) == 120.0
 
 
-def test_in_cap_band():
+def test_in_cap_band_default_no_filter():
+    """默认(不卡市值)任意市值都通过。"""
+    assert in_cap_band(0.1) is True
+    assert in_cap_band(30.0) is True
+    assert in_cap_band(100.0) is True
+    assert in_cap_band(29.9) is True
+    assert in_cap_band(100.1) is True
+
+
+def test_in_cap_band_when_filter_enabled(monkeypatch):
+    """CAP_FILTER_ENABLED=1 时卡 30-100 亿。"""
+    from backtest import market_cap
+    monkeypatch.setattr(market_cap, "CAP_FILTER_ENABLED", True)
     assert in_cap_band(30.0) is True
     assert in_cap_band(100.0) is True
     assert in_cap_band(29.9) is False

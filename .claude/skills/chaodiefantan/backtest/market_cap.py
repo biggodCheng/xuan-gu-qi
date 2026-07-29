@@ -1,9 +1,10 @@
 """流通股本与历史市值估算 — 纯函数。
 
-市值过滤口径 50-500 亿(流通市值)。股本视为 2.5 年常数(忽略解禁/增发)。
-详见 spec §4.3。
+市值过滤:默认不卡市值(对齐实盘/策略意图);CAP_FILTER_ENABLED=1 时卡 30-100 亿。
+股本视为 2.5 年常数(忽略解禁/增发)。详见 spec §4.3。
 """
-from screener.analyzer import MARKET_CAP_MIN, MARKET_CAP_MAX  # 50 / 500
+from screener.analyzer import (  # noqa: E402
+    CAP_FILTER_ENABLED, MARKET_CAP_MIN, MARKET_CAP_MAX)
 
 
 def compute_float_shares(cap_yi: float, close: float) -> float:
@@ -17,7 +18,12 @@ def estimate_cap_yi(close_unadj: float, float_shares: float) -> float:
 
 
 def in_cap_band(cap_yi: float) -> bool:
-    """是否落在 50-500 亿市值带。"""
+    """是否落在市值带内。
+
+    CAP_FILTER_ENABLED=1 时卡 30-100 亿;默认关闭(返回 True,不过滤)。
+    """
+    if not CAP_FILTER_ENABLED:
+        return True
     return MARKET_CAP_MIN <= cap_yi <= MARKET_CAP_MAX
 
 

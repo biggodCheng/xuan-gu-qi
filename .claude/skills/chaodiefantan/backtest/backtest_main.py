@@ -15,6 +15,8 @@ sys.path.insert(0, SKILL_DIR)
 
 from screener.bridges import (  # noqa: E402  复用 kangdie fetcher
     get_all_stocks_today, get_market_cap_map, get_index_kline)
+from screener.analyzer import CAP_FILTER_ENABLED  # noqa: E402
+from screener.market_filter import INDICES, _index_crash  # noqa: E402
 from backtest.data_loader import fetch_all, prefetch_waf_check, fetch_all_dividends  # noqa: E402
 from backtest.market_cap import compute_float_shares, shares_at_date  # noqa: E402
 from backtest.signal_scan import scan_signals, dedup_signals  # noqa: E402
@@ -37,8 +39,32 @@ def _fetch_start(start: str, buffer_days: int = 100) -> str:
 
 
 def _report_path(start: str, end: str) -> str:
+    suffix = "_cap" if CAP_FILTER_ENABLED else "_nocap"
     return os.path.join(SKILL_DIR, "..", "..", "..", "docs",
-                        f"chaodiefantan_backtest_{start}_{end}.md")
+                        f"chaodiefantan_backtest_{start}_{end}{suffix}.md")
+
+
+def _compute_crash_dates(start: str, end: str) -> set[str]:
+    """预拉三指数全历史,逐日判加速阴跌,返回三指数同步 crash 的日期集合。
+
+    任一指数拉取失败则返回空集(不轻易判 crash,即不过滤)。
+    """
+    crash: set[str] = set()
+    per_sym: dict[str, dict[str, bool]] = {}
+    for sym, _name in INDICES:
+        try:
+            kl = get_index_kline(sym, 3000)
+        except Exception:
+            return crash
+        kl_sorted = sorted(kl, key=lambda b: b["date"])
+        per_sym[sym] = {b["date"]: _index_crash(kl_sorted[: i + 1])
+                        for i, b in enumerate(kl_sorted)
+                        if start <= b["date"] <= end}
+    if len(per_sym) < len(INDICES):
+        return crash
+    common = set.intersection(*[set(dc) for dc in per_sym.values()])
+    return {d for d in common
+            if all(per_sym[sym][d] for sym, _ in INDICES)}
 
 
 def load_pool_and_shares():
@@ -156,6 +182,13 @@ def run(smoke: bool = False, start: str = DEFAULT_START, end: str = DEFAULT_END)
     raw = scan_signals(klines_dict, _shares_func, names, dates_q, unadj_close)
     signals = dedup_signals(raw, dates_q)
     print(f"    原始 {len(raw)} → 去重后 {len(signals)} 信号", flush=True)
+
+    print("[4.5] 大盘环境过滤(排除三指数同步加速阴跌日) ...", flush=True)
+    crash_dates = _compute_crash_dates(start, end)
+    before = len(signals)
+    signals = [s for s in signals if s["signal_date"] not in crash_dates]
+    print(f"    加速阴跌日过滤: {before} → {len(signals)} 信号 "
+          f"(crash 交易日 {len(crash_dates)} 个)", flush=True)
 
     print("[5] 模拟退出(双口径) ...", flush=True)
     trades_close = build_trades(signals, klines_dict, "close")
