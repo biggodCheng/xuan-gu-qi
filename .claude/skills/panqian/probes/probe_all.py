@@ -41,11 +41,11 @@ def probe_a50():
         print(f"\n[{code}] 字段数={len(fields)}")
         for i, f in enumerate(fields[:15]):   # hf_ name 在 [13],打印到 15
             print(f"  [{i}] {f!r}")
-    # A50 pct 自算验证(hf_ 无 pct 字段:[0]价 [3]昨收)
+    # A50 pct 自算验证(hf_ 无 pct 字段:[0]价 [7]昨收)
     af = out.get(A50_CODE[0], [])
-    if len(af) > 3:
+    if len(af) > 7:
         try:
-            price, prev = float(af[0]), float(af[3])
+            price, prev = float(af[0]), float(af[7])
             if prev > 0:
                 print(f"   A50 pct 自算: ({price}-{prev})/{prev}*100 = {(price-prev)/prev*100:+.4f}%")
         except ValueError:
@@ -66,12 +66,12 @@ def probe_fx():
         print(f"\n[{code}] 字段数={len(fields)}")
         for i, f in enumerate(fields[:15]):
             print(f"  [{i}] {f!r}")
-    # 大宗 pct 自算验证(hf_ 无 pct:[0]价 [3]昨收)
+    # 大宗 pct 自算验证(hf_ 无 pct:[0]价 [7]昨收)
     for code, name in COMMODITY:
         f = out.get(code, [])
-        if len(f) > 3:
+        if len(f) > 7:
             try:
-                price, prev = float(f[0]), float(f[3])
+                price, prev = float(f[0]), float(f[7])
                 if prev > 0:
                     print(f"   {name}({code}) pct 自算: ({price}-{prev})/{prev}*100 = {(price-prev)/prev*100:+.4f}%")
             except ValueError:

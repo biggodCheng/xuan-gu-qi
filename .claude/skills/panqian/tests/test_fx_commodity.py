@@ -3,7 +3,7 @@
 
 probe 实测(2026-07-23 22:20):
 - fx_susdcnh 可达,18 字段;[11]=pct(decimal,×100) → fixture 中 0.0023 → 0.23%。
-- hf_GC/hf_CL/hf_HG 可达,15 字段:[0]价 [3]昨收 → parser 自算 pct = (price-prev)/prev*100。
+- hf_GC/hf_CL/hf_HG 可达,15 字段:[0]价 [7]昨收 → parser 自算 pct = (price-prev)/prev*100。
 """
 import os
 import pytest
@@ -36,22 +36,22 @@ def test_parse_fx_comm_fx_extracted_with_calibrated_pct():
 
 
 def test_parse_fx_comm_commodities_self_calc_pct():
-    # hf_GC/CL/HG 实测可达 → comm 3 条,pct 从 price[0]+prev[3] 自算
+    # hf_GC/CL/HG 实测可达 → comm 3 条,pct 从 price[0]+prev[7] 自算
     d = fx_commodity.parse_fx_comm(_load_fix())
     assert len(d["comm"]) == 3
     names = [c["name"] for c in d["comm"]]
     assert "COMEX金" in names and "WTI原油" in names and "伦铜" in names
-    # GC: [0]=4046.550 [3]=4047.000 → pct 自算(数学验证 IDX_PREV_HF=3)
+    # GC: [0]=4046.550 [7]=4151.900(真昨收)→ pct 自算(数学验证 IDX_PREV_HF=7)
     gc = next(c for c in d["comm"] if c["name"] == "COMEX金")
-    gc_pct = (4046.550 - 4047.000) / 4047.000 * 100
+    gc_pct = (4046.550 - 4151.900) / 4151.900 * 100
     assert gc["pct"] == pytest.approx(gc_pct, abs=1e-9)
-    # CL: [0]=91.385 [3]=91.340
+    # CL: [0]=91.385 [7]=86.830
     cl = next(c for c in d["comm"] if c["name"] == "WTI原油")
-    cl_pct = (91.385 - 91.340) / 91.340 * 100
+    cl_pct = (91.385 - 86.830) / 86.830 * 100
     assert cl["pct"] == pytest.approx(cl_pct, abs=1e-9)
-    # HG: [0]=637.310 [3]=637.450
+    # HG: [0]=637.310 [7]=649.350
     hg = next(c for c in d["comm"] if c["name"] == "伦铜")
-    hg_pct = (637.310 - 637.450) / 637.450 * 100
+    hg_pct = (637.310 - 649.350) / 649.350 * 100
     assert hg["pct"] == pytest.approx(hg_pct, abs=1e-9)
 
 
@@ -80,7 +80,7 @@ def test_parse_fx_comm_skips_malformed_pct():
 
 
 def test_parse_fx_comm_comm_prev_zero_skipped():
-    # hf_ prev<=0 应跳过(防除零)
+    # hf_ prev[7]<=0 应跳过(防除零);此处 [7]=0(第二个 0)
     raw = 'var hq_str_hf_GC="100,,100,0,110,90,t,0,0,0,0,0,2026-07-23,金,0";'
     d = fx_commodity.parse_fx_comm(raw)
     assert d["comm"] == []

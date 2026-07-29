@@ -3,8 +3,10 @@
 
 校准依据(probe 2026-07-23 真实返回):
 - A50 期货 hf_CHA50CFD 实测可达(15 字段,夜盘实时)。字段布局:
-    [0]最新价  [1]空  [2]开盘  [3]昨收  [4]高  [5]低  [6]时间 ... [13]中文名
-  hf_ 接口无 pct 字段 → pct 自算 (price-prev)/prev*100。
+    [0]最新价  [1]空  [2]?  [3]?  [4]高  [5]低  [6]时间  [7]昨收  [8]开盘 ... [13]中文名
+  [2]/[3] 实测≈现价(语义待定)非昨收;昨收真在 [7]、开盘在 [8](2026-07-29 经 CNBC
+  交叉验证 CL 布局后纠正;probe 07-23 平开日三者重合曾误判 [3] 为昨收)。
+  hf_ 接口无 pct 字段 → pct 自算 (price[0]-prev[7])/prev[7]*100。
   原 config hf_CN 是错代码(新浪无此标的),已改 hf_CHA50CFD。
   备份 hf_HSI(恒指期货,同字段布局),主代码失效时 fetch 内降级尝试。
 - 中概 gb_hxc / gb_baba 等字段同美股格式:[0]名称 [1]当前价 [2]涨跌幅% [3]时间戳
@@ -14,9 +16,9 @@ import re
 from pk import base
 from pk.config import A50_CODE, CNR_DRAGON, CNR_STOCKS
 
-# hf_ 期货字段索引(probe 2026-07-23 实测 hf_CHA50CFD 15 字段)
+# hf_ 期货字段索引(probe 2026-07-23 实测;2026-07-29 复测纠正昨收在 [7] 非 [3])
 IDX_PRICE_HF = 0     # 最新价
-IDX_PREV_HF = 3      # 昨收(pct 自算基准)
+IDX_PREV_HF = 7      # 昨收(pct 自算基准)— [3] 是≈现价字段非昨收(平开日误判,已纠)
 IDX_NAME_HF = 13     # 中文名(仅展示参考,parser 当前未读)
 # 中概 gb_ 字段索引(美股式,[2]直接是 pct%)
 IDX_PRICE_GB = 1
@@ -29,7 +31,7 @@ def _norm(raw_code):
 
 
 def _pick_hf(fields):
-    """hf_ 期货:price([0]) + prev([3]) 自算 pct(hf_ 无 pct 字段)。
+    """hf_ 期货:price([0]) + prev([7]) 自算 pct(hf_ 无 pct 字段)。
 
     prev<=0 / 字段不足 / 非数字 均返回 None(不抛)。
     """
