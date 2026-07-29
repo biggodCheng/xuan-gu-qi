@@ -16,3 +16,6 @@ docs/*.xls
 docs/*.xlsx
 *.xls
 *.xlsx
+
+# 浏览器自动化工具产物（playwright MCP），不入库
+.playwright-mcp/
