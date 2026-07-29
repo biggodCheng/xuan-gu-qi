@@ -7,5 +7,8 @@
   {"prompt": "今天主力净流入哪些行业", "should_trigger": true},
   {"prompt": "帮我选只能涨的股", "should_trigger": false},
   {"prompt": "人气榜", "should_trigger": false},
-  {"prompt": "缩量回踩", "should_trigger": false}
+  {"prompt": "缩量回踩", "should_trigger": false},
+  {"id": 1, "type": "functional", "prompt": "资金流", "expected": "触发 zijinliu → 🔴CHECKPOINT 检查今日快照是否存在 → 不存在则 cd 到 skill 目录跑 python main.py → 抓东财行业板块双口径榜单 → 终端打印流入 Top20 + 流出 Top10 → 提醒'高流入≠买点'"},
+  {"id": 2, "type": "functional", "prompt": "今天主力净流入哪些行业，盘中数据准吗", "expected": "触发 skill → 针对'盘中数据准吗'说明盘中是实时值(会随盘变化)、盘前返回上一交易日(触发数据日警告) → 建议收盘后跑"},
+  {"id": 3, "type": "functional", "prompt": "主力净流入最多的行业直接买吗", "expected": "拒绝当买点 → 提供榜单但明确'资金流入≠买点，高流入常是高位接力/出货' → 强调须结合 fupan/qsht 趋势回踩市值纪律"}
 ]
