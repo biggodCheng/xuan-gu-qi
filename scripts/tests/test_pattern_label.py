@@ -48,23 +48,14 @@ HAS_VIPDOC = os.path.isdir(VIPDOC)
 
 
 @pytest.mark.skipif(not HAS_VIPDOC, reason="无招商证券 vipdoc 目录")
-@pytest.mark.xfail(
-    reason=(
-        "2026-07-29 实测: 华天实际判定为「超跌反抽」而非 spec 预期的「横盘突破」。"
-        "spec 4.1 手工分析只看了末20日横盘3.0-3.2, 误判 peak60≈3.26/retracement<10%; "
-        "但算法按 60日窗口 peak-trough 正确算出 peak60=3.89(2026-04-29) → trough=3.02(2026-07-22), "
-        "retracement=22.37%>15% 且 breakout=0.859<1.0 → 超跌反抽。"
-        "算法自洽且符合 spec「用60日peak-trough过程指标」的设计意图; "
-        "分歧在华天属「下跌末段底部平台突破」, 60日窗口捕捉到前期3.89高点。"
-        "由 controller 裁定: (a)认可算法→改本断言为超跌反抽; (b)想识别底部平台突破→算法增强。"
-    ),
-    strict=False,
-)
-def test_shape_real_huatian_breakout():
-    """华天酒店 sz000428 (2026-07-29 三板) → spec 预期横盘突破 (实测见 xfail reason)。"""
+def test_shape_real_huatian_bottom_breakout():
+    """华天酒店 sz000428 (2026-07-29 三板) → 底部平台突破。
+
+    60日前高3.89(2026-04-29)→慢跌3月到3.02(07-22)→末20日3.0-3.2筑底横盘→
+    07-27放量破末20日高3.26。前期跌透(retracement22%)+近期筑底(vol20 5.8%)+破平台=底部反转。"""
     kl = local_kline.read_day("sz000428")
     r = pattern_label.classify_shape(kl, height=3)
-    assert r["label"] == "横盘突破", r
+    assert r["label"] == "底部平台突破", r
 
 
 @pytest.mark.skipif(not HAS_VIPDOC, reason="无招商证券 vipdoc 目录")
