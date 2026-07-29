@@ -33,3 +33,64 @@ def load_map():
         return {}
     with open(MAP_PATH, encoding="utf-8") as f:
         return json.load(f)
+
+
+def _clist(fs, fields, pz=500):
+    """请求东财 clist, 返回 diff 列表(list[dict])。失败/重试耗尽返回 []。可被测试 mock。"""
+    params = {"pn": "1", "pz": str(pz), "po": "1", "fid": "f3",
+              "fs": fs, "fields": fields, "fltt": "2"}
+    for attempt in range(RETRIES):
+        try:
+            payload = _session.get(CLIST_URL, params=params, timeout=15).json() or {}
+            diff = (payload.get("data") or {}).get("diff") or []
+            return list(diff.values()) if isinstance(diff, dict) else list(diff)
+        except Exception as e:
+            if attempt < RETRIES - 1:
+                time.sleep(0.5 * (attempt + 1))
+                continue
+            print(f"push2delay 请求失败(fs={fs}): {e}", flush=True)
+            return []
+
+
+def refresh():
+    """两层拉取构建 {code6: 行业名} 映射并落盘。
+    1) 行业板块列表(fs=m:90+t:2+f:!50) → f12=BK代码, f14=行业名
+    2) 每板块成分股(fs=b:BKxxxx) → f12=股票代码, 取后6位
+    """
+    industries = _clist(INDUSTRY_FS, "f12,f14")
+    mapping = {}
+    for ind in industries:
+        bk = ind.get("f12")
+        name = ind.get("f14")
+        if not bk or not name:
+            continue
+        for s in _clist(f"b:{bk}", "f12", pz=500):
+            code = (s.get("f12") or "")[-6:]
+            if code.isdigit():
+                mapping[code] = name
+        time.sleep(0.1)  # 礼貌限频
+    os.makedirs(os.path.dirname(MAP_PATH), exist_ok=True)
+    with open(MAP_PATH, "w", encoding="utf-8") as f:
+        json.dump(mapping, f, ensure_ascii=False, indent=2)
+    return mapping
+
+
+def main():
+    import argparse
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+    ap = argparse.ArgumentParser(description="东财一级行业映射")
+    ap.add_argument("--refresh", action="store_true", help="重新从东财拉取并缓存")
+    args = ap.parse_args()
+    if args.refresh:
+        m = refresh()
+        print(f"已刷新行业映射: {len(m)} 只股票 → {MAP_PATH}")
+    else:
+        print(f"当前映射: {len(load_map())} 只 (用 --refresh 刷新)")
+
+
+if __name__ == "__main__":
+    import sys
+    main()
