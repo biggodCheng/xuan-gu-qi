@@ -35,21 +35,37 @@ def load_map():
         return json.load(f)
 
 
-def _clist(fs, fields, pz=500):
-    """请求东财 clist, 返回 diff 列表(list[dict])。失败/重试耗尽返回 []。可被测试 mock。"""
-    params = {"pn": "1", "pz": str(pz), "po": "1", "fid": "f3",
-              "fs": fs, "fields": fields, "fltt": "2"}
-    for attempt in range(RETRIES):
-        try:
-            payload = _session.get(CLIST_URL, params=params, timeout=15).json() or {}
-            diff = (payload.get("data") or {}).get("diff") or []
-            return list(diff.values()) if isinstance(diff, dict) else list(diff)
-        except Exception as e:
-            if attempt < RETRIES - 1:
-                time.sleep(0.5 * (attempt + 1))
-                continue
-            print(f"push2delay 请求失败(fs={fs}): {e}", flush=True)
-            return []
+def _clist(fs, fields, pz=100):
+    """请求东财 clist 全部分页, 返回 diff 列表(list[dict])。
+    东财硬性每页≤100条(pz>100 也只回100), 故循环 pn=1,2,... 直至拿够 total。
+    失败/重试耗尽返回已拿到的部分。可被测试 mock(mock 时按 fs 返回固定值, 分页首页即 break)。"""
+    out = []
+    pn = 1
+    total = None
+    while True:
+        params = {"pn": str(pn), "pz": str(pz), "po": "1", "fid": "f3",
+                  "fs": fs, "fields": fields, "fltt": "2"}
+        payload = {}
+        for attempt in range(RETRIES):
+            try:
+                payload = _session.get(CLIST_URL, params=params, timeout=15).json() or {}
+                break
+            except Exception as e:
+                if attempt < RETRIES - 1:
+                    time.sleep(0.5 * (attempt + 1))
+                    continue
+                print(f"push2delay 请求失败(fs={fs} pn={pn}): {e}", flush=True)
+                return out
+        data = payload.get("data") or {}
+        diff = data.get("diff") or []
+        diff = list(diff.values()) if isinstance(diff, dict) else list(diff)
+        out.extend(diff)
+        if total is None:
+            total = data.get("total") or 0
+        if len(diff) < pz or (total and len(out) >= total) or pn >= 60:
+            break  # 不足一页 / 拿够 total / 安全上限
+        pn += 1
+    return out
 
 
 def refresh():
