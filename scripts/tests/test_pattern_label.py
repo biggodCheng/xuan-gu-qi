@@ -151,3 +151,15 @@ def test_label_real_xingxin():
     r = pattern_label.label("sz001358", height=3)
     assert r["shape"] == "超跌反抽", r
     print(f"  兴欣 suggest={r.get('suggest')} volume={r.get('volume')} sector={r.get('sector')}")
+
+
+@pytest.mark.skipif(not HAS_VIPDOC, reason="无招商证券 vipdoc 目录")
+def test_strong_scan_includes_pattern_for_ladder():
+    """fupan_strong_scan 连板股应带 pattern 字段。"""
+    import fupan_strong_scan
+    latest, stocks = fupan_strong_scan.scan()
+    lian = [s for s in stocks if s["height"] >= 2]
+    if lian:
+        for s in lian[:8]:
+            assert "pattern" in s, f"{s['code']} 缺 pattern 字段"
+            assert "sym" in s, f"{s['code']} 缺 sym 字段"

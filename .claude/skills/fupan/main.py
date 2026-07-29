@@ -373,8 +373,8 @@ def render(date_str, color, name, total, breadth, idx_data, stage, stage_info, n
         a(f"**[客观扫描 · 本地vipdoc · fupan_strong_scan]** 今日涨停 **{len(stocks)}** 只: "
           f"首板 **{first_board}** + 连板 **{len(stocks)-first_board}**。梯队: {ladder_s}")
         if lian:
-            a("\n| 代码 | 高度 | 收盘 | 封板 | 量比 | 振幅 | 客观标签 |")
-            a("|---|---|---|---|---|---|---|")
+            a("\n| 代码 | 高度 | 收盘 | 封板 | 量比 | 振幅 | 客观标签 | 成色(pattern) |")
+            a("|---|---|---|---|---|---|---|---|")
             for s in lian[:8]:
                 sig = []
                 if s["yizi"]:
@@ -385,8 +385,13 @@ def render(date_str, color, name, total, breadth, idx_data, stage, stage_info, n
                     sig.append("爆量")
                 elif 0 < s["vr"] < 0.8:
                     sig.append("缩量")
+                p = s.get("pattern")
+                if p and "error" not in p:
+                    pat = f"{p['shape']}/{p['volume']}/{p['sector']}→{p['suggest']}"
+                else:
+                    pat = "—"
                 a(f"| {s['code']} | {s['height']}板 | {s['chg']:+.1f}% | {s['seal']:.2f} | "
-                  f"{s['vr']:.1f} | {s['amp']:.1f}% | {' '.join(sig) or '温和'} |")
+                  f"{s['vr']:.1f} | {s['amp']:.1f}% | {' '.join(sig) or '温和'} | {pat} |")
             if len(lian) > 8:
                 a(f"\n*…另有 {len(lian)-8} 只连板 (2板为主, 拆解优先看高度前8)*")
     a("\n> **三维度拆解** (从连板高度前N挑, 人工研判):")

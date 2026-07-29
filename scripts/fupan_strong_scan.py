@@ -26,6 +26,12 @@ sys.path.insert(0, HERE)
 import local_kline  # noqa: E402
 
 try:
+    import pattern_label  # 可选: 连板股追加首板成色 pattern 标签
+    _HAS_PATTERN = True
+except Exception:
+    _HAS_PATTERN = False
+
+try:
     sys.stdout.reconfigure(encoding="utf-8")
 except Exception:
     pass
@@ -115,10 +121,19 @@ def scan(target_date=None, top=12):
             vr = today["volume"] / avg5v if avg5v > 0 else 0
             code = "".join(ch for ch in sym if ch.isdigit())[-6:]
             stocks.append({
-                "code": code, "bd": bd, "height": height,
+                "code": code, "bd": bd, "sym": sym, "height": height,
                 "chg": round(chg * 100, 2), "seal": round(seal, 2),
                 "vr": round(vr, 2), "yizi": yizi, "amp": round(amp * 100, 2),
             })
+    # 连板股追加首板成色 pattern 标签 (仅前 top 只, 控制 classify_sector 成本)
+    if _HAS_PATTERN:
+        lian_sorted = sorted([s for s in stocks if s["height"] >= 2],
+                             key=lambda x: (-x["height"], -x["chg"]))
+        for s in lian_sorted[:top]:
+            try:
+                s["pattern"] = pattern_label.label(s["sym"], height=s["height"])
+            except Exception:
+                s["pattern"] = None
     latest = date_cnt.most_common(1)[0][0] if date_cnt else "?"
     return latest, stocks
 
