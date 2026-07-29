@@ -64,3 +64,90 @@ def test_shape_real_xingxin_oversold():
     kl = local_kline.read_day("sz001358")
     r = pattern_label.classify_shape(kl, height=3)
     assert r["label"] == "超跌反抽", r
+
+
+# ---------- classify_volume ----------
+def test_volume_yizi():
+    assert pattern_label.classify_volume(vr=0.6, amp=0.5, seal=1.0, yizi=True) == "一字缩量"
+
+
+def test_volume_shrink():
+    assert pattern_label.classify_volume(vr=0.7, amp=5.0, seal=1.0) == "缩量"
+
+
+def test_volume_mild():
+    assert pattern_label.classify_volume(vr=2.2, amp=5.8, seal=1.0) == "温和放量"
+
+
+def test_volume_blowoff_bad():
+    assert pattern_label.classify_volume(vr=6.6, amp=6.8, seal=0.98) == "爆量烂板"
+
+
+def test_volume_plain_up():
+    assert pattern_label.classify_volume(vr=3.0, amp=4.0, seal=1.0) == "放量"
+
+
+# ---------- classify_sector (mock industry_map + _sector_stats) ----------
+def test_sector_missing_map(monkeypatch):
+    monkeypatch.setattr(pattern_label.industry_map, "load_map", lambda: {})
+    r = pattern_label.classify_sector("sz000428")
+    assert r["label"] == "映射缺失"
+
+
+def test_sector_lone_wolf(monkeypatch):
+    monkeypatch.setattr(pattern_label.industry_map, "load_map",
+                        lambda: {"000428": "酒店", "000721": "酒店", "600754": "酒店"})
+    monkeypatch.setattr(pattern_label, "_sector_stats", lambda ind: {"zt": 1, "median": 1.2})
+    r = pattern_label.classify_sector("sz000428")
+    assert r["label"] == "独狼"
+
+
+def test_sector_surge_emotion(monkeypatch):
+    monkeypatch.setattr(pattern_label.industry_map, "load_map", lambda: {"000428": "酒店"})
+    monkeypatch.setattr(pattern_label, "_sector_stats", lambda ind: {"zt": 4, "median": 5.5})
+    r = pattern_label.classify_sector("sz000428")
+    assert r["label"] == "齐涨(情绪)"
+
+
+# ---------- _suggest 建议归类规则 ----------
+def test_suggest_blowoff_top_priority():
+    assert pattern_label._suggest("超跌反抽", "爆量烂板", "独狼") == "出货烂板"
+    assert pattern_label._suggest("超跌反抽", "爆量烂板", "齐涨(情绪)") == "出货烂板"
+
+
+def test_suggest_message_board():
+    assert pattern_label._suggest("横盘突破", "一字缩量", "独狼") == "消息板"
+
+
+def test_suggest_emotion_board():
+    assert pattern_label._suggest("箱体震荡", "放量", "齐涨(情绪)") == "情绪板"
+
+
+def test_suggest_bottom_reversal():
+    """底部平台突破+温和放量+独狼 → 底部反转苗头。"""
+    assert pattern_label._suggest("底部平台突破", "温和放量", "独狼") == "底部反转苗头"
+
+
+def test_suggest_capital_board():
+    assert pattern_label._suggest("横盘突破", "温和放量", "独狼") == "资金板苗头"
+
+
+def test_suggest_mixed():
+    assert pattern_label._suggest("箱体震荡", "放量", "独狼") == "混合"
+
+
+# ---------- label 综合判定 (真实数据, 仅断言 shape) ----------
+@pytest.mark.skipif(not HAS_VIPDOC, reason="无招商证券 vipdoc 目录")
+def test_label_real_huatian():
+    """华天酒店 综合 → 底部平台突破 (suggest 依赖运行时板块数据, 仅打印)。"""
+    r = pattern_label.label("sz000428", height=3)
+    assert r["shape"] == "底部平台突破", r
+    print(f"  华天 suggest={r.get('suggest')} volume={r.get('volume')} sector={r.get('sector')}")
+
+
+@pytest.mark.skipif(not HAS_VIPDOC, reason="无招商证券 vipdoc 目录")
+def test_label_real_xingxin():
+    """兴欣新材 综合 → 超跌反抽 (volume 实际是'放量'非'爆量烂板', 因3板封死 seal≈1.0)。"""
+    r = pattern_label.label("sz001358", height=3)
+    assert r["shape"] == "超跌反抽", r
+    print(f"  兴欣 suggest={r.get('suggest')} volume={r.get('volume')} sector={r.get('sector')}")

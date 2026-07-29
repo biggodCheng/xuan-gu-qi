@@ -68,3 +68,113 @@ def classify_shape(kl, height=1):
     if volatility20 >= 0.15 and retracement < 0.15 and breakout < 0.99:
         return {"label": "箱体震荡", "metrics": metrics}
     return {"label": "混合", "metrics": metrics}
+
+
+def classify_volume(vr, amp, seal, yizi=False):
+    """量能标签。vr=量比, amp=振幅(百分比, 如5.8表示5.8%), seal=封板强度(收盘涨幅/涨停幅度), yizi=是否一字。
+    返回 ∈ {一字缩量, 缩量, 温和放量, 爆量烂板, 放量}。"""
+    if yizi and vr < 0.8 and amp < 1:
+        return "一字缩量"
+    if vr < 0.8:
+        return "缩量"
+    if vr > 3 and amp > 5 and seal < 0.99:
+        return "爆量烂板"
+    if 1.0 <= vr <= 2.5 and seal >= 0.99:
+        return "温和放量"
+    if vr > 2.5:
+        return "放量"
+    return "温和放量"  # vr 0.8-1.0 兜底归温和
+
+
+def _sector_stats(industry):
+    """统计某行业当日成分股表现(本地 vipdoc)。返回 {zt:涨停数, median:中位涨幅%}。可被测试 mock。"""
+    imap = industry_map.load_map()
+    codes = [c for c, ind in imap.items() if ind == industry]
+    chgs = []
+    zt = 0
+    for code in codes:
+        for pre in ("sh", "sz", "bj"):
+            rows = local_kline.read_day(f"{pre}{code}")
+            if len(rows) >= 2 and rows[-1]["close"] > 0 and rows[-2]["close"] > 0:
+                chg = (rows[-1]["close"] - rows[-2]["close"]) / rows[-2]["close"]
+                chgs.append(chg)
+                bd = local_kline._classify_a_share(f"{pre}{code}")
+                limit = 0.30 if bd == "bj" else (0.20 if bd in ("cyb", "kcb") else 0.10)
+                if chg >= limit * 0.97:
+                    zt += 1
+                break
+    if not chgs:
+        return {"zt": 0, "median": 0}
+    chgs.sort()
+    median = chgs[len(chgs) // 2] * 100
+    return {"zt": zt, "median": round(median, 2)}
+
+
+def classify_sector(sym):
+    """板块联动判定。sym(如 sz000428) → 行业 → 该行业当日成分股统计。
+    返回 {"label": str, "stats": {...}}。label ∈ {独狼, 齐涨(情绪), 板块漂移, 映射缺失}。"""
+    code = sym[-6:]  # 取后6位代码 (sh/sz/bj 前缀或纯代码都兼容)
+    imap = industry_map.load_map()
+    industry = imap.get(code)
+    if not industry:
+        return {"label": "映射缺失", "stats": {}}
+    stats = _sector_stats(industry)
+    if stats["zt"] >= 3 or stats["median"] > 4:
+        return {"label": "齐涨(情绪)", "stats": stats}
+    if stats["zt"] <= 1 and stats["median"] < 2:
+        return {"label": "独狼", "stats": stats}
+    return {"label": "板块漂移", "stats": stats}
+
+
+def _suggest(shape, volume, sector):
+    """三层客观标签 → 建议归类(参考·需人工确认)。顺序优先, 先命中先返回。"""
+    if shape == "超跌反抽" and volume == "爆量烂板":
+        return "出货烂板"
+    if volume == "一字缩量":
+        return "消息板"
+    if sector == "齐涨(情绪)":
+        return "情绪板"
+    if shape == "底部平台突破" and volume == "温和放量" and sector == "独狼":
+        return "底部反转苗头"
+    if shape == "横盘突破" and volume == "温和放量" and sector == "独狼":
+        return "资金板苗头"
+    return "混合"
+
+
+def _limit_of_bd(bd):
+    return 0.30 if bd == "bj" else (0.20 if bd in ("cyb", "kcb") else 0.10)
+
+
+def label(sym, height=1):
+    """综合判定: 读本地K + 算量能 + 三层标签 + 建议归类。
+    sym: sh/sz/bj + 6位代码。height: 连板高度(默认1=首板)。
+    返回 dict {sym, shape, volume, sector, suggest, metrics} 或 {sym, error}。"""
+    kl = local_kline.read_day(sym)
+    if len(kl) < 2:
+        return {"sym": sym, "error": "无本地数据"}
+
+    sh = classify_shape(kl, height)
+
+    today, prev = kl[-1], kl[-2]
+    if prev["close"] <= 0:
+        return {"sym": sym, "error": "前收异常"}
+    bd = local_kline._classify_a_share(sym) or "main"
+    limit = _limit_of_bd(bd)
+    chg = (today["close"] - prev["close"]) / prev["close"]
+    seal = chg / limit if limit > 0 else 0
+    avg5v = sum(r["volume"] for r in kl[-6:-1]) / 5 if len(kl) >= 6 else today["volume"]
+    vr = today["volume"] / avg5v if avg5v > 0 else 0
+    amp = (today["high"] - today["low"]) / today["low"] * 100 if today["low"] > 0 else 0
+    yizi = amp < 1.1 and today["open"] >= prev["close"] * (1 + limit * 0.95)
+
+    vol = classify_volume(vr=round(vr, 2), amp=round(amp, 2),
+                          seal=round(seal, 2), yizi=yizi)
+    sec = classify_sector(sym)
+    suggest = _suggest(sh["label"], vol, sec["label"])
+
+    return {
+        "sym": sym, "shape": sh["label"], "volume": vol,
+        "sector": sec["label"], "suggest": suggest,
+        "metrics": {**sh["metrics"], "vr": round(vr, 2),
+                    "seal": round(seal, 2), "amp": round(amp, 2)},
+    }
