@@ -11,6 +11,14 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(__file__))
 
+# Windows 中文控制台默认 GBK(cp936) 编不出 emoji(⚠️), print 会 UnicodeEncodeError;
+# 统一 stdout/stderr 用 utf-8(失败则忽略, 不阻断)。
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except (AttributeError, OSError):
+    pass
+
 from screener.bridges import (
     get_all_stocks_today, get_stock_kline, get_market_cap_map, get_index_kline)
 from screener.analyzer import is_oversold_rebound

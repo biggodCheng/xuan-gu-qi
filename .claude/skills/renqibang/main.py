@@ -12,6 +12,14 @@ from collections import Counter
 
 sys.path.insert(0, os.path.dirname(__file__))
 
+# Windows 中文控制台默认 GBK(cp936) 编不出 emoji(⚠️), print 会 UnicodeEncodeError;
+# 统一 stdout/stderr 用 utf-8(失败则忽略, 不阻断)。
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except (AttributeError, OSError):
+    pass
+
 from screener import browser as _default_browser
 from screener import fetcher as _default_fetcher
 from screener.storage import save_results
