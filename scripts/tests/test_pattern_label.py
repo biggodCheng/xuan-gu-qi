@@ -87,6 +87,12 @@ def test_volume_plain_up():
     assert pattern_label.classify_volume(vr=3.0, amp=4.0, seal=1.0) == "放量"
 
 
+def test_volume_blowoff_bad_board_threshold():
+    """爆量烂板振幅阈值按板块折算: 主板amp>5%, 创业/科创>10%。同 amp=8 主板烂板/创业不算。"""
+    assert pattern_label.classify_volume(vr=6.6, amp=8.0, seal=0.98, bd="main") == "爆量烂板"
+    assert pattern_label.classify_volume(vr=6.6, amp=8.0, seal=0.98, bd="cyb") == "放量"
+
+
 # ---------- classify_sector (mock industry_map + _sector_stats) ----------
 def test_sector_missing_map(monkeypatch):
     monkeypatch.setattr(pattern_label.industry_map, "load_map", lambda: {})

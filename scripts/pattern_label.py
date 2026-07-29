@@ -70,14 +70,16 @@ def classify_shape(kl, height=1):
     return {"label": "混合", "metrics": metrics}
 
 
-def classify_volume(vr, amp, seal, yizi=False):
-    """量能标签。vr=量比, amp=振幅(百分比, 如5.8表示5.8%), seal=封板强度(收盘涨幅/涨停幅度), yizi=是否一字。
-    返回 ∈ {一字缩量, 缩量, 温和放量, 爆量烂板, 放量}。"""
+def classify_volume(vr, amp, seal, yizi=False, bd=None):
+    """量能标签。vr=量比, amp=振幅(百分比, 如5.8表示5.8%), seal=封板强度, yizi=是否一字。
+    bd=板块(main/cyb/kcb/bj): 爆量烂板的振幅阈值按板块折算(主板>5%/创业·科创>10%/北交>15%),
+    因创业科创20%涨停振幅天然大。返回 ∈ {一字缩量, 缩量, 温和放量, 爆量烂板, 放量}。"""
+    amp_bad = 10.0 if bd in ("cyb", "kcb") else (15.0 if bd == "bj" else 5.0)
     if yizi and vr < 0.8 and amp < 1:
         return "一字缩量"
     if vr < 0.8:
         return "缩量"
-    if vr > 3 and amp > 5 and seal < 0.99:
+    if vr > 3 and amp > amp_bad and seal < 0.99:
         return "爆量烂板"
     if 1.0 <= vr <= 2.5 and seal >= 0.99:
         return "温和放量"
@@ -168,7 +170,7 @@ def label(sym, height=1):
     yizi = amp < 1.1 and today["open"] >= prev["close"] * (1 + limit * 0.95)
 
     vol = classify_volume(vr=round(vr, 2), amp=round(amp, 2),
-                          seal=round(seal, 2), yizi=yizi)
+                          seal=round(seal, 2), yizi=yizi, bd=bd)
     sec = classify_sector(sym)
     suggest = _suggest(sh["label"], vol, sec["label"])
 
