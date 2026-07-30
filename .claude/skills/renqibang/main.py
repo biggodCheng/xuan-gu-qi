@@ -12,6 +12,14 @@ from collections import Counter
 
 sys.path.insert(0, os.path.dirname(__file__))
 
+# 复用项目根 scripts/trading_day: 用新浪权威交易日, 免疫本机系统时钟漂移
+_SKILL_DIR = os.path.dirname(os.path.abspath(__file__))
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(_SKILL_DIR)))
+_SCRIPTS_DIR = os.path.join(_ROOT, "scripts")
+if os.path.isdir(_SCRIPTS_DIR) and _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+import trading_day
+
 # Windows 中文控制台默认 GBK(cp936) 编不出 emoji(⚠️), print 会 UnicodeEncodeError;
 # 统一 stdout/stderr 用 utf-8(失败则忽略, 不阻断)。
 try:
@@ -63,7 +71,8 @@ def _print_summary(stocks: list, date_str: str) -> None:
 
 def run(today_str: str | None = None, output_dir: str | None = None,
         browser=None, fetcher=None) -> bool:
-    today_str = today_str or datetime.date.today().strftime("%Y-%m-%d")
+    today_str = today_str or trading_day.latest_trading_day()
+    trading_day.warn_if_drift(today_str)
     base_dir = os.path.dirname(os.path.abspath(__file__))
     output_dir = output_dir or os.path.join(base_dir, "data")
     browser = browser or _default_browser

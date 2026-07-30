@@ -14,6 +14,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 sys.path.insert(0, os.path.dirname(__file__))
 
+# 复用项目根 scripts/trading_day: 用新浪权威交易日, 免疫本机系统时钟漂移
+_SKILL_DIR = os.path.dirname(os.path.abspath(__file__))
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(_SKILL_DIR)))
+_SCRIPTS_DIR = os.path.join(_ROOT, "scripts")
+if os.path.isdir(_SCRIPTS_DIR) and _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+import trading_day
+
 # Windows 中文控制台默认 GBK(cp936) 编不出 emoji(⚠️), print 会 UnicodeEncodeError;
 # 统一 stdout/stderr 用 utf-8(失败则忽略, 不阻断)。
 try:
@@ -49,7 +57,8 @@ def _refresh_one(code, notice_date, fetcher):
 
 
 def run(today_str=None, watchlist_path=None, output_dir=None, fetcher=None) -> bool:
-    today_str = today_str or datetime.date.today().strftime("%Y-%m-%d")
+    today_str = today_str or trading_day.latest_trading_day()
+    trading_day.warn_if_drift(today_str)
     base_dir = os.path.dirname(os.path.abspath(__file__))
     watchlist_path = watchlist_path or os.path.join(base_dir, "data", "watchlist.json")
     output_dir = output_dir or os.path.join(base_dir, "output")

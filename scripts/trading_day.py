@@ -63,3 +63,15 @@ def drift_days(local_str: str, trading_str: str) -> int:
     d_local = datetime.datetime.strptime(local_str, fmt).date()
     d_trade = datetime.datetime.strptime(trading_str, fmt).date()
     return (d_trade - d_local).days
+
+
+def warn_if_drift(today_str: str) -> None:
+    """本地时钟与权威交易日不一致时打印警告(today_str 应来自 latest_trading_day)。
+
+    供各 skill run() 入口统一调用, 免疫本机系统时钟漂移(w32time 停摆)。
+    """
+    local = local_today_str()
+    d = drift_days(local, today_str)
+    if d:
+        print(f"⚠️ 本地时钟与权威交易日相差 {d} 天（本地 {local} → 权威 {today_str}），"
+              f"已采用权威交易日；建议修复系统时间。", flush=True)

@@ -13,6 +13,22 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(__file__))
 
+# Windows 中文控制台默认 GBK(cp936) 编不出 emoji(⚠️), warn_if_drift 警告会崩;
+# 统一 stdout/stderr 用 utf-8(失败则忽略)。
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except (AttributeError, OSError):
+    pass
+
+# 复用项目根 scripts/trading_day: 用新浪权威交易日, 免疫本机系统时钟漂移
+_SKILL_DIR = os.path.dirname(os.path.abspath(__file__))
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(_SKILL_DIR)))
+_SCRIPTS_DIR = os.path.join(_ROOT, "scripts")
+if os.path.isdir(_SCRIPTS_DIR) and _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+import trading_day
+
 from screener.fetcher import (
     get_all_stocks_today,
     get_index_kline,
@@ -42,6 +58,7 @@ def run_screener(
     use_q2: bool = True,
     drop_threshold: float = -1.5,
     use_sid: bool = True,
+    today_str: str | None = None,
 ) -> bool:
     """执行抗跌观察池扫描。
 
@@ -58,7 +75,8 @@ def run_screener(
         output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
     start_time = time.time()
-    today_str = datetime.now().strftime("%Y-%m-%d")  # 程序运行日(日历日,可能为周末/节假日)
+    today_str = today_str or trading_day.latest_trading_day()  # 权威交易日(新浪), 非本地时钟
+    trading_day.warn_if_drift(today_str)
     date_str = today_str  # 数据交易日:Step1 拿到指数K线后改用其最后一条真实交易日
 
     # ---- Step 1: 拉创业板指，判大盘是否大跌 ----

@@ -81,3 +81,22 @@ def test_drift_days_positive_when_clock_behind():
 def test_drift_days_negative_when_clock_ahead():
     """本地时钟=07-31(偏快跨日), 权威交易日=07-30 → -1。"""
     assert trading_day.drift_days("2026-07-31", "2026-07-30") == -1
+
+
+# ---------- warn_if_drift ----------
+
+def test_warn_if_drift_silent_when_aligned(capsys, monkeypatch):
+    """本地时钟与权威日一致 → 不打印。"""
+    monkeypatch.setattr(trading_day, "local_today_str", lambda: "2026-07-30")
+    trading_day.warn_if_drift("2026-07-30")
+    assert capsys.readouterr().out == ""
+
+
+def test_warn_if_drift_warns_when_drift(capsys, monkeypatch):
+    """本地时钟偏慢1天 → 打印漂移警告(含天数、权威日)。"""
+    monkeypatch.setattr(trading_day, "local_today_str", lambda: "2026-07-29")
+    trading_day.warn_if_drift("2026-07-30")
+    out = capsys.readouterr().out
+    assert "相差 1 天" in out
+    assert "权威交易日" in out
+    assert "2026-07-30" in out

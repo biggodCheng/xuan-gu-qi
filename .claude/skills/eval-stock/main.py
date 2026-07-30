@@ -9,6 +9,14 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(__file__))
 
+# 复用项目根 scripts/trading_day: 用新浪权威交易日, 免疫本机系统时钟漂移
+_SKILL_DIR = os.path.dirname(os.path.abspath(__file__))
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(_SKILL_DIR)))
+_SCRIPTS_DIR = os.path.join(_ROOT, "scripts")
+if os.path.isdir(_SCRIPTS_DIR) and _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+import trading_day
+
 from screener.fetcher import fetch_kline, fetch_marketcap, zt_threshold
 from screener.analyzer import (
     check_new_high, check_recent_zt, check_pullback, check_marketcap,
@@ -46,10 +54,11 @@ def _lazy_load():
 def _is_intraday(last_date: str) -> bool:
     if not last_date:
         return False
-    now = datetime.now()
-    if last_date != now.strftime("%Y-%m-%d"):
+    # 数据日 vs 权威交易日(新浪, 非本地时钟)
+    if last_date != trading_day.latest_trading_day():
         return False
-    # 交易时段：09:30–15:00
+    # 交易时段：09:30–15:00 (hour 用本地时钟, 漂移仅影响此盘中标签)
+    now = datetime.now()
     return (now.hour > 9 or (now.hour == 9 and now.minute >= 30)) and now.hour < 15
 
 

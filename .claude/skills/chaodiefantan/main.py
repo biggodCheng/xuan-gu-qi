@@ -19,6 +19,14 @@ try:
 except (AttributeError, OSError):
     pass
 
+# 复用项目根 scripts/trading_day: 用新浪权威交易日, 免疫本机系统时钟漂移
+_SKILL_DIR = os.path.dirname(os.path.abspath(__file__))
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(_SKILL_DIR)))
+_SCRIPTS_DIR = os.path.join(_ROOT, "scripts")
+if os.path.isdir(_SCRIPTS_DIR) and _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+import trading_day
+
 from screener.bridges import (
     get_all_stocks_today, get_stock_kline, get_market_cap_map, get_index_kline)
 from screener.analyzer import is_oversold_rebound
@@ -29,12 +37,13 @@ _STOCK_KLINE_DAYS = 70  # 满足 5 日跌幅 + 长下影 + 均量判定
 _MAX_WORKERS = 20
 
 
-def run_screener(output_dir: str | None = None) -> bool:
+def run_screener(output_dir: str | None = None, date_str: str | None = None) -> bool:
     if output_dir is None:
         output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
     start = time.time()
-    date_str = datetime.now().strftime("%Y-%m-%d")
+    date_str = date_str or trading_day.latest_trading_day()
+    trading_day.warn_if_drift(date_str)
     print(f"[{date_str}] 超跌反弹扫描启动...", flush=True)
 
     # ---- 大盘环境开关(宽松:仅排除三指数同步加速阴跌段) ----
