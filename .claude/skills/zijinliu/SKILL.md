@@ -19,6 +19,7 @@ description: 行业资金流排行榜 — 抓取东方财富行业板块当日�
    ```bash
    ls .claude/skills/zijinliu/data/zijin_$(date +%Y-%m-%d).json 2>/dev/null
    ```
+   > ⚠️ 本机系统时钟会跨日漂移，`$(date)` 可能不准；**main.py 内部以新浪权威交易日二次校验**（文件名/数据日以权威日为准），此处仅初步参考。
    - 已存在 → 🛑 STOP，提示"今日资金流快照已抓取，重跑会覆盖"，询问确认；用户确认后加 `--force` 重跑。
    - 不存在 → 继续。
 
@@ -46,6 +47,7 @@ description: 行业资金流排行榜 — 抓取东方财富行业板块当日�
 | 主力净流入(亿) main_net_yi | 主力（超大单+大单）净流入额，÷1e8 转亿 |
 | 占比% main_pct | 主力净流入 / 板块成交额，排除体量偏差（双口径之一） |
 | 超大单(亿) super_large_net | 超大单净流入额 |
+| 数据日 date / today_str | main.py 用**新浪权威交易日**（`scripts/trading_day.py`，不信任本机系统时钟）；新浪失败才降级本地时钟。盘前自动取上一交易日 → 文件名与 date 标签自动正确 |
 | 数据日标记 note / is_stale | 仅盘前/非交易时段抓取时出现：`is_stale=true` 表示数据为上一交易日收盘（非今日），`note` 为警告原文。下游读 JSON 据此判断时效，勿把上一交易日数据当今日 |
 
 ## 双口径解读
@@ -65,6 +67,7 @@ description: 行业资金流排行榜 — 抓取东方财富行业板块当日�
 | 盘中运行 | 资金流为盘中实时值（会随盘变化），复盘建议收盘后跑 |
 | 盘前/非交易时段 | 接口返回上一交易日收盘数据，main 打印数据日警告（非今日）**并持久化进 JSON**（`is_stale=true`），建议收盘后重跑 |
 | Windows 中文控制台(GBK) emoji 崩溃 | main.py 顶部已强制 stdout/stderr=utf-8（修复 `⚠️` 等 emoji 在 cp936 下 UnicodeEncodeError 崩在 save 前数据白抓）；极少数仍报编码错用 `PYTHONUTF8=1 python main.py` |
+| **本机系统时钟漂移**（w32time 停摆，实测跨日跳变） | main.py 以**新浪权威交易日**为 today_str 真相，文件名/数据日不受本地时钟影响；本地时钟与权威日不一致时打印漂移警告。治本需管理员启 w32time：`Set-Service w32time -StartupType Automatic; Start-Service w32time; w32tm /resync /force` |
 
 ## ❌ 不要做
 

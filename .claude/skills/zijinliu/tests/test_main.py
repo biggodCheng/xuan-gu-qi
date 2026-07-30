@@ -105,3 +105,29 @@ def test_run_stale_session_persists_to_json(tmp_path, monkeypatch):
     data = storage.load_results("2026-07-29", str(tmp_path))
     assert data["is_stale"] is True
     assert "上一交易日" in data["note"]
+
+
+# ---- 权威交易日 / 时钟漂移自检 ----
+def test_run_uses_authoritative_day_when_clock_drifts(tmp_path, capsys, monkeypatch):
+    """today_str 未传 → 用新浪权威交易日(非本地时钟); 本地偏慢1天 → 打印漂移警告、文件名用权威日。"""
+    monkeypatch.setattr(main.trading_day, "latest_trading_day", lambda: "2026-07-30")
+    monkeypatch.setattr(main.trading_day, "local_today_str", lambda: "2026-07-29")
+    ok = main.run(today_str=None, output_dir=str(tmp_path), fetcher=_FakeFetcher)
+    assert ok is True
+    # 文件名采用权威交易日(07-30), 而非本地时钟(07-29)
+    assert os.path.exists(os.path.join(str(tmp_path), "zijin_2026-07-30.json"))
+    assert not os.path.exists(os.path.join(str(tmp_path), "zijin_2026-07-29.json"))
+    out = capsys.readouterr().out
+    assert "相差 1 天" in out          # 漂移警告
+    assert "权威交易日" in out
+    assert "2026-07-30" in out
+
+
+def test_run_no_drift_warning_when_clock_aligned(tmp_path, capsys, monkeypatch):
+    """本地时钟与权威交易日一致 → 不打印漂移警告。"""
+    monkeypatch.setattr(main.trading_day, "latest_trading_day", lambda: "2026-07-30")
+    monkeypatch.setattr(main.trading_day, "local_today_str", lambda: "2026-07-30")
+    main.run(today_str=None, output_dir=str(tmp_path), fetcher=_FakeFetcher)
+    out = capsys.readouterr().out
+    assert "相差" not in out
+    assert "权威交易日" not in out

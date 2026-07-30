@@ -21,6 +21,15 @@ except (AttributeError, OSError):
 
 sys.path.insert(0, os.path.dirname(__file__))
 
+# 复用项目根 scripts/trading_day: 用新浪权威交易日, 免疫本机系统时钟漂移
+# (本机 w32time 服务停摆, 系统时钟会跨日跳变, 详见 SKILL.md 边界条件)
+_SKILL_DIR = os.path.dirname(os.path.abspath(__file__))              # .../zijinliu
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(_SKILL_DIR)))  # →skills→.claude→项目根
+_SCRIPTS_DIR = os.path.join(_ROOT, "scripts")
+if os.path.isdir(_SCRIPTS_DIR) and _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+import trading_day
+
 from screener import fetcher as _default_fetcher
 from screener import storage
 
@@ -77,7 +86,12 @@ def _print_summary(data: dict, top: int, outflow_top: int) -> None:
 def run(today_str: str | None = None, output_dir: str | None = None,
         top: int = 20, outflow_top: int = 10, per_end: int = 100,
         force: bool = False, fetcher=None) -> bool:
-    today_str = today_str or datetime.date.today().strftime("%Y-%m-%d")
+    today_str = today_str or trading_day.latest_trading_day()
+    # 本机时钟漂移自检: 本地时钟日 vs 权威交易日, 跨日则警告(仍采用权威交易日)
+    _drift = trading_day.drift_days(trading_day.local_today_str(), today_str)
+    if _drift:
+        print(f"⚠️ 本地时钟与权威交易日相差 {_drift} 天（本地 {trading_day.local_today_str()} → "
+              f"权威 {today_str}），已采用权威交易日；建议修复系统时间(见 SKILL.md 边界条件)。", flush=True)
     base_dir = os.path.dirname(os.path.abspath(__file__))
     output_dir = output_dir or os.path.join(base_dir, "data")
     fetcher = fetcher or _default_fetcher
