@@ -6,6 +6,22 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(__file__))
 
+# Windows 中文控制台默认 GBK(cp936) 编不出 emoji(⚠️), warn_if_drift 警告会崩;
+# 统一 stdout/stderr 用 utf-8(失败则忽略)。
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except (AttributeError, OSError):
+    pass
+
+# 复用项目根 scripts/trading_day: 用新浪权威交易日, 免疫本机系统时钟漂移
+_SKILL_DIR = os.path.dirname(os.path.abspath(__file__))
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(_SKILL_DIR)))
+_SCRIPTS_DIR = os.path.join(_ROOT, "scripts")
+if os.path.isdir(_SCRIPTS_DIR) and _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+import trading_day
+
 from screener.fetcher import get_all_stocks_today, get_stock_history
 from screener.calculator import filter_new_highs
 from screener.storage import save_results
@@ -15,12 +31,13 @@ def _fetch_history(code: str) -> tuple[str, list[float]]:
     return code, get_stock_history(code, days=100, exclude_last=True)
 
 
-def run_screener(output_dir: str | None = None) -> bool:
+def run_screener(output_dir: str | None = None, date_str: str | None = None) -> bool:
     if output_dir is None:
         output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
     start_time = time.time()
-    date_str = datetime.now().strftime("%Y-%m-%d")
+    date_str = date_str or trading_day.latest_trading_day()
+    trading_day.warn_if_drift(date_str)
 
     print(f"[{date_str}] 开始获取全 A 股当日行情...", flush=True)
     stocks_df = get_all_stocks_today()

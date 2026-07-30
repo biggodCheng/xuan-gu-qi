@@ -40,10 +40,9 @@ def test_run_screener_filters_correctly(mock_today, mock_history):
     )
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        run_screener(output_dir=tmpdir)
+        run_screener(output_dir=tmpdir, date_str="2026-07-30")
 
-        date_str = pd.Timestamp.now().strftime("%Y-%m-%d")
-        filepath = os.path.join(tmpdir, f"{date_str}.json")
+        filepath = os.path.join(tmpdir, "2026-07-30.json")
         assert os.path.exists(filepath)
 
         with open(filepath, "r", encoding="utf-8") as f:
@@ -60,5 +59,5 @@ def test_run_screener_no_data_today(mock_today, mock_history):
     mock_today.return_value = pd.DataFrame(columns=["code", "name", "close"])
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        result = run_screener(output_dir=tmpdir)
+        result = run_screener(output_dir=tmpdir, date_str="2026-07-30")
         assert result is False

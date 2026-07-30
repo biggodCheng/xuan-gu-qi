@@ -4,6 +4,21 @@ import subprocess
 import sys
 from datetime import datetime
 
+# Windows 中文控制台默认 GBK(cp936) 编不出 emoji(⚠️), warn_if_drift 警告会崩;
+# 统一 stdout/stderr 用 utf-8(失败则忽略)。
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except (AttributeError, OSError):
+    pass
+
+# 复用项目根 scripts/trading_day: 用新浪权威交易日, 免疫本机系统时钟漂移
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+_SCRIPTS_DIR = os.path.join(_ROOT, "scripts")
+if os.path.isdir(_SCRIPTS_DIR) and _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+import trading_day
+
 SKILLS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 CHUANGXINGAO = os.path.join(SKILLS_DIR, "chuangxingao", "main.py")
@@ -402,7 +417,8 @@ def _normalize_close(data: dict, src_path: str):
 
 
 def main():
-    date_str = datetime.now().strftime("%Y-%m-%d")
+    date_str = trading_day.latest_trading_day()
+    trading_day.warn_if_drift(date_str)
     print(f"qsht-agent 选股流水线 - {date_str}", flush=True)
 
     # 第0步：大盘环境扫描(选股前打印温度，失败不阻断)
