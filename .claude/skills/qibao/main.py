@@ -6,6 +6,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 sys.path.insert(0, os.path.dirname(__file__))
 
+# Windows 中文控制台默认 GBK(cp936), print 中文会乱码;
+# 统一 stdout/stderr 用 utf-8(失败则忽略, 不阻断)。
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except (AttributeError, OSError):
+    pass
+
 from screener.fetcher import get_stock_kline
 from screener.analyzer import MIN_HISTORY, filter_qibao
 from screener.storage import load_source, save_results
