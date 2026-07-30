@@ -59,6 +59,7 @@ except Exception:
 
 # 复用 market_regime 的核心函数 (市况判定逻辑), 失败则降级
 sys.path.insert(0, SCRIPTS_DIR)
+import trading_day                          # 新浪权威交易日, 免疫本机时钟漂移(本机 w32time 停摆)
 try:
     import local_kline                     # 招商证券 vipdoc 本地日K (快/不被封), 指数K线优先走它
     HAS_LOCAL = True
@@ -470,7 +471,8 @@ def main():
     ap.add_argument("--top", type=int, default=5, help="主线板块看 Top N (默认5)")
     ap.add_argument("--strict", action="store_true", help="门禁: 第3/4步占位符未填时报告顶部加红色banner且exit=1")
     args = ap.parse_args()
-    date_str = datetime.now().strftime("%Y-%m-%d")
+    date_str = trading_day.latest_trading_day()
+    trading_day.warn_if_drift(date_str)
     print(f"[{date_str}] 每日复盘 → 次日剧本\n")
 
     print("[0/5] 市况总开关 (market_regime) ...")

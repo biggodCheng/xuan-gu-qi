@@ -19,6 +19,14 @@ try:
 except (AttributeError, OSError):
     pass
 
+# 复用项目根 scripts/trading_day: 用新浪权威交易日, 免疫本机系统时钟漂移
+_SKILL_DIR = os.path.dirname(os.path.abspath(__file__))
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(_SKILL_DIR)))
+_SCRIPTS_DIR = os.path.join(_ROOT, "scripts")
+if os.path.isdir(_SCRIPTS_DIR) and _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+import trading_day
+
 from datetime import datetime
 
 from pk import config
@@ -111,7 +119,8 @@ def build_report_data(date_str, res, note=""):
 
 
 def run(date_str=None, note=""):
-    date_str = date_str or datetime.now().strftime("%Y-%m-%d")
+    date_str = date_str or trading_day.latest_trading_day()
+    trading_day.warn_if_drift(date_str)
     print(f"[{date_str}] 盘前外部温度计\n")
     res = fetch_all()
     data = build_report_data(date_str, res, note)
