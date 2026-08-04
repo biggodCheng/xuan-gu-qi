@@ -108,11 +108,11 @@ def test_aggregate_drops_low_coverage_days():
     assert result[0]["date"] == "2026-07-20"
 
 
-def _stub_kl(sym, base):
-    """构造一只个股 2 根 K 线，close 随 base 变化。"""
+def _stub_kl(sym, base, n=60):
+    """构造一只个股 n 根 K 线(默认 60, 满足 _MIN_HISTORY 准入门槛), 首根 close=base+0.5。"""
     return [
-        {"date": "2026-07-20", "open": base, "close": base + 0.5, "high": base + 1, "low": base - 0.5, "volume": base * 100},
-        {"date": "2026-07-21", "open": base + 0.5, "close": base + 1, "high": base + 1.5, "low": base, "volume": (base + 50) * 100},
+        {"date": f"d{i:03d}", "open": base, "close": base + 0.5, "high": base + 1, "low": base - 0.5, "volume": base * 100}
+        for i in range(n)
     ]
 
 
@@ -131,8 +131,8 @@ def test_get_sector_kline_aggregates_local():
          patch("screener.fetcher.local_kline.read_day",
                side_effect=lambda sym: stock_kl.get(sym, [])):
         result = get_sector_kline("BK1106")
-    assert len(result) == 2
-    assert result[0]["date"] == "2026-07-20"
+    assert len(result) == 60
+    assert result[0]["date"] == "d000"
     expected = round((10.5 + 20.5 + 30.5 + 40.5 + 50.5 + 60.5) / 6, 4)
     assert result[0]["close"] == expected
 
@@ -145,3 +145,36 @@ def test_get_sector_kline_too_few_members():
 def test_get_sector_kline_member_fetch_fails():
     with patch("screener.fetcher._get_board_members", side_effect=Exception("net error")):
         assert get_sector_kline("BK1106") == []
+
+
+def test_drop_short_history_excludes_new_ipo():
+    """数据不足的新股/新进成分被剔除, 老股(>=60天)保留。"""
+    from screener.fetcher import _drop_short_history, _MIN_HISTORY
+    long_kl = [{"date": f"d{i:03d}", "open": 10, "close": 10, "high": 10, "low": 10, "volume": 100} for i in range(60)]
+    new_ipo = [{"date": "d059", "open": 208, "close": 208, "high": 208, "low": 208, "volume": 100}]  # 仅 1 天
+    klines = {"600276": long_kl, "001232": new_ipo}
+    filtered = _drop_short_history(klines, _MIN_HISTORY)
+    assert "600276" in filtered
+    assert "001232" not in filtered  # 新股(1天 < 60)被剔除
+
+
+def test_get_sector_kline_excludes_new_stock_pollution():
+    """回归: 板块含仅 1 天数据的高价新股, 聚合均价不被其污染。
+
+    001232 仅 08-04 一天 close=208, 曾把 EDA 11 只成分均价从 38 拉到 55(+44%)。
+    修复后新股在聚合前被剔除, 均价 = 6 只老股均价, 不含 208。
+    """
+    members = ["600276", "000001", "300001", "600000", "000002", "600001", "001232"]  # 6 老 + 1 新
+    bases = {"sh600276": 10, "sz000001": 20, "sz300001": 30, "sh600000": 40, "sz000002": 50, "sh600001": 60}
+
+    def read(sym):
+        if sym == "sz001232":
+            return [{"date": "d059", "open": 208, "close": 208, "high": 208, "low": 208, "volume": 100}]
+        return _stub_kl(sym, bases[sym])
+
+    with patch("screener.fetcher._get_board_members", return_value=members), \
+         patch("screener.fetcher.local_kline.read_day", side_effect=read):
+        result = get_sector_kline("BK0946")
+    assert len(result) == 60
+    expected = round((10.5 + 20.5 + 30.5 + 40.5 + 50.5 + 60.5) / 6, 4)  # 6 只老股均价, 不含 208
+    assert result[-1]["close"] == expected

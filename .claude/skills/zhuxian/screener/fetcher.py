@@ -40,6 +40,9 @@ _session.headers.update({
 _CLIST_URL = "http://push2delay.eastmoney.com/api/qt/clist/get"
 _UT = "bd1d9ddb04089700cf9c27f6f7426281"
 _MIN_COMPONENTS = 5  # 成分股(或有本地数据)少于此数跳过该板块
+_MIN_HISTORY = 60    # 成分股至少 60 天本地数据才纳入聚合(对齐 analyze_sector 最低要求/ma60);
+                     # 排除新股(IPO)/新进成分, 防其只在加入日起参与均价造成阶跃跳变
+                     # (新股 001232 仅 1 天 close=208, 曾把 EDA 11 只成分均价从 38 拉到 55, +44%)
 
 # 东财"风格/元板块"黑名单(条件选股集合,趋势分自我实现虚高,非行业概念主线)。
 # 2026-07-21 经识别从 495 个概念板块筛出; "参股XX"(参股券商/银行/期货/保险/新三板)
@@ -174,6 +177,16 @@ def _aggregate(klines_by_stock: dict, min_coverage: float = 0.5) -> list[dict]:
     return result
 
 
+def _drop_short_history(klines_by_stock: dict, min_history: int) -> dict:
+    """剔除本地数据不足 min_history 天的成分(新股IPO/新进成分)。
+
+    这些股票只在"自己有数据的日子"参与均价, 会在其加入日造成均价阶跃跳变。
+    实例: 新股 001232 仅 1 天 close=208, 把 EDA 概念 11 只成分均价从 38 拉到 55(+44%)。
+    min_history=60 对齐 analyze_sector 最低数据要求与 ma60 窗口, 保证均线无阶跃。
+    """
+    return {c: kl for c, kl in klines_by_stock.items() if len(kl) >= min_history}
+
+
 def get_sector_kline(bk_code: str, days: int = 120, retries: int = 3) -> list[dict]:
     """板块合成日K = 本地全成分个股等权聚合。
 
@@ -201,6 +214,10 @@ def get_sector_kline(bk_code: str, days: int = 120, retries: int = 3) -> list[di
                     klines_by_stock[c] = kl
             except Exception:
                 continue
+    if len(klines_by_stock) < _MIN_COMPONENTS:
+        return []
+    # 剔除历史不足的成分(新股/新进成分), 防其只在加入日起抬高均价造成阶跃跳变
+    klines_by_stock = _drop_short_history(klines_by_stock, _MIN_HISTORY)
     if len(klines_by_stock) < _MIN_COMPONENTS:
         return []
     result = _aggregate(klines_by_stock)
