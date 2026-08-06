@@ -179,7 +179,7 @@ def _q2_section(q2_data: dict) -> list[str]:
     for s in picks:
         c = s.get("confidence", "")
         if c in by_conf:
-            by_conf[c].append(s.get("name", ""))
+            by_conf[c].append(f"{s.get('name', '?')}({s.get('code', '')})")
     hints = {
         "高": "两信号同向，最可靠",
         "中": "信号矛盾或含持平",

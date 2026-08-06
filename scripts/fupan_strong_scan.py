@@ -24,6 +24,11 @@ from collections import Counter
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import local_kline  # noqa: E402
+try:
+    import stock_names  # noqa: E402  名称映射(本地vipdoc无名称), 失败则名单退化为纯代码
+    _label = stock_names.label
+except Exception:
+    _label = lambda code: code  # noqa: E731
 
 try:
     import pattern_label  # 可选: 连板股追加首板成色 pattern 标签
@@ -159,7 +164,7 @@ def main():
     lian.sort(key=lambda x: (-x["height"], -x["chg"]))
     if lian:
         print(f"\n【连板股 {len(lian)} 只 · 按高度降序 (拆解候选)】")
-        print(f"  {'代码':8}{'板':4}{'收盘':7}{'封板':6}{'量比':6}{'振幅':6}备注")
+        print(f"  {'股票(代码)':<24}{'板':4}{'收盘':7}{'封板':6}{'量比':6}{'振幅':6}备注")
         for s in lian[:args.top]:
             note = []
             if s["yizi"]:
@@ -170,7 +175,7 @@ def main():
                 note.append("爆量")
             elif 0 < s["vr"] < 0.8:
                 note.append("缩量")
-            print(f"  {s['code']:8}{s['height']:<4d}{s['chg']:+6.1f}% {s['seal']:.2f}  "
+            print(f"  {_label(s['code']):<24}{s['height']:<4d}{s['chg']:+6.1f}% {s['seal']:.2f}  "
                   f"{s['vr']:5.1f} {s['amp']:5.1f}% {'/'.join(note)}")
         if len(lian) > args.top:
             print(f"  ... 另有 {len(lian) - args.top} 只连板")

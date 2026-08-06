@@ -97,13 +97,13 @@ def filter_limit_ups(
         code = stock["code"]
         kline = kline_map.get(code, [])
         if not kline:
-            failed_codes.append(code)
+            failed_codes.append(f"{stock['name']}({code})")
             continue
 
         # 以K线最新日期为基准，向前推 days_back 天
         latest_date = _parse_date(kline[-1]["date"])
         if latest_date is None:
-            failed_codes.append(code)
+            failed_codes.append(f"{stock['name']}({code})")
             continue
         cutoff_date = latest_date - timedelta(days=days_back)
 

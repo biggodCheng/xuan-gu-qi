@@ -79,6 +79,24 @@ except Exception as _e:
     HAS_SCAN = False
     print(f"  [WARN] 无法 import 扫描模块({_e}), 第3/4步降级为纯checklist")
 
+# 股票名称映射 (本地vipdoc 无名称, 第3/4步个股名单需补名字); import 失败则退化为纯代码
+try:
+    import stock_names
+except Exception as _e:
+    stock_names = None
+    print(f"  [WARN] 无法 import stock_names({_e}), 第3/4步名单将不带股票名字")
+
+
+def _name_of(code: str) -> str:
+    """表格名称列用: 返回名字, 缺失返回空串。"""
+    return stock_names.name_of(code) if stock_names else ""
+
+
+def _label(code: str) -> str:
+    """行内展示用: 「名字(代码)」; name 缺失退化为纯「代码」。"""
+    return stock_names.label(code) if stock_names else code
+
+
 INDICES = [("sh000001", "上证指数"), ("sh000300", "沪深300"), ("sz399006", "创业板指")]
 LIGHT = {"green": "🟢", "yellow": "🟡", "red": "🔴"}
 
@@ -374,8 +392,8 @@ def render(date_str, color, name, total, breadth, idx_data, stage, stage_info, n
         a(f"**[客观扫描 · 本地vipdoc · fupan_strong_scan]** 今日涨停 **{len(stocks)}** 只: "
           f"首板 **{first_board}** + 连板 **{len(stocks)-first_board}**。梯队: {ladder_s}")
         if lian:
-            a("\n| 代码 | 高度 | 收盘 | 封板 | 量比 | 振幅 | 客观标签 | 成色(pattern) |")
-            a("|---|---|---|---|---|---|---|---|")
+            a("\n| 名称 | 代码 | 高度 | 收盘 | 封板 | 量比 | 振幅 | 客观标签 | 成色(pattern) |")
+            a("|---|---|---|---|---|---|---|---|---|")
             for s in lian[:8]:
                 sig = []
                 if s["yizi"]:
@@ -391,7 +409,8 @@ def render(date_str, color, name, total, breadth, idx_data, stage, stage_info, n
                     pat = f"{p['shape']}/{p['volume']}/{p['sector']}→{p['suggest']}"
                 else:
                     pat = "—"
-                a(f"| {s['code']} | {s['height']}板 | {s['chg']:+.1f}% | {s['seal']:.2f} | "
+                nm = _name_of(s['code'])
+                a(f"| {nm} | {s['code']} | {s['height']}板 | {s['chg']:+.1f}% | {s['seal']:.2f} | "
                   f"{s['vr']:.1f} | {s['amp']:.1f}% | {' '.join(sig) or '温和'} | {pat} |")
             if len(lian) > 8:
                 a(f"\n*…另有 {len(lian)-8} 只连板 (2板为主, 拆解优先看高度前8)*")
@@ -428,11 +447,11 @@ def render(date_str, color, name, total, breadth, idx_data, stage, stage_info, n
         if failure["duanban"]:
             du = sorted(failure["duanban"], key=lambda x: x[2])[:8]
             a(f"- **断板{len(failure['duanban'])}只(昨涨停今跌·追高重灾区)**: " +
-              " / ".join(f"{d[0]} {d[2]:+.1f}%" for d in du))
+              " / ".join(f"{_label(d[0])} {d[2]:+.1f}%" for d in du))
         if failure["bigdown"]:
             bds = sorted(failure["bigdown"], key=lambda x: x[2])[:8]
             a(f"- **大跌{len(failure['bigdown'])}只**: " +
-              " / ".join(f"{b[0]} {b[2]:+.1f}%" for b in bds))
+              " / ".join(f"{_label(b[0])} {b[2]:+.1f}%" for b in bds))
     a("\n**归类根源** (人工研判):")
     a("> - **追高**(距5日高点>15% 或 ≥3板后追) / **模式外冲动**(非主线/qsht外) / **环境恶劣**(🔴退守市强操作)")
     a("> - 填写: _______________________________________________")

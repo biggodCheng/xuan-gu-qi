@@ -17,6 +17,13 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
+# 统一 stdout/stderr 用 utf-8(失败则忽略, 不阻断)。修中文/emoji 在 GBK 控制台崩溃。
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except (AttributeError, OSError):
+    pass
+
 sys.path.insert(0, os.path.dirname(__file__))
 
 from screener.fetcher import get_stock_kline, get_index_kline
@@ -112,8 +119,9 @@ def run_track(date_filter: str | None = None) -> bool:
                 try:
                     events.append(fut.result())
                 except Exception as e:
-                    print(f"[{drop_date}] {futures[fut].get('code', '')} 跟踪失败: {e}", flush=True)
-                    events.append(_empty_event(futures[fut], drop_date))
+                    seed = futures[fut]
+                    print(f"[{drop_date}] {seed.get('name', '')}({seed.get('code', '')}) 跟踪失败: {e}", flush=True)
+                    events.append(_empty_event(seed, drop_date))
 
     stats = _summarize(events)
     os.makedirs(_OUTPUT_DIR, exist_ok=True)

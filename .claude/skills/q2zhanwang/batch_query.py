@@ -48,7 +48,8 @@ def run(input_path: str, output_dir: str = _DATA_DIR) -> dict:
         fin = get_financial(code)
         if not fin["reports"]:
             failed.append(code)
-            print(f"  [{i}/{len(stocks)}] {code}  ✗ 无财报数据", flush=True)
+            _nm = s.get("name")
+            print(f"  [{i}/{len(stocks)}] {f'{_nm}({code})' if _nm else code}  ✗ 无财报数据", flush=True)
             continue
 
         r = analyze(fin)
@@ -65,7 +66,8 @@ def run(input_path: str, output_dir: str = _DATA_DIR) -> dict:
             "q2_note": r.get("q2_outlook", {}).get("summary"),
         })
         v = r.get("q2_outlook", {}).get("verdict")
-        print(f"  [{i}/{len(stocks)}] {code} {r.get('name')}  → {v}", flush=True)
+        _nm = r.get("name")
+        print(f"  [{i}/{len(stocks)}] {f'{_nm}({code})' if _nm else code}  → {v}", flush=True)
 
     # 排序:verdict 升序(偏正在前),再按净利同比降序
     results.sort(key=lambda x: (

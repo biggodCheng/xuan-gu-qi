@@ -120,7 +120,13 @@ def evaluate_one(query: str) -> dict:
         except Exception:
             code, name = None, None
     if not code and re.match(r"^[034689]\d{5}$", query):
-        code = query                       # _SID 不可用/解析失败时，纯代码兜底（含北交所920xxx，name 留空）
+        code = query                       # _SID 不可用/解析失败时，纯代码兜底（含北交所920xxx）
+        if not name:                       # _SID 未拿到 name → 全市场映射兜底, 避免 reporter 输出 None(代码)
+            try:
+                import stock_names
+                name = stock_names.name_of(code) or None
+            except Exception:
+                pass
     if not code:
         return {"code": "", "name": query, "error": f"未找到股票或名称解析不可用: {query}"}
 

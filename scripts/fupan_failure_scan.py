@@ -23,6 +23,11 @@ from collections import Counter
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import local_kline  # noqa: E402
+try:
+    import stock_names  # noqa: E402  名称映射(本地vipdoc无名称), 失败则名单退化为纯代码
+    _label = stock_names.label
+except Exception:
+    _label = lambda code: code  # noqa: E731
 
 # Windows + Git Bash utf-8 输出 (与 fupan.main 一致, 防 emoji/中文崩)
 try:
@@ -150,7 +155,7 @@ def main():
     if r["duanban"]:
         print(f"【断板 {len(r['duanban'])} 只 · 昨涨停今跌 · 追高重灾区】")
         for code, bd, chg, prev_chg in sorted(r["duanban"], key=lambda x: x[2])[:r["top"]]:
-            print(f"  {code} {fmt_board(bd):4} 今{chg:+6.2f}% (昨{prev_chg:+.1f}%涨停)")
+            print(f"  {_label(code)} {fmt_board(bd):4} 今{chg:+6.2f}% (昨{prev_chg:+.1f}%涨停)")
         if len(r["duanban"]) > r["top"]:
             print(f"  ... 另有 {len(r['duanban']) - r['top']} 只")
         print()
@@ -159,7 +164,7 @@ def main():
     if r["zhaban"]:
         print(f"【炸板 {len(r['zhaban'])} 只 · 盘中触及涨停未封 · 追高/分歧】")
         for code, bd, chg, high_chg in sorted(r["zhaban"], key=lambda x: x[2])[:r["top"]]:
-            print(f"  {code} {fmt_board(bd):4} 收{chg:+6.2f}% (最高{high_chg:+.1f}%)")
+            print(f"  {_label(code)} {fmt_board(bd):4} 收{chg:+6.2f}% (最高{high_chg:+.1f}%)")
         if len(r["zhaban"]) > r["top"]:
             print(f"  ... 另有 {len(r['zhaban']) - r['top']} 只")
         print()
@@ -168,7 +173,7 @@ def main():
     if r["shangying"]:
         print(f"【高位放量长上影 {len(r['shangying'])} 只 · 见顶预警】")
         for code, bd, chg, vr in sorted(r["shangying"], key=lambda x: -x[3])[:r["top"]]:
-            print(f"  {code} {fmt_board(bd):4} 收{chg:+6.2f}% 量比{vr:.1f}×")
+            print(f"  {_label(code)} {fmt_board(bd):4} 收{chg:+6.2f}% 量比{vr:.1f}×")
         if len(r["shangying"]) > r["top"]:
             print(f"  ... 另有 {len(r['shangying']) - r['top']} 只")
         print()
@@ -177,7 +182,7 @@ def main():
     if r["bigdown"]:
         print(f"【大跌(≤-7%) {len(r['bigdown'])} 只 · 其中跌停≈{r['dietting_n']}】")
         for code, bd, chg, *_ in sorted(r["bigdown"], key=lambda x: x[2])[:r["top"]]:
-            print(f"  {code} {fmt_board(bd):4} {chg:+6.2f}%")
+            print(f"  {_label(code)} {fmt_board(bd):4} {chg:+6.2f}%")
         if len(r["bigdown"]) > r["top"]:
             print(f"  ... 另有 {len(r['bigdown']) - r['top']} 只")
 
