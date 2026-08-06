@@ -50,3 +50,31 @@ def test_main_writes_output(tmp_path, monkeypatch):
         out = mainmod.run(date_str="2026-07-23", note="")
     assert (tmp_path / "2026-07-23.md").exists()
     assert out.endswith("2026-07-23.md")
+
+
+def test_run_uses_local_day_before_open(tmp_path, monkeypatch):
+    """盘前(date_str=None, 权威交易日=昨日 → drift<=-1)时报告日用本地日(今天)。
+
+    latest_trading_day()(=新浪最新日K日)在 A股未开盘的盘前返回昨日; panqian 服务于
+    "即将开盘的交易日", 此时本地日才是正确报告日。否则盘前报告少标1天、覆盖昨日报告、
+    并误报时钟漂移(<=-1 同时覆盖长假后首个交易日盘前)。
+    """
+    monkeypatch.setattr(mainmod, "OUT_DIR", str(tmp_path))
+    monkeypatch.setattr(mainmod.trading_day, "latest_trading_day", lambda: "2026-07-30")
+    monkeypatch.setattr(mainmod.trading_day, "local_today_str", lambda: "2026-07-31")
+    with patch.object(mainmod, "fetch_all", return_value=_ok_results()):
+        out = mainmod.run(note="")
+    assert (tmp_path / "2026-07-31.md").exists()
+    assert not (tmp_path / "2026-07-30.md").exists()
+    assert out.endswith("2026-07-31.md")
+
+
+def test_run_uses_trading_day_when_aligned(tmp_path, monkeypatch):
+    """收盘后/对齐场景(drift=0)沿用权威交易日, 回归保护。"""
+    monkeypatch.setattr(mainmod, "OUT_DIR", str(tmp_path))
+    monkeypatch.setattr(mainmod.trading_day, "latest_trading_day", lambda: "2026-07-31")
+    monkeypatch.setattr(mainmod.trading_day, "local_today_str", lambda: "2026-07-31")
+    with patch.object(mainmod, "fetch_all", return_value=_ok_results()):
+        out = mainmod.run(note="")
+    assert (tmp_path / "2026-07-31.md").exists()
+    assert out.endswith("2026-07-31.md")

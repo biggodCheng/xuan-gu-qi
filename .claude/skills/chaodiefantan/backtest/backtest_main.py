@@ -13,6 +13,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SKILL_DIR = os.path.dirname(HERE)                     # chaodiefantan/
 sys.path.insert(0, SKILL_DIR)
 
+# 统一 stdout/stderr 用 utf-8(失败则忽略, 不阻断)。修中文/emoji 在 GBK 控制台崩溃。
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except (AttributeError, OSError):
+    pass
+
 from screener.bridges import (  # noqa: E402  复用 kangdie fetcher
     get_all_stocks_today, get_market_cap_map, get_index_kline)
 from screener.analyzer import CAP_FILTER_ENABLED  # noqa: E402

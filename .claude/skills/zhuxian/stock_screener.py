@@ -27,6 +27,13 @@ from datetime import datetime
 from pathlib import Path
 from statistics import mean
 
+# 统一 stdout/stderr 用 utf-8(失败则忽略, 不阻断)。修中文/emoji 在 GBK 控制台崩溃。
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except (AttributeError, OSError):
+    pass
+
 _ROOT = Path(__file__).resolve().parents[3]  # 项目根
 _SCRIPTS = _ROOT / "scripts"
 if str(_SCRIPTS) not in sys.path:

@@ -23,6 +23,13 @@ DOM 结构要点 (2026-07-14 探测确认):
 """
 import sys
 
+# 统一 stdout/stderr 用 utf-8(失败则忽略, 不阻断)。修中文/emoji 在 GBK 控制台崩溃。
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except (AttributeError, OSError):
+    pass
+
 from playwright.sync_api import sync_playwright
 
 URL = "https://guba.eastmoney.com/rank/"

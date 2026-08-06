@@ -118,8 +118,23 @@ def build_report_data(date_str, res, note=""):
     }
 
 
+def _resolve_report_day():
+    """panqian 报告日:服务于"即将开盘的交易日",而非"最近已收盘日"。
+
+    latest_trading_day()(=新浪最新日K日)是收盘后 skill 的真相源; 但 panqian 盘前跑时
+    A股未开盘, 它返回昨日 → drift<=-1。此时本地日才是"今天盘前"的正确报告日(否则盘前
+    报告少标1天、覆盖昨日报告、并误报时钟漂移; <=-1 同时覆盖长假后首个交易日盘前)。
+    其余情况(对齐/本地时钟偏慢)沿用权威交易日。
+    """
+    trading = trading_day.latest_trading_day()
+    local = trading_day.local_today_str()
+    if trading_day.drift_days(local, trading) <= -1:
+        return local
+    return trading
+
+
 def run(date_str=None, note=""):
-    date_str = date_str or trading_day.latest_trading_day()
+    date_str = date_str or _resolve_report_day()
     trading_day.warn_if_drift(date_str)
     print(f"[{date_str}] 盘前外部温度计\n")
     res = fetch_all()
