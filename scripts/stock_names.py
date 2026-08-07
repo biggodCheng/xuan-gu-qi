@@ -30,7 +30,7 @@ _session.headers.update({
 })
 
 _URL = (
-    "https://vip.stock.finance.sina.com.cn/quotes_service/api/"
+    "https://money.finance.sina.com.cn/quotes_service/api/"
     "json_v2.php/Market_Center.getHQNodeData"
 )
 

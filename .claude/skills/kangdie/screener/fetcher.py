@@ -41,8 +41,9 @@ _session.headers.update({
     "Referer": "https://finance.sina.com.cn",
 })
 
+# host 用 money.finance(非 vip.stock.finance):后者 2026-08-07 起返回 HTTP 456 限封
 _HQNODE_DATA_URL = (
-    "https://vip.stock.finance.sina.com.cn/quotes_service/api/"
+    "https://money.finance.sina.com.cn/quotes_service/api/"
     "json_v2.php/Market_Center.getHQNodeData"
 )
 _KLINE_URL = (
